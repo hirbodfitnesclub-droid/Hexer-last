@@ -1,0 +1,9 @@
+{
+  "name": "hexer 1.4",
+  "description": "تسک های 8-9-10",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ],
+  "majorCapabilities": []
+}
