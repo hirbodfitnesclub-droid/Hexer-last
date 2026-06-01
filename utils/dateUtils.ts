@@ -29,3 +29,39 @@ export const formatPersianDate = (dateString: string | Date | undefined | null):
 export const getDaysInPersianMonth = (year: number, month: number) => {
   return jalaali.jalaaliMonthLength(year, month);
 };
+
+export const getTehranDateString = (date?: Date): string => {
+  const d = date || new Date();
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Tehran',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  return formatter.format(d); // Returns YYYY-MM-DD
+};
+
+export const isSameTehranDay = (date1: Date | string, date2: Date | string): boolean => {
+  const d1 = typeof date1 === 'string' ? new Date(date1) : date1;
+  const d2 = typeof date2 === 'string' ? new Date(date2) : date2;
+  return getTehranDateString(d1) === getTehranDateString(d2);
+};
+
+export const compareTehranDates = (
+  date1: Date | string | null | undefined,
+  date2: Date | string | null | undefined
+): number => {
+  if (!date1 && !date2) return 0;
+  if (!date1) return 1;
+  if (!date2) return -1;
+  const d1Str = getTehranDateString(typeof date1 === 'string' ? new Date(date1) : date1);
+  const d2Str = getTehranDateString(typeof date2 === 'string' ? new Date(date2) : date2);
+  return d1Str.localeCompare(d2Str);
+};
+
+export const dueToTehranDay = (dueDate: Date | string | null | undefined): string => {
+  if (!dueDate) return '';
+  const date = typeof dueDate === 'string' ? new Date(dueDate) : dueDate;
+  return getTehranDateString(date);
+};
+

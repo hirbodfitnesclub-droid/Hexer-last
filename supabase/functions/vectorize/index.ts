@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { GoogleGenAI } from 'https://esm.sh/@google/genai';
 
@@ -16,29 +15,64 @@ Deno.serve(async (req) => {
 
   try {
     const payload = await req.json();
-    const { type, id, content } = payload;
+    const { type, id } = payload;
     
-    if (!content || !id || !type) {
-         console.error("Missing payload fields:", payload);
-         return new Response(JSON.stringify({ message: "Invalid payload: content, id, or type missing" }), { status: 400, headers: corsHeaders });
+    if (!id || !type) {
+         console.error("Missing payload required fields (id, type):", payload);
+         return new Response(JSON.stringify({ message: "Invalid payload: id or type missing" }), { status: 400, headers: corsHeaders });
+    }
+
+    // Initialize Supabase client
+    const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!SERVICE_ROLE_KEY) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      SERVICE_ROLE_KEY
+    );
+
+    const table = type === 'task' ? 'tasks' : 'notes';
+
+    // Fetch the latest version of the record with title, content/description and tags
+    const { data: record, error: fetchError } = await supabaseClient
+        .from(table)
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+    if (fetchError || !record) {
+        throw new Error(fetchError ? `Fetch error: ${fetchError.message}` : `Record with id ${id} not found in ${table}`);
+    }
+
+    // Construct the combined text input representing all searchable context
+    let combinedText = '';
+    if (type === 'task') {
+        const title = record.title || '';
+        const description = record.description || '';
+        const tags = Array.isArray(record.tags) ? record.tags.join(' ') : '';
+        combinedText = `${title} ${description} ${tags}`.trim();
+    } else {
+        const title = record.title || '';
+        const content = record.content || '';
+        const tags = Array.isArray(record.tags) ? record.tags.join(' ') : '';
+        combinedText = `${title} ${content} ${tags}`.trim();
+    }
+
+    if (!combinedText) {
+        return new Response(JSON.stringify({ message: "Constructed content is empty, skipping vectorizaton" }), { status: 200, headers: corsHeaders });
     }
 
     const API_KEY = Deno.env.get('GEMINI_API_KEY');
     if (!API_KEY) throw new Error("Missing GEMINI_API_KEY");
     
     const ai = new GoogleGenAI({ apiKey: API_KEY });
-    
-    const contentString = String(content);
-    if (!contentString.trim()) {
-        return new Response(JSON.stringify({ message: "Content is empty, skipping vectorization" }), { status: 200, headers: corsHeaders });
-    }
 
     // Use explicit structure to avoid parsing issues
     const response = await ai.models.embedContent({
         model: 'text-embedding-004',
         contents: [
             {
-                parts: [{ text: contentString }]
+                parts: [{ text: combinedText }]
             }
         ],
     });
@@ -56,33 +90,22 @@ Deno.serve(async (req) => {
         console.error("Gemini Response Dump:", JSON.stringify(response));
         throw new Error("Failed to generate embedding: No embedding values returned from Gemini (checked both singular and plural paths).");
     }
-
-    // UPDATED: Use SUPABASE_SERVICE_ROLE_KEY matching the dashboard default
-    const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!SERVICE_ROLE_KEY) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
-
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      SERVICE_ROLE_KEY
-    );
-
-    const table = type === 'task' ? 'tasks' : 'notes';
     
-    const { error } = await supabaseClient
+    const { error: updateError } = await supabaseClient
         .from(table)
         .update({ embedding: embeddingValues })
         .eq('id', id);
 
-    if (error) {
-        throw new Error(`Supabase DB Error: ${error.message} (Hint: Check SERVICE_ROLE_KEY permissions)`);
+    if (updateError) {
+        throw new Error(`Supabase DB Error during update: ${updateError.message}`);
     }
 
-    return new Response(JSON.stringify({ message: "Vectorized successfully" }), {
+    return new Response(JSON.stringify({ message: "Vectorized successfully", length: embeddingValues.length }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Vectorize Error Details:", error);
     return new Response(JSON.stringify({ 
         error: error.message,

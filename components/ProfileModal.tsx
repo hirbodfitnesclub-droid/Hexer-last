@@ -75,7 +75,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                     </button>
 
                     {/* Luxurious Avatar Container */}
-                    <div className="w-18 h-18 mx-auto bg-neutral-950 rounded-full flex items-center justify-center border-4 border-neutral-900 shadow-xl mb-3 relative group overflow-hidden">
+                    <div className="w-20 h-20 mx-auto bg-neutral-950 rounded-full flex items-center justify-center border-4 border-neutral-900 shadow-xl mb-3 relative group overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-tr from-[#00d2ff] via-fuchsia-500 to-indigo-600 rounded-full opacity-15 group-hover:opacity-30 transition-opacity duration-300"></div>
                         <span className="text-2xl font-black text-white relative z-10 font-mono tracking-wider">
                             {user?.email?.[0].toUpperCase() || <UserIcon className="w-8 h-8"/>}

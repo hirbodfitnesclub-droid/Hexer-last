@@ -92,6 +92,7 @@ export enum Page {
   Notes = 'یادداشت‌ها',
   Projects = 'پروژه‌ها',
   Chat = 'چت',
+  Subscription = 'اشتراک',
 }
 
 export enum Priority {
@@ -119,9 +120,44 @@ export interface Subscription {
 }
 
 export interface UsageStatus {
-  user_id: string;
+  plan_code: string;
+  display_name: string;
+  monthly_quota: number;
+  request_count: number;
+  remaining: number;
   period_start: string;
   period_end: string;
-  request_count: number;
+  expires_at: string;
+}
+
+export interface EntityLink {
+  id: string;
+  user_id: string;
+  task_id: string;
+  note_id: string;
+  created_at: string;
+}
+
+export interface ChatSession {
+  id: string;
+  user_id: string;
+  session_date: string; // YYYY-MM-DD
+  created_at: string;
+}
+
+export interface ExtractionProposal {
+  id: string; // Client-side generated uuid/temp-id
+  kind: 'task' | 'note';
+  draft: {
+    title: string;
+    description?: string;
+    content?: string;
+    dueDate?: string; // YYYY-MM-DD
+    priority?: 'low' | 'medium' | 'high';
+    tags?: string[];
+    project_id?: string | null;
+  };
+  confidence: number;
+  status: 'pending' | 'approved' | 'rejected';
 }
 

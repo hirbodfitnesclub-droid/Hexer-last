@@ -1,191 +1,168 @@
-# ARCHITECTURE.md — لنگرگاه سیستمی (Hexer AI)
+# ARCHITECTURE.md — نقشه‌ی مهندسی این ریفکتور (Hexer AI)
 
-> نقشه مهندسی کامل بک‌اند از نقطه صفر. این سند «چه چیزی» و «چرا» را تعریف می‌کند؛ «چگونگیِ» گام‌به‌گام در `tasks.md` است.
-
----
-
-## ۱. نمای کلان (High-Level)
-
-```
-[ React Client ]
-   │  (1) آپلود مدیا مستقیم (RLS) ┌────────────────────┐
-   ├────────────────────────────►│ Supabase Storage    │ (باکت chat-media / private)
-   │                              └────────────────────┘
-   │  (2) فراخوانی با مسیر فایل (نه Base64)
-   ▼
-[ Edge: ai-assistant ] ──(3) consume_ai_quota RPC──► [ Postgres: گیتِ اشتراک/مصرف ]
-   │  (4) دانلود بایت‌های مدیا از Storage (Service Role)
-   │  (5) Gemini (مدل بر اساس پلن) → استخراج/اکشن
-   ▼
-[ Postgres ] ◄──(6) RPC های اتمیک (create_task_with_tags ...) → Realtime (فیلترشده با user_id) ──► [ Client ]
-
-[ React Client ] ─► [ Edge: zibal-request ] ─► زیبال ─► کاربر پرداخت ─► [ Edge: zibal-verify ] ─► activate_subscription RPC
-
-[ Postgres: INSERT/UPDATE روی tasks|notes ] ──(تریگر + pg_net)──► [ Edge: vectorize ] ──► embedding(768) برمی‌گردد به همان ردیف
-```
-
-اصول حاکم: **Server-Authoritative** (منطق پولی/مصرفی/امنیتی سمت سرور)، **RLS-First** (هر جدول قفل)، **Atomic via RPC** (نوشتن چندمرحله‌ای فقط در دیتابیس).
+> این سند «چه چیزی» و «چرا»ی ریفکتور جاری را تعریف می‌کند؛ «چگونگیِ» گام‌به‌گام در `tasks.md` (R1–R10).
+> اصول حاکم (که از قبل پیاده شده‌اند و دست‌نخورده می‌مانند): **Server-Authoritative** (منطق پولی/مصرفی/امنیتی سمت سرور)، **RLS-First** (هر جدول قفل روی `auth.uid()=user_id`)، **Atomic via RPC** (نوشتن چندمرحله‌ای فقط در دیتابیس).
 
 ---
 
-## ۲. اسکیمای دیتابیس (Schema)
+## ۱. وضعیت موجود (Snapshot — برای زمینه، نه برای تغییر)
+> این بخش فقط برای آگاهی کدنویس است. این موارد **ساخته‌شده‌اند** و در این ریفکتور بازنویسی نمی‌شوند مگر صریحاً در یک تسک گفته شود.
 
-> همه‌ی جداولِ دادهٔ کاربر دارای `user_id uuid not null references auth.users(id) on delete cascade` و **RLS فعال** با پالیسی پایه `auth.uid() = user_id` هستند.
-> امبدینگ‌ها: `vector(768)` (مطابق `text-embedding-004`).
+- **جداول موجود (همه با `user_id` + RLS):** `profiles`, `plans`(+seed free/plus/pro)، `subscriptions`, `usage_counters`, `ai_requests_log`, `payments`, `projects`, `tasks`(با `checklist jsonb` و `embedding vector(768)`), `notes`(با `embedding vector(768)`), `habits`, `habit_completions`, `reminders`, `media_assets`.
+- **RPC های موجود:** `handle_new_user`(تریگر ساخت اتمیک profile+subscription+usage)، `create_task_with_tags`، `create_note_with_tags`، `match_documents`(جستجوی برداری user-scoped)، `consume_ai_quota`(گیت اتمیک سهمیه، خروجی `{allowed, model, remaining, reason}`)، `activate_subscription`، `enqueue_vectorize`(تریگر `pg_net` روی tasks/notes).
+- **توابع لبه‌ی موجود:** `ai-assistant`(مسیر بدون Base64، مدیا از Storage با Service Role)، `vectorize`(امبدینگ ۷۶۸)، `zibal-request`, `zibal-verify`.
+- **Storage:** باکت‌های Private `chat-media` و `avatars` با ساختار مسیر `{user_id}/...`.
+- **env هدف:** کلاینت `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` · توابع `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `ZIBAL_MERCHANT`, `ZIBAL_CALLBACK_URL`.
 
-### ۲.۱. هویت و پروفایل
-**`profiles`** — یک ردیف به ازای هر کاربر (PK = `id` که همان `auth.users.id` است).
+> فایل‌های SQL موجود با پیشوند `00`–`12` هستند. **فایل‌های جدیدِ این ریفکتور با پیشوند `20`+ ساخته می‌شوند تا تداخل نکنند.**
+
+---
+
+## ۲. افزوده‌های اسکیما (Schema Δ)
+> فایل جدید `supabase/sql/20_refactor_schema.sql` (Idempotent). همه‌ی جداول جدید: `user_id` + RLS پایه `auth.uid() = user_id`.
+
+### ۲.۱. اصلاح `profiles` (رفع باگ Onboarding)
+دو ستونِ گم‌شده که فرم Onboarding جمع می‌کند ولی جایی برای ذخیره ندارد:
 | ستون | نوع | توضیح |
 |------|-----|------|
-| id | uuid PK FK→auth.users | حذف آبشاری |
-| full_name | text | |
-| avatar_url | text | مسیر در باکت avatars |
-| timezone | text default 'Asia/Tehran' | برای یادآوری‌ها |
-| onboarding_completed | boolean default false | کنترل جریان Onboarding |
-| created_at / updated_at | timestamptz | |
+| specialty | text null | تخصص کاربر (مرحله‌ی ۲ Onboarding) |
+| interests | text[] default '{}' | علایق (مرحله‌ی ۳ Onboarding) |
 
-تریگر `handle_new_user` روی `auth.users` (AFTER INSERT): به‌صورت اتمیک می‌سازد → `profiles` + `subscriptions`(پلن free، انقضا = now()+۳ روز) + ردیف `usage_counters` اولیه.
-
-### ۲.۲. اشتراک و مصرف (Billing Core)
-**`plans`** — جدول مرجعِ پیکربندی (داده‌محور؛ مدل و سقف از کد جدا می‌شود). Seed ثابت:
-| plan_code (PK) | display_name | price_irr (bigint) | monthly_quota | period_days | ai_model |
-|------|------|------|------|------|------|
-| free | آزمایشی | 0 | 30 | 3 | gemini-2.5-flash-lite |
-| plus | پلاس | 990000 | 400 | 30 | gemini-2.5-flash-lite |
-| pro | پرو | 2990000 | 1000 | 30 | gemini-3.1-flash-lite |
-
-> توجه: مبالغ به **ریال** ذخیره می‌شوند (۹۹٬۰۰۰ تومان = ۹۹۰٬۰۰۰ ریال، ۲۹۹٬۰۰۰ تومان = ۲٬۹۹۰٬۰۰۰ ریال). درگاه زیبال مبلغ را به ریال می‌گیرد.
-
-**`subscriptions`** — وضعیت پلن جاری کاربر (یک ردیف فعال به‌ازای هر کاربر).
+### ۲.۲. لینک دوطرفه — `task_note_links`
+جدول واسط که از هر دو سمت کوئری می‌شود.
 | ستون | نوع | توضیح |
 |------|-----|------|
 | id | uuid PK | |
-| user_id | uuid (unique) | یک اشتراک فعال در لحظه |
-| plan_code | text FK→plans | |
-| status | text | active / expired / canceled / pending |
-| started_at | timestamptz | |
-| expires_at | timestamptz | free: signup+۳روز، paid: +۳۰روز |
-| updated_at | timestamptz | |
+| user_id | uuid not null FK→auth.users | RLS |
+| task_id | uuid not null FK→tasks `on delete cascade` | |
+| note_id | uuid not null FK→notes `on delete cascade` | |
+| created_at | timestamptz default now() | |
+- `UNIQUE(task_id, note_id)` برای جلوگیری از لینک تکراری؛ ایندکس روی `(user_id)`, `(task_id)`, `(note_id)`.
 
-**`usage_counters`** — شمارندهٔ مصرف AI در دورهٔ جاری (مبنای اعمال سقف).
+### ۲.۳. تاریخچه‌ی چت — `chat_sessions` + `chat_messages`
+چت از حالت ephemeral (state در `App.tsx`) به **پایدار، روزانه، با نگه‌داری یک‌ماهه** منتقل می‌شود.
+
+**`chat_sessions`** — یک ردیف به‌ازای هر روزِ کاربر: `id`, `user_id`, `session_date date`(به وقت Asia/Tehran), `created_at`. با `UNIQUE(user_id, session_date)`.
+
+**`chat_messages`** — پیام‌های هر نشست:
 | ستون | نوع | توضیح |
 |------|-----|------|
-| user_id | uuid PK FK | |
-| period_start | timestamptz | شروع دورهٔ شمارش |
-| period_end | timestamptz | پایان دوره (= expires_at دورهٔ فعلی) |
-| request_count | int default 0 | تعداد درخواست مصرف‌شده |
-| updated_at | timestamptz | |
+| id | uuid PK | |
+| user_id | uuid not null FK | RLS |
+| session_id | uuid not null FK→chat_sessions `on delete cascade` | |
+| sender | text check in ('user','ai') | |
+| text | text | |
+| mode | text null | auto/action/memory |
+| citations | jsonb default '[]' | منابع RAG |
+| action_results | jsonb default '[]' | آیتم‌های ساخته/پیشنهادشده |
+| created_at | timestamptz default now() | ایندکس `(user_id, session_id, created_at)` |
 
-**`ai_requests_log`** (اختیاری ولی توصیه‌شده برای ��سابرسی) — `id, user_id, mode, model, tokens_estimate, created_at`. فقط INSERT از سمت سرور؛ کاربر فقط ردیف‌های خودش را می‌خواند.
+- **روز جاری vs تاریخچه:** نشستِ `session_date = today(Asia/Tehran)` قابل ادامه است؛ نشست‌های قدیمی‌تر **فقط-خواندنی** (کلاینت ارسال را غیرفعال می‌کند).
+- **نگه‌داری یک‌ماهه:** ترجیحاً job شبانه با `pg_cron`: حذف نشست‌های قدیمی‌تر از ۳۰ روز (پیام‌ها با cascade). اگر `pg_cron` در دسترس نبود، **fallback** حذف تنبل داخل RPC `get_chat_sessions`.
 
-### ۲.۳. پرداخت
-**`payments`** — هر تراکنش زیبال.
-| ستون | نوع | توضیح |
-|------|-----|------|
-| id | uuid PK | order_id ارسالی به زیبال |
-| user_id | uuid FK | |
-| plan_code | text FK→plans | |
-| amount_irr | bigint | مبلغ به ریال |
-| gateway | text default 'zibal' | |
-| track_id | text | trackId بازگشتی از زیبال |
-| ref_number | text | شماره پیگیری پس از verify |
-| status | text | pending / paid / failed / canceled |
-| created_at / paid_at | timestamptz | |
-
-### ۲.۴. دامنهٔ اصلی محصول
-**`projects`**: id, user_id, title, description, status, priority, color, created_at, updated_at.
-**`tasks`**: id, user_id, project_id (FK→projects, nullable, `on delete set null`), title, description, status, priority, due_date, completed_at, tags `text[]`, **checklist `jsonb` default '[]'**, **embedding `vector(768)`**, created_at, updated_at.
-**`notes`**: id, user_id, project_id (FK, nullable), title, content, tags `text[]`, **embedding `vector(768)`**, created_at, updated_at.
-**`habits`**: id, user_id, name, description, frequency, target_count, created_at, updated_at.
-**`habit_completions`**: id, user_id, habit_id (FK→habits, `on delete cascade`), completion_date `date`, created_at — با `UNIQUE(habit_id, completion_date)`.
-
-### ۲.۵. یادآوری/اعلان و مدیا
-**`reminders`**: id, user_id, title, body, remind_at `timestamptz`, type (task/habit/custom), related_entity_type, related_entity_id, is_sent boolean, is_read boolean, created_at.
-**`media_assets`** (رهگیری فایل‌های آپلودی برای پاکسازی): id, user_id, bucket, path, mime_type, size_bytes, purpose (chat_audio/chat_image/avatar), created_at.
-
-### ۲.۶. ایندکس‌ها (الزامی برای مقیاس)
-- `tasks(user_id)`, `notes(user_id)`, `projects(user_id)`, `habits(user_id)`, `habit_completions(user_id)`, `reminders(user_id, remind_at)`.
-- ایندکس برداری **IVFFlat/HNSW** روی `tasks.embedding` و `notes.embedding` با `vector_cosine_ops`.
+### ۲.۴. ایندکس‌های متنی برای RAG هیبریدی
+افزونه‌ی **`pg_trgm`** + ایندکس GIN تری‌گرم روی `tasks.title/description` و `notes.title/content` (full-text فارسی در Postgres ضعیف است؛ trigram انتخاب درست برای جستجوی کلیدواژه‌ای فازی فارسی است).
 
 ---
 
-## ۳. RPC ها و توابع دیتابیس (منطق سمت سرور)
+## ۳. افزوده‌های RPC (RPC Δ)
+> فایل جدید `supabase/sql/21_refactor_functions.sql`. همه user-scoped و Idempotent.
 
-| تابع | نوع | مسئولیت | نکتهٔ امنیتی |
-|------|-----|---------|--------------|
-| `handle_new_user()` | trigger, SECURITY DEFINER | ساخت اتمیک profile + subscription(free) + usage_counter | روی `auth.users` |
-| `create_task_with_tags(...)` | RPC | ساخت تسک + `checklist` در **یک** تراکنش، `user_id := auth.uid()` | جایگزین الگوی insert+update فعلی |
-| `create_note_with_tags(...)` | RPC | ساخت یادداشت اتمیک، `user_id := auth.uid()` | |
-| `match_documents(query_embedding, match_threshold, match_count)` | RPC | جستجوی برداری روی tasks+notes | **باید** داخل تابع با `where user_id = auth.uid()` فیلتر شود |
-| `consume_ai_quota()` | RPC, SECURITY DEFINER | گیتِ اتمیک: قفل ردیف usage (`for update`)، چک انقضای پلن + سقف، ریست دوره در صورت لزوم، افزایش شمارنده. خروجی: `{allowed boolean, model text, remaining int, reason text}` | بدون پارامتر؛ کاربر از `auth.uid()` |
-| `activate_subscription(p_user_id, p_plan_code, p_payment_id)` | RPC, SECURITY DEFINER | فعال‌سازی اتمیک پلن + تمدید `expires_at` + **ریست `usage_counters`** | فقط از داخل Edge با Service Role فراخوانی شود |
-| `enqueue_vectorize()` | trigger fn, SECURITY DEFINER | پس از `INSERT`/`UPDATE` روی `tasks` و `notes`، تابع لبهٔ `vectorize` را با `pg_net` (`net.http_post`) به‌صورت غیرمسدودکننده صدا می‌زند و `{table, id}` را پاس می‌دهد | تریگر `AFTER INSERT OR UPDATE OF title, description, content` |
+| تابع | مسئولیت |
+|------|---------|
+| `link_task_note(p_task_id, p_note_id)` | لینک اتمیک دوطرفه، `user_id := auth.uid()`، Idempotent (تکرار خطا نمی‌دهد) |
+| `unlink_task_note(p_task_id, p_note_id)` | حذف لینک، فقط برای صاحب |
+| `get_linked_notes(p_task_id)` / `get_linked_tasks(p_note_id)` | برگرداندن آیتم‌های لینک‌شده (user-scoped) |
+| `hybrid_search(p_query_embedding vector(768), p_query_text text, p_match_count int)` | **قلب RAG:** ترکیب امتیاز cosine (vector) و `similarity()` تری‌گرم با **Reciprocal Rank Fusion**؛ خروجی `(id, type, title, snippet, score)`؛ **اجباراً `where user_id = auth.uid()`** |
+| `get_usage_status()` | خواندن وضعیت مصرف **بدون** افزایش شمارنده: `(plan_code, display_name, monthly_quota, request_count, remaining, period_start, period_end, expires_at)` |
+| `get_daily_usage(p_days int)` | تجمیع `ai_requests_log` بر اساس روز (Asia/Tehran) برای نمودار مصرف |
+| `get_or_create_today_session()` | برگرداندن/ساختِ اتمیک نشست چت امروز بر اساس Asia/Tehran |
+| `get_chat_sessions(p_limit int)` | لیست نشست‌های یک‌ماه اخیر؛ در نبود pg_cron، حذف تنبل نشست‌های قدیمی‌تر از ۳۰ روز |
 
-> منطق دوره برای `free`: شمارش **تجمعی** تا سقف ۳۰ در بازهٔ ۳ روزه (بدون ریست). برای `plus/pro`: سقف ماهانه؛ با عبور از `period_end`، دوره ریست و شمارنده صفر می‌شود.
-
-### ۳.۱. تریگر برداری‌سازی خودکار (Vectorize Webhook)
-چون دیتابیس از صفر ساخته می‌شود، فراخوانی `vectorize` نباید به کلاینت سپرده شود. مکانیسم رسمی:
-- افزونهٔ **`pg_net`** فعال می‌شود (در `00_extensions.sql`).
-- تابع `enqueue_vectorize()` با `net.http_post(url := '<SUPABASE_URL>/functions/v1/vectorize', headers := jsonb(Authorization: Bearer <service_role>), body := jsonb_build_object('table', TG_TABLE_NAME, 'id', NEW.id))` فراخوانی غیرهمزمان انجام می‌دهد (شکست شبکه ردیف اصلی را Rollback نمی‌کند).
-- تریگر فقط روی تغییر ستون‌های متنی (`title/description` برای tasks، `title/content` برای notes) فعال می‌شود تا از حلقهٔ بی‌نهایت هنگام نوشتن خودِ `embedding` جلوگیری شود.
-- آدرس `SUPABASE_URL` و `service_role` به‌صورت تنظیمات دیتابیس (`current_setting('app.settings.*')` یا مقداردهی مستقیم هنگام اجرای SQL) تأمین می‌شوند؛ هرگز در ستون‌های جدول ذخیره نمی‌شوند.
+> `consume_ai_quota` دست نمی‌خورد؛ `get_usage_status` فقط برای **نمایش** است و نباید شمارنده را تغییر دهد.
 
 ---
 
-## ۴. ذخیره‌سازی فایل (Storage)
-- باکت **`chat-media`** (Private): ورودی‌های صوتی/تصویری چت. ساختار مسیر اجباری: `{user_id}/{uuid}.{ext}`.
-- باکت **`avatars`** (Private): تصویر پروفایل، مسیر `{user_id}/avatar.{ext}`.
-- پالیسی‌های `storage.objects`: کاربر فقط در پوشه‌ای که نام آن `auth.uid()` است می‌تواند `insert/select/delete` کند (`(storage.foldername(name))[1] = auth.uid()::text`).
-- Edge Function `ai-assistant` بایت‌های فایل را با **Service Role** از Storage دانلود می‌کند (نه از کلاینت).
+## ۴. ارتقای جریان هوش مصنوعی (AI Flow)
 
----
+### ۴.۱. جستجوی معنایی واقعی
+- **مشکل:** embedding فقط روی یک فیلد ساخته می‌شد؛ جستجو عملاً کلیدواژه‌ای بود.
+- **اصلاح `vectorize`:** متنِ امبدینگ از **ترکیب `title + description/content + tags`** ساخته می‌شود (نه یک فیلد)؛ بُعد دقیقاً ۷۶۸.
+- **اصلاح جستجو:** ابتدا embedding کوئری گرفته می‌شود، سپس `hybrid_search(embedding, raw_text, k)` تا هم معنا و هم کلیدواژه پوشش یابد.
 
-## ۵. جریان داده (Data Flows)
+### ۴.۲. لینک هوشمند با AI
+در حالت `action`، اگر کاربر بخواهد لینک کند، مدل به‌جای ساخت کور یک «اکشن جستجو» تولید می‌کند: `ai-assistant` تابع `hybrid_search` را روی notes/tasks می‌زند و **کاندیداها** را با `operation: 'suggest_link'` در `actionResults` برمی‌گرداند. انتخاب کاربر → کلاینت `link_task_note(...)` را صدا می‌زند (AI خودش نهایی نمی‌کند مگر کاندیدا یکتا و قطعی باشد).
 
-### ۵.۱. پردازش هوش مصنوعی (مسیر بدون Base64)
-1. کلاینت فایل را مستقیم با `supabase.storage.from('chat-media').upload('{uid}/{uuid}.webm', blob)` آپلود می‌کند.
-2. کلاینت `ai-assistant` را با بدنهٔ `{ message, mode, history, audioPath?, imagePath? }` صدا می‌زند (**هیچ Base64**).
-3. تابع ابتدا `consume_ai_quota()` را صدا می‌زند؛ اگر `allowed=false` → پاسخ `402` با `reason` (مثلاً `quota_exceeded` یا `trial_expired`).
-4. تابع مالکیت مسیر را اعتبارسنجی می‌کند (`path` باید با `user.id` شروع شود)، سپس بایت‌ها را از Storage دانلود و به Gemini می‌دهد.
-5. مدل Gemini از خروجی `consume_ai_quota.model` انتخاب می‌شود (داینامیک بر اساس پلن).
-6. اکشن‌ها از طریق RPC های اتمیک نوشته می‌شوند؛ Realtime نتیجه را به کلاینت می‌رساند.
-
-### ۵.۲. پرداخت زیبال
-1. کلاینت `zibal-request` را با `{ plan_code }` صدا می‌زند.
-2. تابع مبلغ را از `plans` می‌خواند (نه از کلاینت)، ردیف `payments`(pending) می‌سازد، به `https://gateway.zibal.ir/v1/request` درخواست می‌دهد، `trackId` و URL پرداخت را برمی‌گرداند.
-3. کاربر در زیبال پرداخت می‌کند و به `callbackUrl` بازمی‌گردد.
-4. `zibal-verify` با `https://gateway.zibal.ir/v1/verify` تأیید سمت سرور می‌کند؛ در صورت موفقیت `payments.status=paid` و `activate_subscription(...)` را فراخوانی می‌کند (**Idempotent**: اگر قبلاً paid بود، دوباره فعال نمی‌کند).
-
-### ۵.۳. Realtime
-هر کانال با فیلتر کاربر ساخته می‌شود:
-`supabase.channel('tasks:'+uid).on('postgres_changes', { event:'*', schema:'public', table:'tasks', filter: 'user_id=eq.'+uid }, cb)`.
-
----
-
-## ۶. قوانین درخت فایل (File Tree Rules)
-این پروژه **از قبل موجود** است؛ کل درخت بازترسیم نمی‌شود. منطق مسیردهی:
-
-- **SQL بک‌اند:** همهٔ فایل‌ها در `supabase/sql/` با **پیشوند عددیِ ترتیبِ اجرا** و Idempotent. (فایل‌های خراب فعلی `supabase/schema.sql` و `sql/02_add_checklist_column.sql` منسوخ‌اند و جایگزین می‌شوند).
-- **توابع لبه:** هر تابع در `supabase/functions/<name>/index.ts`. توابع موجود (`ai-assistant`, `vectorize`) ویرایش می‌شوند؛ توابع جدید (`zibal-request`, `zibal-verify`) ساخته می‌شوند.
-- **سرویس‌های دادهٔ کلاینت:** همهٔ دسترسی‌های دیتابیس در `services/*.ts`. سرویس‌های جدید: `services/mediaService.ts`، `services/billingService.ts`، `services/reminderService.ts`.
-- **هوک‌ها:** منطق سراسری مثل وضعیت شبکه در `hooks/` (مثلاً `hooks/useNetworkStatus.ts`).
-- **کامپوننت‌ها:** UI جدید (Paywall، Onboarding، NetworkBanner، Reminders) در `components/`.
-- **تایپ‌ها:** همهٔ تایپ‌های مشترک در `types.ts` (افزودن `Plan`, `Subscription`, `UsageStatus`, `Reminder`).
-
-### نقشهٔ فایل‌های SQL هدف (در `supabase/sql/`)
+### ۴.۳. استخراج با تأیید (Proposal Flow)
+وقتی ورودی صوت/تصویر است، `ai-assistant` در حالت ویژه **هم تسک و هم یادداشت** استخراج می‌کند اما **هیچ‌چیز در DB نمی‌نویسد**؛ خروجی:
+```jsonc
+{ "proposals": [ { "kind": "task" | "note", "draft": { ...fields }, "confidence": 0.0-1.0 } ], "transcription": "..." }
 ```
-00_extensions.sql        -- pgvector و افزونه‌های لازم
-01_profiles.sql          -- profiles + تریگر handle_new_user
-02_billing.sql           -- plans(+seed) + subscriptions + usage_counters + ai_requests_log
-03_core.sql              -- projects, tasks, notes, habits, habit_completions, media_assets + ایندکس‌ها
-04_payments.sql          -- payments
-05_reminders.sql         -- reminders
-10_functions.sql         -- create_task_with_tags, create_note_with_tags, match_documents, consume_ai_quota, activate_subscription
-11_storage.sql           -- ساخت باکت‌ها + پالیسی‌های storage.objects
-12_rls.sql               -- فعال‌سازی RLS و پالیسی‌های همهٔ جداول (یا co-located داخل هر فایل؛ این فایل تضمین نهایی است)
-```
-> هر فایل باید مستقل و چندبار-اجراپذیر باشد. RLS می‌تواند کنار تعریف هر جدول بیاید؛ `12_rls.sql` به‌عنوان تضمین/مرجع نهایی نگه داشته می‌شود.
+کلاینت کارت‌های پیش‌نویس را با «تأیید/حذف» تک‌به‌تک و «تأیید همه» نشان می‌دهد؛ فقط در زمان تأیید، RPC اتمیک (`create_task_with_tags`/`create_note_with_tags`) صدا زده می‌شود. نوع کلاینت: `ExtractionProposal { id, kind, draft, confidence, status }`.
 
-### متغیرهای محیطی هدف
-- **کلاینت (Vite):** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
-- **Edge Functions (Deno):** `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `ZIBAL_MERCHANT`, `ZIBAL_CALLBACK_URL`.
+### ۴.۴. قرارداد پاسخ `ai-assistant`
+خروجی JSON (سازگارِ عقب‌رو) شامل: `reply`, `citations`, `actionResults`(با `operation: 'create'|'update'|'suggest_link'`), `proposals`, `transcription`. همه‌ی فراخوانی‌ها از `services/geminiService.ts` عبور می‌کنند (ضدالگوی ۱۸).
+
+---
+
+## ۵. معماری State و ساختار فرانت‌اند
+
+### ۵.۱. لایه‌ی داده (پایان God File و Prop Drilling)
+- **`hooks/useDataManager.ts` (پیاده‌سازی واقعی):** مالک state و CRUD همه‌ی entityها (tasks, notes, projects, habits, subscription, usage). شامل: واکشی **صفحه‌بندی‌شده** (`loadInitial(range)` + `loadMore`) به‌جای `Promise.all` انبوه؛ همه‌ی handlerهای `add/update/delete/toggle` (با همان منطق Optimistic + race-guard فعلی)؛ `injectActionResult` برای خروجی AI.
+- **`contexts/DataContext.tsx` (جدید):** خروجی `useDataManager` را Provide می‌کند؛ هر feature با `useData()` مصرف می‌کند.
+- **`hooks/useRealtimeSync.ts` (جدید):** ۶ کانال Realtime (همه با `filter: user_id=eq.<uid>`) از `App.tsx` خارج و متمرکز؛ dependency فقط `user.id`.
+- **State محلی به‌جای گلوبال:** `selectedDate`→Dashboard؛ `chatMessages`→ChatView (از DB)؛ `editingProject`→ProjectsView.
+
+### ۵.۲. درخت فایلِ هدف (Feature-Based)
+> این درخت **مقصد مهاجرت** است (پروژه از قبل موجود است). قانون مهاجرت: ابتدا usage جابه‌جا/به‌روز، بعد importِ بلااستفاده حذف شود.
+```
+/
+├── App.tsx                 ← فقط Providers (Auth + Data) + Routing + Global Modals (هدف <۱۰۰ خط)
+├── types.ts                ← + EntityLink, ChatSession, ChatMessage, ExtractionProposal, UsageStatus(extended)
+│
+├── features/
+│   ├── auth/        (Auth.tsx, Onboarding.tsx)
+│   ├── dashboard/   (Dashboard.tsx + components/{DashboardHeader,WeekCalendar,TodaysPlan,TodaysNotes,QuickCapture,StatsOverview,HabitTracker,KeyProjects}.tsx)
+│   ├── tasks/       (TasksView.tsx, TaskCard.tsx, TaskEditorModal.tsx, components/LinkNotePicker.tsx, hooks/useGroupedTasks.ts)
+│   ├── notes/       (NotesView.tsx, NoteCard.tsx, NoteEditorModal.tsx, components/LinkTaskPicker.tsx)
+│   ├── projects/    (ProjectsView.tsx, ProjectCard.tsx, ProjectDetailsModal.tsx, utils/projectStats.ts)
+│   ├── habits/      (HabitEditorModal.tsx)
+│   ├── chat/        (ChatView.tsx, components/{CitationCard,ActionResultCard,ModeChip,ProposalCard,ChatHistoryDrawer}.tsx, hooks/useMediaRecorder.ts)
+│   └── billing/     (PaywallModal.tsx, ProfileModal.tsx, SubscriptionPage.tsx, RenewReminderModal.tsx, UsageMeter.tsx)
+│
+├── components/
+│   ├── ui/          (Modal.tsx, NetworkBanner.tsx, ToastNotifications.tsx)
+│   ├── forms/       (PersianDatePicker.tsx, TimePicker.tsx)
+│   ├── layout/      (BottomNav.tsx)
+│   └── icons/       (index.ts)
+│
+├── contexts/        (AuthContext.tsx, DataContext.tsx[جدید])
+├── hooks/           (useNetworkStatus.ts, useDataManager.ts[پیاده‌سازی], useRealtimeSync.ts[جدید])
+├── services/        (geminiService به‌عنوان تنها لایه‌ی AI؛ حذف triggerVectorization از task/noteService)
+└── utils/           (dateUtils.ts, imageUtils.ts[جدید], taskGrouping.ts[جدید])
+```
+
+---
+
+## ۶. رجیستر باگ‌های UI/UX (مرجع تسک‌های فرانت)
+> اولویت 🔴 بحرانی / 🟠 مهم / 🟡 متوسط. هر مورد در تسک فاز C مربوطه رفع می‌شود.
+
+| # | فایل | باگ | رفع |
+|---|------|-----|-----|
+| 🔴 | services/supabaseClient.ts | کلید/URL هاردکد | فقط `VITE_*` با fallback ایمن |
+| 🔴 | ChatView | حباب RTL برعکس | کاربر→`rounded-tr-none`، AI→`rounded-tl-none` |
+| 🔴 | TasksView | دکمه‌ی حذف فقط-hover | همیشه قابل‌دسترس در موبایل |
+| 🔴 | ProfileModal | کلاس نامعتبر `w-18` | سایز معتبر (`w-20`) |
+| 🔴 | Onboarding | عدم ذخیره‌ی specialty/interests + type mismatch | ذخیره در `profiles` (§۲.۱)، هندلر `MouseEvent` صحیح |
+| 🟠 | PersianDatePicker | کلاس نامعتبر `direction-rtl` | `dir="rtl"` |
+| 🟠 | ProjectsView | انیمیشن مودال اجرا نمی‌شود + dead code (`handleUpdateNote`) | mount/unmount صحیح، حذف کد مرده |
+| 🟠 | ChatView | input بدون `dir="rtl"` + Mode Chips سرریز | `dir="rtl"` + `flex-wrap` |
+| 🟠 | Task/NoteEditorModal | کیبورد مجازی محتوا را می‌پوشاند | `dvh`/`100dvh` و اسکرول ایمن |
+| 🟠 | Dashboard | scrollbar RTL (`pr-2`) + `todaysProgressStats` مستقل از `selectedDate` | `pl-2` + افزودن `selectedDate` به منطق/deps |
+| 🟡 | Dashboard | باگ timezone (UTC vs local با `startsWith`) | `dateUtils` با Asia/Tehran |
+| 🟡 | Dashboard | WeekCalendar سرریز ۳۲۰px + hit-area پروگرس‌رینگ کوچک | `min-w-0`/truncation + افزایش ناحیه‌ی کلیک |
+| 🟡 | Auth | Native validation انگلیسی | `noValidate` + اعتبارسنجی دستی فارسی |
+| 🟡 | PaywallModal | چینش روی صفحه‌ی کوتاه (iPhone SE) | چینش امن |
+| 🟡 | ChatView | `compressImage` بدون try/catch | try/catch + پیام فارسی |
+| 🟡 | TaskEditorModal | edge case `hasTime` (پیش‌فرض ظهر) | تمایز «بدون ساعت» از «ساعت ۱۲» |
+| 🟡 | App | `removeNotification` بدون useCallback | پایداری closure |

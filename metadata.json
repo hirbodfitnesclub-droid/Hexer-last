@@ -1,6 +1,6 @@
 {
-  "name": "hexer 1.4",
-  "description": "تسک های 8-9-10",
+  "name": "Remix: hexer 1.55",
+  "description": "تسک های پایانی اصلاح رابط کاربری. تسک‌های R9 + R10",
   "requestFramePermissions": [
     "microphone",
     "camera"

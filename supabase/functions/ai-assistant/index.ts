@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
         reason: quota.reason || "quota_exceeded"
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 402 // HTTP 402 Payment Required as specified in specs
+        status: 402 // HTTP 402 Payment Required
       });
     }
 
@@ -119,10 +119,11 @@ Deno.serve(async (req) => {
 
     let context = "";
     let citations: any[] = [];
+    const isProposalMode = !!(audioPath || imagePath);
 
-    // --- MODE 1: MEMORY (RAG) ---
-    // Only run RAG if message exists and there's no media analysis to focus on
-    if ((mode === 'memory' || mode === 'auto') && !audioPath && !imagePath && message) {
+    // --- MODE 1: MEMORY (HYBRID RAG SEARCH) ---
+    // Only run hybrid RAG if message exists and we are not in media extraction proposal mode
+    if ((mode === 'memory' || mode === 'auto') && !isProposalMode && message) {
       try {
         const embedRes = await ai.models.embedContent({
           model: 'text-embedding-004',
@@ -137,44 +138,45 @@ Deno.serve(async (req) => {
         }
 
         if (embeddingValues) {
-          const { data: documents, error: matchError } = await supabaseClient.rpc('match_documents', {
-            query_embedding: embeddingValues,
-            match_threshold: 0.5,
-            match_count: 5
+          // CALL NEW HYBRID SEARCH RPC (Phase A - R2)
+          const { data: documents, error: matchError } = await supabaseClient.rpc('hybrid_search', {
+            p_query_embedding: embeddingValues,
+            p_query_text: message,
+            p_match_count: 5
           });
 
           if (matchError) {
-            console.error("match_documents RPC error:", matchError);
+            console.error("hybrid_search RPC error:", matchError);
           } else if (documents && documents.length > 0) {
             citations = documents.map((doc: any) => ({
               id: doc.id,
               type: doc.type,
-              title: doc.title || (doc.content ? (doc.content.split(' ').slice(0, 5).join(' ') + '...') : ''),
-              similarity: doc.similarity
+              title: doc.title || (doc.snippet ? (doc.snippet.split(' ').slice(0, 5).join(' ') + '...') : ''),
+              similarity: doc.score // mapping score for frontend display compatibility
             }));
 
-            context += "\n\nRelevant Info Found in Database:\n";
+            context += "\n\nRelevant Context from User Memory (Hybrid Search):\n";
             documents.forEach((doc: any) => {
-              context += `- [${doc.type.toUpperCase()}] ${doc.content || doc.title} (ID: ${doc.id})\n`;
+              context += `- [${doc.type.toUpperCase()}] ${doc.title} (Excerpt: ${doc.snippet}) (ID: ${doc.id})\n`;
             });
           } else if (mode === 'memory') {
             context += "\n\nNo relevant memory found in database.";
           }
         }
       } catch (embedError) {
-        console.error("Embedding / RAG Error:", embedError);
+        console.error("Embedding / Hybrid RAG Error:", embedError);
       }
     }
 
     // --- MODE 2: ACTION (Context Injection) ---
-    if (mode === 'action' || mode === 'auto') {
+    if ((mode === 'action' || mode === 'auto') && !isProposalMode) {
       const { data: projects } = await supabaseClient.from('projects').select('id, title');
       if (projects && projects.length > 0) {
-        context += `\n\nAvailable Projects (use these IDs for 'projectId'): ${JSON.stringify(projects)}`;
+        context += `\n\nAvailable Projects (use these UUID values for 'projectId' params): ${JSON.stringify(projects)}`;
       }
     }
 
-    // Calculate Today's Date for Relative Date Logic
+    // Calculate Dates for Persian Relative Date Logic
     const today = new Date();
     const todayStr = today.toLocaleDateString('en-CA'); // YYYY-MM-DD
     const dayName = today.toLocaleDateString('fa-IR', { weekday: 'long' });
@@ -184,53 +186,59 @@ Deno.serve(async (req) => {
         day: 'numeric'
     }).format(today);
 
+    // SYSTEM INSTRUCTION CUSTOMIZED FOR R3 CORE REQUIREMENTS
     const systemPrompt = `
-    You are an intelligent Persian AI assistant.
-    Current Mode: ${mode.toUpperCase()}
+    You are an intelligent Persian AI productivity assistant named "Hexer".
     Today's Gregorian Date: ${todayStr} (${dayName})
     Today's Persian Date: ${persianDate}
 
-    **INSTRUCTIONS:**
-    1. **Transcribe/OCR First (CRITICAL):** 
-       - If AUDIO is present: Write EXACTLY what you hear. Capture the exact spoken words.
-       - If IMAGE is present: Perform **STRICT OCR**. Write down the text **EXACTLY** as it appears in the image. 
-         * **DO NOT TRANSLATE** specific terms (e.g., if image says "رپورتاژ", write "رپورتاژ", DO NOT write "report" or "reportz").
-         * **DO NOT SUMMARIZE** text in this step. Copy it.
-       - Store this raw text in the 'transcription' field.
-    2. **Analyze:** Based on the transcription, identify ALL user intents.
-       - If analysing a SCREENSHOT (e.g., chat app): Ignore UI elements (battery, time). Focus on the *content* of the messages.
-    3. **Decompose:** Break complex requests into a list of actions.
-       - "Buy milk and remind me to call Ali" -> 2 actions: CREATE_TASK("Buy milk"), CREATE_TASK("Call Ali").
-    4. **Dates:** Convert relative dates (tomorrow, next friday) to YYYY-MM-DD using Today's Gregorian Date.
-       - Understand Persian relative dates like "پنجم برج بعد" using Today's Persian Date as reference.
-    5. **Clean Titles:** 
-       - If a date is extracted to 'dueDate', DO NOT include the time word in the 'title'.
-       - Use the exact Persian terminology found in the transcription/OCR.
-    6. **Response Format:** You MUST return a VALID JSON object (no markdown, no code blocks) with this exact structure:
+    **OPERATIONAL SCHEMA DETERMINATOR:**
+    Is Extraction/Proposal Mode Active? Answer: ${isProposalMode ? "YES" : "NO"}
 
+    **INSTRUCTIONS FOR EXTRACTION/PROPOSAL MODE (When Media is present):**
+    1. **Transcribe/OCR First (CRITICAL):**
+       - Audio path is provided: Listen carefully and transcribe the farsi speech EXACTLY word-for-word in the 'transcription' field.
+       - Image path is provided: Do strict Persian visual OCR. Capture all readable written text and place it in the 'transcription' field. DO NOT translate terms. Do not summarize.
+    2. **Structure Draft Proposals:**
+       - Propose both tasks and notes extracted from the transcription details.
+       - Place them in the "proposals" array parameter.
+       - Absolutely DO NOT generate any "actions" representing database writes. Keep the "actions" array EMPTY.
+       - Each proposal object must follow this syntax:
+         {
+           "kind": "task" | "note",
+           "draft": {
+             "title": "Clean farsi title",
+             "description": "Farsi details",
+             "dueDate": "YYYY-MM-DD" (Optional task due date),
+             "priority": "low" | "medium" | "high",
+             "tags": ["tag1", "tag2"],
+             "content": "Full text content for note"
+           },
+           "confidence": 0.8 to 1.0 (float)
+         }
+
+    **INSTRUCTIONS FOR CHAT & ACTION MODE (Text Only):**
+    1. Resolve user request into a sequence of backend database actions if needed.
+    2. Supported Action types:
+       - CREATE_TASK: title, description, dueDate, priority, projectId, tags
+       - CREATE_NOTE: title, content, projectId, tags
+       - CREATE_PROJECT: title, description, priority, color
+       - CREATE_HABIT: name, description, frequency, target_count
+       - SUGGEST_LINK: Use this when users request to link, bind, join, or find connections between tasks and notes.
+         * Format: { "action": "SUGGEST_LINK", "params": { "queryText": "specific search query text matching relevant tasks/notes" } }
+    3. Place these actions inside the "actions" array parameter. Keep the "proposals" array EMPTY.
+    4. Translate relative dates (e.g. "فردا", "هفته بعد") precisely to YYYY-MM-DD using relative date calculations.
+
+    **JSON OUTPUT CONTRACT:**
+    You must always reply in a valid, parsable, standard JSON block with zero markdown wrappers. Use this dictionary key schema:
     {
-      "transcription": "Text of what was said/written/seen",
-      "reply": "Conversational Persian response summarizing what was done",
-      "actions": [
-        {
-          "action": "CREATE_TASK" | "CREATE_NOTE" | "CREATE_PROJECT" | "CREATE_HABIT" | "CHAT",
-          "params": {
-            "title": "Clean title",
-            "description": "Optional details",
-            "dueDate": "YYYY-MM-DD" (or null),
-            "priority": "medium" | "high" | "low",
-            "projectId": "UUID" (or null),
-            "tags": ["tag1", "tag2"],
-            "content": "For notes",
-            "name": "For habits",
-            "frequency": "daily" | "weekly",
-            "target_count": 1
-          }
-        }
-      ]
+      "transcription": "The transcription/OCR result or empty string",
+      "reply": "Warm Farsi conversational answer summarizing accomplishments",
+      "actions": [],
+      "proposals": []
     }
     
-    **CONTEXT:**
+    **CONTEXT INFORMATION:**
     ${context}
     `;
 
@@ -299,10 +307,15 @@ Deno.serve(async (req) => {
       { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
     ];
 
+    const modelHistory = history ? history.slice(-5).map((h: any) => ({
+      role: h.sender === 'user' ? 'user' : 'model',
+      parts: [{ text: h.text }]
+    })) : [];
+
     const response = await ai.models.generateContent({
       model: modelName,
       contents: [
-        ...history.slice(-3).map((h: any) => ({ role: h.sender === 'user' ? 'user' : 'model', parts: [{ text: h.text }] })),
+        ...modelHistory,
         { role: 'user', parts: userMessageParts }
       ],
       config: {
@@ -323,13 +336,17 @@ Deno.serve(async (req) => {
         aiResult = JSON.parse(cleanText);
     } catch (e) {
         console.error("JSON Parse Error. Raw Text:", rawText);
-        throw new Error("Failed to parse AI response. The model might have hallucinated or returned invalid JSON.");
+        throw new Error("Failed to parse AI response. Invalid JSON format returned from model.");
     }
 
-    const { actions, transcription, reply } = aiResult;
-    
-    const actionResults = [];
-    if (actions && Array.isArray(actions)) {
+    const { actions, transcription, reply, proposals } = aiResult;
+    const actionResults: any[] = [];
+
+    // ZERO WRITE DB enforcement in proposal mode
+    if (isProposalMode) {
+        console.log("Zero write constraint: Skipping inline database writes.");
+    } else if (actions && Array.isArray(actions)) {
+        // Chat mode actions processor
         for (const item of actions) {
             const currentAction = item.action;
             const params = item.params || {};
@@ -338,6 +355,7 @@ Deno.serve(async (req) => {
 
             try {
                 let result = null;
+
                 if (currentAction === 'CREATE_TASK') {
                     const taskTitle = params.title || "تسک جدید";
                     const { data, error } = await supabaseClient.rpc('create_task_with_tags', {
@@ -391,6 +409,49 @@ Deno.serve(async (req) => {
                     if (error) throw error;
                     if (data) result = { type: 'habit', operation: 'create', data: data };
                 }
+                else if (currentAction === 'SUGGEST_LINK') {
+                    // SMART LINKING LOGIC: query database via hybrid_search to suggest links
+                    const queryText = params.queryText || params.query || message || "";
+                    if (queryText) {
+                        const embedResult = await ai.models.embedContent({
+                            model: 'text-embedding-004',
+                            contents: queryText,
+                        });
+
+                        let embedVal = null;
+                        if (embedResult.embeddings && embedResult.embeddings.length > 0 && embedResult.embeddings[0].values) {
+                            embedVal = embedResult.embeddings[0].values;
+                        } else if (embedResult.embedding && embedResult.embedding.values) {
+                            embedVal = embedResult.embedding.values;
+                        }
+
+                        if (embedVal) {
+                            const { data: suggestions, error: searchError } = await supabaseClient.rpc('hybrid_search', {
+                                p_query_embedding: embedVal,
+                                p_query_text: queryText,
+                                p_match_count: 5
+                            });
+
+                            if (!searchError && suggestions) {
+                                suggestions.forEach((doc: any) => {
+                                    actionResults.push({
+                                        type: doc.type,
+                                        operation: 'suggest_link',
+                                        data: {
+                                            id: doc.id,
+                                            title: doc.title,
+                                            snippet: doc.snippet,
+                                            score: doc.score
+                                        }
+                                    });
+                                });
+                                console.log(`Generated ${suggestions.length} link suggestions via hybrid search.`);
+                            } else if (searchError) {
+                                console.error("Link suggest hybrid_search error:", searchError);
+                            }
+                        }
+                    }
+                }
 
                 if (result) actionResults.push(result);
             } catch (actionError) {
@@ -403,13 +464,14 @@ Deno.serve(async (req) => {
         reply: reply || "انجام شد.",
         citations: citations,
         actionResults: actionResults,
-        transcription: transcription 
+        proposals: proposals || [],
+        transcription: transcription || ""
     }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("AI Assistant Logic Error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

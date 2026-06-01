@@ -1,0 +1,135 @@
+import React, { useState, useMemo } from 'react';
+import { Task } from '../../../types';
+import { linkTaskNote } from '../../../services/linkService';
+import { SearchIcon, PlusIcon, ListChecksIcon } from '../../../components/icons';
+import { isSameTehranDay } from '../../../utils/dateUtils';
+
+interface LinkTaskPickerProps {
+  noteId: string;
+  tasks: Task[];
+  noteCreatedAt?: string | null;
+  onLinkAdded: () => void;
+  linkedTaskIds: string[];
+}
+
+export const LinkTaskPicker: React.FC<LinkTaskPickerProps> = ({
+  noteId,
+  tasks,
+  noteCreatedAt,
+  onLinkAdded,
+  linkedTaskIds
+}) => {
+  const [showPicker, setShowPicker] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const activeTasks = useMemo(() => {
+    return tasks.filter(t => !linkedTaskIds.includes(t.id));
+  }, [tasks, linkedTaskIds]);
+
+  const suggestions = useMemo(() => {
+    if (!noteCreatedAt) return [];
+    return activeTasks.filter(t => isSameTehranDay(t.created_at, noteCreatedAt)).slice(0, 5);
+  }, [activeTasks, noteCreatedAt]);
+
+  const filteredTasks = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    return activeTasks.filter(t => 
+      t.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    ).slice(0, 10);
+  }, [activeTasks, searchQuery]);
+
+  const handleLink = async (taskId: string) => {
+    setLoading(true);
+    try {
+      await linkTaskNote(taskId, noteId);
+      onLinkAdded();
+      setSearchQuery('');
+      setShowPicker(false);
+    } catch (err) {
+      console.error('Failed to link task:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4" dir="rtl">
+      {!showPicker ? (
+        <button
+          onClick={() => setShowPicker(true)}
+          className="flex items-center gap-1.5 text-xs text-sky-400 hover:text-sky-350 font-bold bg-sky-500/10 hover:bg-sky-500/15 border border-sky-500/20 px-3 py-1.5 rounded-xl transition-all"
+        >
+          <PlusIcon className="w-3.5 h-3.5" />
+          <span>لینک کار مرتبط</span>
+        </button>
+      ) : (
+        <div className="bg-zinc-950/60 p-4 rounded-xl border border-white/5 space-y-3">
+          <div className="flex justify-between items-center pb-2 border-b border-white/5">
+            <span className="text-xs font-bold text-zinc-400">اتصال کار وجود دارد</span>
+            <button
+              onClick={() => setShowPicker(false)}
+              className="text-xs text-zinc-500 hover:text-white transition-colors"
+            >
+              انصراف
+            </button>
+          </div>
+
+          {/* Suggestions based on Tehran Same Day */}
+          {suggestions.length > 0 && (
+            <div className="space-y-2">
+              <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">پیشنهادی (هم‌زمان با ثبت یادداشت):</span>
+              <div className="grid grid-cols-1 gap-1.5">
+                {suggestions.map(task => (
+                  <button
+                    key={task.id}
+                    onClick={() => handleLink(task.id)}
+                    disabled={loading}
+                    className="flex items-center gap-2 p-2 bg-zinc-900/60 hover:bg-sky-950/20 border border-white/5 hover:border-sky-500/20 text-right rounded-lg text-xs text-zinc-350 group transition-all"
+                  >
+                    <ListChecksIcon className="w-3.5 h-3.5 text-sky-400" />
+                    <span className="flex-1 truncate group-hover:text-sky-300 transition-colors">{task.title || 'بدون عنوان'}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Search Field */}
+          <div className="relative group">
+            <SearchIcon className="w-4 h-4 text-zinc-600 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none group-focus-within:text-sky-400 transition-colors" />
+            <input
+              type="text"
+              placeholder="جستجوی کار بر اساس عنوان..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 placeholder-zinc-600 rounded-xl py-2.5 pr-9 pl-3 outline-none focus:border-sky-500/50 transition-all font-medium"
+            />
+          </div>
+
+          {/* Filtered tasks result */}
+          {searchQuery.trim() && (
+            <div className="max-h-40 overflow-y-auto space-y-1 select-none pr-1">
+              {filteredTasks.length > 0 ? (
+                filteredTasks.map(task => (
+                  <button
+                    key={task.id}
+                    onClick={() => handleLink(task.id)}
+                    disabled={loading}
+                    className="w-full flex items-center gap-2 p-2 bg-zinc-900/40 hover:bg-sky-950/20 rounded-lg text-right text-xs text-zinc-350 hover:text-sky-350 transition-all border border-transparent hover:border-sky-500/10"
+                  >
+                    <ListChecksIcon className="w-3.5 h-3.5 text-zinc-500" />
+                    <span className="flex-1 truncate">{task.title || 'بدون عنوان'}</span>
+                  </button>
+                ))
+              ) : (
+                <span className="text-[10px] text-zinc-600 text-center block py-2">نتیجه‌ای یافت نشد.</span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
