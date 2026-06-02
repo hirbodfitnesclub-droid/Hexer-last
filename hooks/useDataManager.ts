@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { Page, Task, Note, ChatMessage, Habit, Project, ActionResult } from '../types';
 import * as projectService from '../services/projectService';
@@ -19,6 +19,7 @@ export interface AppNotification {
 }
 
 export const useDataManager = (user: any) => {
+  const userId = user?.id;
   const [currentPage, setCurrentPage] = useState<Page>(Page.Dashboard);
   const [selectedDate, setSelectedDate] = useState(new Date());
   
@@ -81,10 +82,18 @@ export const useDataManager = (user: any) => {
     setNotesLimit(prev => prev + 50);
   }, []);
 
+  // Tracker to detect existing data for silent background syncs
+  const dataExistsRef = useRef(false);
+  useEffect(() => {
+    dataExistsRef.current = projects.length > 0 || tasks.length > 0;
+  }, [projects.length, tasks.length]);
+
   // Initial Loader
   const loadInitial = useCallback(async () => {
-    if (!user) return;
-    setLoadingData(true);
+    if (!userId) return;
+    if (!dataExistsRef.current) {
+      setLoadingData(true);
+    }
     try {
       const [projectsData, tasksData, notesData, habitsData, profileResult, subData] = await Promise.all([
         projectService.getProjects(),
@@ -115,7 +124,7 @@ export const useDataManager = (user: any) => {
     } finally {
       setLoadingData(false);
     }
-  }, [user, addNotification]);
+  }, [userId, addNotification]);
 
   // Projects CRUD - Optimistic UI
   const addProject = useCallback(async (project: Omit<Project, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {

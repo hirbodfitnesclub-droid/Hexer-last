@@ -17,10 +17,10 @@ export const getNotes = async (): Promise<Note[]> => {
 
 export const createNote = async (note: NoteInsert): Promise<Note> => {
   const rpcParams = {
-    title: note.title,
-    content: note.content || null,
-    project_id: note.project_id || null,
-    tags: note.tags || []
+    p_title: note.title,
+    p_content: note.content || null,
+    p_project_id: note.project_id || null,
+    p_tags: note.tags || []
   };
 
   const { data, error } = await supabase
