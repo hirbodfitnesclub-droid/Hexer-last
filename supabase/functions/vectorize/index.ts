@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { GoogleGenAI } from 'https://esm.sh/@google/genai';
+import { GoogleGenAI } from 'npm:@google/genai';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from 'https://esm.sh/@google/genai';
+import { GoogleGenAI } from 'npm:@google/genai';
+import { encodeBase64 } from "jsr:@std/encoding/base64";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,12 +9,12 @@ const corsHeaders = {
 
 declare const Deno: any;
 
-const API_KEY = Deno.env.get('GEMINI_API_KEY');
-const ai = new GoogleGenAI({ apiKey: API_KEY });
-
 // Helper to sanitize paths and check security boundaries (userId prefix)
 function getCleanAndValidatedPath(rawPath: string, userId: string): string | null {
   if (!rawPath) return null;
+  if (rawPath.includes('..')) {
+    throw new Error('Forbidden: Path traversal detected');
+  }
   let cleanPath = rawPath;
   if (cleanPath.startsWith('chat-media/')) {
     cleanPath = cleanPath.substring('chat-media/'.length);
@@ -49,16 +50,29 @@ function getMimeType(path: string, blobMimeType?: string): string {
   }
 }
 
-// Convert downloading Blob to Base64 (internal helper)
-async function blobToBase64(blob: Blob): Promise<string> {
-  const arrayBuffer = await blob.arrayBuffer();
-  const uint8Array = new Uint8Array(arrayBuffer);
-  let binary = '';
-  const len = uint8Array.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(uint8Array[i]);
+let aiInstance: GoogleGenAI | null = null;
+function getGoogleGenAI(): GoogleGenAI {
+  if (!aiInstance) {
+    const apiKey = Deno.env.get('GEMINI_API_KEY');
+    if (!apiKey) {
+      throw new Error("Missing GEMINI_API_KEY environment variable");
+    }
+    aiInstance = new GoogleGenAI({ apiKey });
   }
-  return btoa(binary);
+  return aiInstance;
+}
+
+function mergeConsecutiveRoles(contents: any[]) {
+  if (!contents || contents.length === 0) return [];
+  const merged: any[] = [];
+  for (const item of contents) {
+    if (merged.length > 0 && merged[merged.length - 1].role === item.role) {
+      merged[merged.length - 1].parts.push(...item.parts);
+    } else {
+      merged.push({ role: item.role, parts: [...item.parts] });
+    }
+  }
+  return merged;
 }
 
 Deno.serve(async (req) => {
@@ -76,6 +90,8 @@ Deno.serve(async (req) => {
     }
 
     const { message, history, mode, audioPath, imagePath } = await req.json();
+
+    const ai = getGoogleGenAI();
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -117,19 +133,82 @@ Deno.serve(async (req) => {
     const modelName = quota.model || 'gemini-2.5-flash-lite';
     console.log(`Using model ${modelName} for user ${user.id}`);
 
+    // Calculate Dates for Persian Relative Date Logic
+    const today = new Date();
+    const todayStr = today.toLocaleDateString('en-CA'); // YYYY-MM-DD
+    const dayName = today.toLocaleDateString('fa-IR', { weekday: 'long' });
+    const persianDate = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    }).format(today);
+
     let context = "";
     let citations: any[] = [];
     const isProposalMode = !!(audioPath || imagePath);
 
-    // --- MODE 1: MEMORY (HYBRID RAG SEARCH) ---
-    // Only run hybrid RAG if message exists and we are not in media extraction proposal mode
-    if ((mode === 'memory' || mode === 'auto') && !isProposalMode && message) {
-      try {
-        const embedRes = await ai.models.embedContent({
-          model: 'text-embedding-004',
-          contents: message,
+    // --- CONCURRENT MULTI-QUERY ENGINE (Promise.all) ---
+    const promises: Record<string, Promise<any>> = {};
+
+    const isMemoryActive = (mode === 'memory' || mode === 'auto') && !isProposalMode && message;
+    if (isMemoryActive) {
+      promises.embed = ai.models.embedContent({
+        model: 'gemini-embedding-2-preview',
+        contents: message,
+      }).catch(err => {
+        console.error("Embedding Promise failed:", err);
+        return null;
+      });
+    }
+
+    const isMetaActive = (mode === 'memory' || mode === 'auto') && !isProposalMode;
+    if (isMetaActive) {
+      promises.tasks = supabaseClient
+        .from('tasks')
+        .select('id, title, due_date, status')
+        .neq('status', 'done')
+        .then(res => res)
+        .catch(err => {
+          console.error("Fetch tasks Promise failed:", err);
+          return null;
         });
 
+      promises.notes = supabaseClient
+        .from('notes')
+        .select('id, title, created_at')
+        .order('created_at', { ascending: false })
+        .limit(5)
+        .then(res => res)
+        .catch(err => {
+          console.error("Fetch notes Promise failed:", err);
+          return null;
+        });
+    }
+
+    const isActionActive = (mode === 'action' || mode === 'auto') && !isProposalMode;
+    if (isActionActive) {
+      promises.projects = supabaseClient
+        .from('projects')
+        .select('id, title')
+        .then(res => res)
+        .catch(err => {
+          console.error("Fetch projects Promise failed:", err);
+          return null;
+        });
+    }
+
+    // Resolve all promises concurrently to prevent linear waterfall latency bottlenecks
+    const keys = Object.keys(promises);
+    const resolvedValues = await Promise.all(Object.values(promises));
+    const results: Record<string, any> = {};
+    keys.forEach((key, idx) => {
+      results[key] = resolvedValues[idx];
+    });
+
+    // 1. Process Embedded Search Results (Hybrid Search)
+    if (isMemoryActive && results.embed) {
+      try {
+        const embedRes = results.embed;
         let embeddingValues = null;
         if (embedRes.embeddings && embedRes.embeddings.length > 0 && embedRes.embeddings[0].values) {
           embeddingValues = embedRes.embeddings[0].values;
@@ -138,7 +217,7 @@ Deno.serve(async (req) => {
         }
 
         if (embeddingValues) {
-          // CALL NEW HYBRID SEARCH RPC (Phase A - R2)
+          // Sequential action dependent on embedding retrieval
           const { data: documents, error: matchError } = await supabaseClient.rpc('hybrid_search', {
             p_query_embedding: embeddingValues,
             p_query_text: message,
@@ -152,7 +231,7 @@ Deno.serve(async (req) => {
               id: doc.id,
               type: doc.type,
               title: doc.title || (doc.snippet ? (doc.snippet.split(' ').slice(0, 5).join(' ') + '...') : ''),
-              similarity: doc.score // mapping score for frontend display compatibility
+              similarity: doc.score
             }));
 
             context += "\n\nRelevant Context from User Memory (Hybrid Search):\n";
@@ -168,23 +247,68 @@ Deno.serve(async (req) => {
       }
     }
 
-    // --- MODE 2: ACTION (Context Injection) ---
-    if ((mode === 'action' || mode === 'auto') && !isProposalMode) {
-      const { data: projects } = await supabaseClient.from('projects').select('id, title');
+    // 2. Process Meta-Queries (Tasks & Notes Context Injection)
+    if (isMetaActive) {
+      try {
+        const tasksRes = results.tasks;
+        const pendingTasks = tasksRes?.data;
+        const tasksError = tasksRes?.error;
+
+        let filteredTasks = [];
+        if (!tasksError && pendingTasks) {
+          filteredTasks = pendingTasks.filter((t: any) => {
+            if (!t.due_date) return true;
+            const taskDateStr = new Date(t.due_date).toLocaleDateString('en-CA');
+            return taskDateStr === todayStr;
+          });
+        } else if (tasksError) {
+          console.error("Meta-Query standard tasks fetch error:", tasksError);
+        }
+
+        const notesRes = results.notes;
+        const recentNotes = notesRes?.data;
+        const notesError = notesRes?.error;
+
+        if (notesError) {
+          console.error("Meta-Query recent notes fetch error:", notesError);
+        }
+
+        // Construct standard Farsi contextual prompt block
+        let metaContext = "\n\nوضعیت فعلی سیستم (تسک‌های فعال و یادداشت‌های اخیر):\n";
+        
+        metaContext += "تسک‌های فعال و در جریان (امروز یا بدون تاریخ مشخص):\n";
+        if (filteredTasks && filteredTasks.length > 0) {
+          filteredTasks.forEach((t: any) => {
+            const dueInfo = t.due_date ? `(تاریخ سررسید: ${new Date(t.due_date).toLocaleDateString('fa-IR')})` : "(بدون تاریخ مکتوب)";
+            metaContext += `- ${t.title} ${dueInfo} [شناسه تسک: ${t.id}]\n`;
+          });
+        } else {
+          metaContext += "- هیچ تسک فعال یا معلقی برای امروز یا بدون تاریخ یافت نشد.\n";
+        }
+
+        metaContext += "\nعناوین ۵ یادداشت اخیر کاربر:\n";
+        if (recentNotes && recentNotes.length > 0) {
+          recentNotes.forEach((n: any) => {
+            metaContext += `- ${n.title} [شناسه یادداشت: ${n.id}]\n`;
+          });
+        } else {
+          metaContext += "- هیچ یادداشتی در حافظه اخیر کاربر یافت نشد.\n";
+        }
+
+        context += metaContext;
+      } catch (metaError) {
+        console.error("Error gathering standard Meta-Queries context:", metaError);
+      }
+    }
+
+    // 3. Process Action Context Injection
+    if (isActionActive && results.projects) {
+      const projectsRes = results.projects;
+      const projects = projectsRes.data;
       if (projects && projects.length > 0) {
         context += `\n\nAvailable Projects (use these UUID values for 'projectId' params): ${JSON.stringify(projects)}`;
       }
     }
-
-    // Calculate Dates for Persian Relative Date Logic
-    const today = new Date();
-    const todayStr = today.toLocaleDateString('en-CA'); // YYYY-MM-DD
-    const dayName = today.toLocaleDateString('fa-IR', { weekday: 'long' });
-    const persianDate = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    }).format(today);
 
     // SYSTEM INSTRUCTION CUSTOMIZED FOR R3 CORE REQUIREMENTS
     const systemPrompt = `
@@ -264,7 +388,8 @@ Deno.serve(async (req) => {
         }
 
         const mimeType = getMimeType(cleanPath, fileBlob.type);
-        const base64Data = await blobToBase64(fileBlob);
+        const arrayBuffer = await fileBlob.arrayBuffer();
+        const base64Data = encodeBase64(new Uint8Array(arrayBuffer));
 
         userMessageParts.push({
           inlineData: {
@@ -288,7 +413,8 @@ Deno.serve(async (req) => {
         }
 
         const mimeType = getMimeType(cleanPath, fileBlob.type);
-        const base64Data = await blobToBase64(fileBlob);
+        const arrayBuffer = await fileBlob.arrayBuffer();
+        const base64Data = encodeBase64(new Uint8Array(arrayBuffer));
 
         userMessageParts.push({
           inlineData: {
@@ -299,18 +425,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Safety Settings
-    const safetySettings = [
-      { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-      { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-      { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-      { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-    ];
-
-    const modelHistory = history ? history.slice(-5).map((h: any) => ({
+    const modelHistoryRaw = history ? history.slice(-5).map((h: any) => ({
       role: h.sender === 'user' ? 'user' : 'model',
       parts: [{ text: h.text }]
     })) : [];
+
+    const modelHistory = mergeConsecutiveRoles(modelHistoryRaw);
 
     const response = await ai.models.generateContent({
       model: modelName,
@@ -322,8 +442,7 @@ Deno.serve(async (req) => {
         responseMimeType: 'application/json',
         systemInstruction: systemPrompt,
         temperature: 0.0,
-        maxOutputTokens: 8192,
-        safetySettings: safetySettings
+        maxOutputTokens: 8192
       }
     });
 
@@ -346,12 +465,12 @@ Deno.serve(async (req) => {
     if (isProposalMode) {
         console.log("Zero write constraint: Skipping inline database writes.");
     } else if (actions && Array.isArray(actions)) {
-        // Chat mode actions processor
-        for (const item of actions) {
+        // Chat mode actions processor run concurrently via Promise.all
+        const actionPromises = actions.map(async (item) => {
             const currentAction = item.action;
             const params = item.params || {};
 
-            if (currentAction === 'CHAT') continue;
+            if (currentAction === 'CHAT') return;
 
             try {
                 let result = null;
@@ -414,7 +533,7 @@ Deno.serve(async (req) => {
                     const queryText = params.queryText || params.query || message || "";
                     if (queryText) {
                         const embedResult = await ai.models.embedContent({
-                            model: 'text-embedding-004',
+                            model: 'gemini-embedding-2-preview',
                             contents: queryText,
                         });
 
@@ -457,7 +576,9 @@ Deno.serve(async (req) => {
             } catch (actionError) {
                 console.error(`Failed to execute action ${currentAction}:`, actionError);
             }
-        }
+        });
+
+        await Promise.all(actionPromises);
     }
 
     return new Response(JSON.stringify({

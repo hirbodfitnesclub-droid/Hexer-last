@@ -14,7 +14,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user) {
       manager.loadInitial();
     }
-  }, [user, manager.loadInitial]);
+  }, [user?.id, manager.loadInitial]);
 
   return (
     <DataContext.Provider value={manager}>
