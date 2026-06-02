@@ -85,24 +85,99 @@
 
 ## ۴. ارتقای جریان هوش مصنوعی (AI Flow)
 
-### ۴.۱. جستجوی معنایی واقعی
-- **مشکل:** embedding فقط روی یک فیلد ساخته می‌شد؛ جستجو عملاً کلیدواژه‌ای بود.
-- **اصلاح `vectorize`:** متنِ امبدینگ از **ترکیب `title + description/content + tags`** ساخته می‌شود (نه یک فیلد)؛ بُعد دقیقاً ۷۶۸.
-- **اصلاح جستجو:** ابتدا embedding کوئری گرفته می‌شود، سپس `hybrid_search(embedding, raw_text, k)` تا هم معنا و هم کلیدواژه پوشش یابد.
 
-### ۴.۲. لینک هوشمند با AI
-در حالت `action`، اگر کاربر بخواهد لینک کند، مدل به‌جای ساخت کور یک «اکشن جستجو» تولید می‌کند: `ai-assistant` تابع `hybrid_search` را روی notes/tasks می‌زند و **کاندیداها** را با `operation: 'suggest_link'` در `actionResults` برمی‌گرداند. انتخاب کاربر → کلاینت `link_task_note(...)` را صدا می‌زند (AI خودش نهایی نمی‌کند مگر کاندیدا یکتا و قطعی باشد).
+markdown## ۴. معماری ریفکتورشده‌ی هوش مصنوعی (Phase D — Backend Stability)
 
-### ۴.۳. استخراج با تأیید (Proposal Flow)
-وقتی ورودی صوت/تصویر است، `ai-assistant` در حالت ویژه **هم تسک و هم یادداشت** استخراج می‌کند اما **هیچ‌چیز در DB نمی‌نویسد**؛ خروجی:
-```jsonc
-{ "proposals": [ { "kind": "task" | "note", "draft": { ...fields }, "confidence": 0.0-1.0 } ], "transcription": "..." }
+### ۴.۰. ریشه‌های بحران (مرجع تاریخی)
+
+| رتبه | مشکل | اثر مستقیم |
+|------|------|------------|
+| 🔴 | **تناقض مدل Embedding** — `vectorize` از `text-embedding-004` و `ai-assistant` از `gemini-embedding-2-preview` استفاده می‌کردند | بردارهای ذخیره‌شده و بردار کوئری در فضاهای متفاوت؛ cosine similarity بی‌معنی؛ RAG هرگز کار نمی‌کند |
+| 🔴 | **God File بدون مرز خطا** — ۶۰۰ خط در یک تابع؛ خرابی هر بخش کل درخواست را با ۵۰۰ می‌کشد | ناپایداری مزمن و غیرقابل دیباگ |
+| 🟠 | **تایم‌اوت تجمعی** — Storage + Embedding + Search + Generation + Actions همه سریالی‌وار در یک تابع ۶۰ثانیه‌ای | ۵۰۴ Timeout روی درخواست‌های پیچیده |
+
+---
+
+### ۴.۱. ساختار ماژولار هدف
+supabase/functions/
+├── shared/                           ← ابزارهای مشترک (import با path نسبی)
+│   ├── cors.ts                        ← corsHeaders constant
+│   ├── auth-guard.ts                  ← getAuthUser(authHeader) → {user, client} | throw
+│   └── gemini-client.ts               ← EMBEDDING_MODEL constant + factory + generateEmbedding()
+│
+├── ai-assistant/
+│   ├── index.ts                       ← فقط Orchestrator (هدف: <۱۲۰ خط)
+│   └── lib/
+│       ├── media-handler.ts           ← Storage download → InlineData part
+│       ├── rag-context.ts             ← Embedding query + hybrid_search + context string
+│       ├── meta-context.ts            ← Tasks/Notes/Projects DB fetch → context string
+│       ├── action-processor.ts        ← اجرای CREATE* و SUGGEST_LINK
+│       └── system-prompt.ts           ← ساخت system prompt (pure function)
+│
+└── vectorize/
+└── index.ts                       ← اصلاح مدل به EMBEDDING_MODEL از _shared
+
+---
+
+### ۴.۲. قانون ثبات مدل Embedding (Critical Rule)
+
+**یک ثابت، دو مصرف‌کننده — هیچ هاردکد ممنوع:**
+
+```typescript
+// _shared/gemini-client.ts
+export const EMBEDDING_MODEL = 'text-embedding-004';
 ```
-کلاینت کارت‌های پیش‌نویس را با «تأیید/حذف» تک‌به‌تک و «تأیید همه» نشان می‌دهد؛ فقط در زمان تأیید، RPC اتمیک (`create_task_with_tags`/`create_note_with_tags`) صدا زده می‌شود. نوع کلاینت: `ExtractionProposal { id, kind, draft, confidence, status }`.
 
-### ۴.۴. قرارداد پاسخ `ai-assistant`
-خروجی JSON (سازگارِ عقب‌رو) شامل: `reply`, `citations`, `actionResults`(با `operation: 'create'|'update'|'suggest_link'`), `proposals`, `transcription`. همه‌ی فراخوانی‌ها از `services/geminiService.ts` عبور می‌کنند (ضدالگوی ۱۸).
+- `ai-assistant/lib/rag-context.ts` → import از `../../_shared/gemini-client.ts`
+- `vectorize/index.ts` → import از `../_shared/gemini-client.ts`
+- هرگز نام مدل داخل هیچ فایلی هاردکد نمی‌شود
 
+---
+
+### ۴.۳. قرارداد رفتار خطا (Error Contract)
+
+| ماژول | خطا → رفتار |
+|-------|------------|
+| `media-handler.ts` | دانلود ناموفق → **throw** (درخواست مدیا بدون مدیا بی‌معنی است) |
+| `rag-context.ts` | Embedding یا Search ناموفق → **return `{contextString: '', citations: []}`** (graceful fallback) |
+| `meta-context.ts` | DB query ناموفق → **return `""`** (context کاهش می‌یابد نه خرابی کل) |
+| `action-processor.ts` | یک اکشن ناموفق → **log + skip** (اکشن‌های دیگر ادامه می‌یابند) |
+| `index.ts` | خرابی Gemini generation → **۵۰۰** (قابل retry توسط frontend) |
+
+---
+
+### ۴.۴. جریان داده‌ی بازطراحی‌شده
+Request
+│
+├─[1] Auth Guard ──────────────────────────────── throw 401 on fail
+├─[2] Quota Check ─────────────────────────────── return 402 on exceed
+├─[3] Media Download (if audio/image) ────────── throw 500 on fail
+│
+├─[4] Context Building (Promise.all) ─────────── always resolves (fallback to "")
+│      ├─ RAG Context (Embedding → hybrid_search)
+│      └─ Meta Context (Tasks + Notes + Projects)
+│
+├─[5] System Prompt Build (pure function) ────── no side effects
+├─[6] Gemini Generate ────────────────────────── throw 500 on fail
+├─[7] Action Processing (per-action isolation) ─ partial failure OK
+│
+└─[8] Response
+
+---
+
+### ۴.۵. قرارداد API (بدون تغییر — backward compatible)
+
+```json
+{
+  "reply": "string",
+  "citations": "[{id, type, title, similarity}]",
+  "actionResults": "[{type, operation, data}]",
+  "proposals": "[{kind, draft, confidence}]",
+  "transcription": "string"
+}
+```
+
+فرانت‌اند هیچ تغییری نمی‌بیند.
 ---
 
 ## ۵. معماری State و ساختار فرانت‌اند

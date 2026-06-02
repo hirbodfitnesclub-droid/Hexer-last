@@ -1,144 +1,393 @@
-# CURRENT_TASK.md — سند تمرکز اجرایی (فاز پایانی: تسک‌های R9 و R10)
+# CURRENT_TASK.md — سند تمرکز فاز D (مراحل B3 و B4: بازنویسی ارکستراتور و نوسازی برداری)
 
-> **توجه بحرانی برای شروع چت جدید:** این سند، «تنها» نقطه تماس و کانال انتقال کانتکست پروژه از جلسه قبلی به جلسه جدید در چت جدید است. تمام فازهای قبلی شامل اسکیما (R1)، لایه RPC بیزنس (R2)، توابع هوش مصنوعی لبه (R3)، ساختار داده و کامپوننت‌های مدرن فرانت‌اند برای داشبورد (R6)، کارها و یادداشت‌ها (R7) و پروژه‌ها، عادت‌ها و پرداخت (R8) با موفقیت کامل و تایید صددرصدی کامپایلر پیاده‌سازی شده‌اند. این فایل به عنوان راهنمای اقدام مستقیم، مرجع تام شماست تا کار را بدون نیاز به رسیپ چت، با دقت ۱۰۰ درصد به سرانجام برسانید.
-
----
-
-## ۱. دقیقاً CURRENT_TASK.md چیست و چه کاربردی دارد؟
-
-این فایل یک **«پنجره لغزان کانتکست» (Sliding Window)** است. مدل‌های هوش مصنوعی کدنویسی در کارهای بزرگ (مانند مهاجرت کامل ویژگی‌ها و فرانت‌اَند) به شدت مستعد گم‌شدن در حجم زیاد کدهای پروژه (Symptom of "Lost in the Context") و همچنین تولید کدهای متوهمانه یا تکراری هستند. 
-
-بنابراین، این فایل ایجاد شده تا دیدِ کدنویس را به صورت کاملاً ایزوله، صرفاً به تسک‌های جاری محدود کند. این مکانیزم به ما کمک می‌کند ضمن کاهش وحشتناک هزینه‌های توکن‌های ورودی API، به دقت استثنایی ۱۰۰ درصدی در فهم نیازها، ساختار جدید فایل‌ها و قوانین عدم رگرسیون تکیه کنیم.
+> **توجه بحرانی برای مدل مجری:** این سند به عنوان تنها «پنجره تمرکز» (Focus Window) کانتکست شما طراحی شده است. از آنجا که این عملیات در یک چت مستقل با حافظه پاک‌شده اجرا می‌شود، تمام قراردادها، کدها، کلاس‌ها، ایمپورت‌ها و محدودیت‌های فیزیکی دو تسک نهایی فاز D در این سند متمرکز شده‌اند. شما باید دو تسک **B3** (بازنویسی ارکستراتور نازک) و **B4** (اصلاح وب‌هوک وکتورایزر) را در یک تک‌گام بدون دستکاری کدهای فرانت‌اَند یا نقض اصول `PROJECT.md` پیاده‌سازی و نهایی کنید.
 
 ---
 
-## ۲. آناتومی و محتویات فایل
+## وضعیت اجرای فاز D
+- [x] **تسک B1:** ساخت `_shared/` (شامل `cors.ts` و `auth-guard.ts` و `gemini-client.ts`) - **با موفقیت کامل انجام شد**
+- [x] **تسک B2:** ساخت ماژول‌های مستقل `ai-assistant/lib/` (شامل `system-prompt.ts` و `meta-context.ts` و `rag-context.ts` و `media-handler.ts` و `action-processor.ts`) - **با موفقیت کامل انجام شد**
+- [x] **تسک B3:** بازنویسی `ai-assistant/index.ts` به عنوان ارکستراتور نازک و ایمن - **با موفقیت کامل انجام شد**
+- [x] **تسک B4:** اصلاح `vectorize/index.ts` جهت یکپارچه‌سازی کامل مدل امبدینگ مشترک - **با موفقیت کامل انجام شد**
 
-این سند مهندسی‌شده شامل ۴ لایه طلایی زیر است:
+---
 
-### بخش اول: درخت تمرکز (Focus Tree)
-این بخش کل درخت فایل‌های پروژه نیست! بلکه نمای متمرکز (Semantic Zooming) از شاخه‌ها و فایل‌هایی است که مستقیماً در تسک‌های R9 و R10 درگیر خواهند شد:
+## ۱. درخت تمرکز (Focus Tree)
+
+فایل‌هایی که در این گام تغییر می‌کنند تا تمام منطق‌ها از فایل اصلی جدا شده و سیستم تبدیل به یک ارکستراتور بسیار زیبا و اتمیک شود:
 
 ```
-/
-├── types.ts                                 ← تعاریف تایپ‌های اتمیک سیستم
-├── App.tsx                                  ← روت رندر، هماهنگ‌کننده مودال‌ها و تب‌ها
-├── components/                              ← کامپوننت‌های قدیمی و مشترک (کاندید مهاجرت)
-│   ├── ChatView.tsx                         ← چت‌ویوی قدیمی (باید ریفکتور و جابجا شود)
-│   ├── Auth.tsx                             ← فرم ورود قدیمی
-│   ├── Onboarding.tsx                       ← فرم آنبوردینگ قدیمی
-│   ├── PersianDatePicker.tsx                ← انتخاب‌گر تاریخ شمسی
-│   ├── BottomNav.tsx                        ← نوار ناوبری پایینی
-│   └── layout/                              (ساختار جدید مقصد)
-├── features/                                
-│   ├── chat/                                ← ماژول جدید چت
-│   │   ├── ChatView.tsx                     ← نمای اصلی و پیشرفته چت (مصرف از useData)
-│   │   ├── components/                      ← ریزکامپوننت‌های ماژول چت
-│   │   │   ├── CitationCard.tsx             ← کارت منابع مطلع
-│   │   │   ├── ActionResultCard.tsx         ← کارت رندرهای خروجی اکشن‌ها
-│   │   │   ├── ModeChip.tsx                 ← تغییر مودهای هوشمند چت
-│   │   │   ├── ProposalCard.tsx             ← کارت استخراج و تایید تک‌به‌تک پکیج‌ها
-│   │   │   └── ChatHistoryDrawer.tsx        ← دراور مدرن آرشیو لاگ‌های چت ماهانه
-│   │   └── hooks/
-│   │       └── useMediaRecorder.ts          ← هوک محصورکننده ضبط صدا و دسترسی میکروفون
-│   ├── auth/                                ← ماژول کارهای احراز هویت
-│   │   ├── components/
-│   │   │   ├── AuthForm.tsx
-│   │   │   └── OnboardingSplash.tsx
-│   │   └── hooks/
-│   └── shared/                              ← کامپوننت‌های مشترک بازآرایی‌شده
-│       └── components/
-└── services/
-    ├── geminiService.ts                     ← تنها هاب ارتباط فرانت با مدل‌های AI
-    ├── mediaService.ts                      ← وب‌سرویس بارگذاری فیزیکی مدیا و تصاویر
-    └── supabaseClient.ts                    ← دسترسی کلاینت دیتابیس
+supabase/functions/
+├── _shared/                              ← کدهای ساخته شده قبلی (برای استفاده در B3 و B4)
+│   ├── cors.ts                           ← هدرهای CORS استاندارد کورتکس
+│   ├── auth-guard.ts                     ← اعتبارسنجی توکن کاربر و بازیابی کلاینت امن
+│   └── gemini-client.ts                  ← ائتلاف پایدار مدل امبدینگ ثبات و جنریت لنگرگاهی
+│
+├── ai-assistant/                         
+│   ├── index.ts                          ← [ویرایش در تسک B3] ارکستراتور نازک و پاکسازی شده
+│   └── lib/                              ← ماژول‌های منطق بیزینس (ساخته شده در تسک قبلی)
+│       ├── system-prompt.ts              ← تولید قالب پروامپت متنی پایدار هکسر
+│       ├── meta-context.ts               ← کوئری وضعیت کارهای امروز، یادداشتها و پروژه‌ها
+│       ├── rag-context.ts                ← تعبیه‌سازی جستار و اجرای RPC هیبریدی (RAG)
+│       ├── media-handler.ts              ← دانلود مدیاها از پرایوت استوریج و انکود ایمن
+│       └── action-processor.ts           ← هندلر چندگانه تراکنش‌های دیتابیس (CREATE / LINK)
+│
+└── vectorize/
+    └── index.ts                          ← [ویرایش در تسک B4] یکپارچگی مدل امبدینگ با _shared
 ```
 
 ---
 
-### بخش دوم: جزئیات کامل تسک‌های جاری (تسک‌های فاز نهایی)
+## ۲. مشخصات و راهنمای پیاده‌سازی تسک B3 (بازنویسی `ai-assistant/index.ts`)
 
-در این جلسه، قرار است دو تسک نهایی و سرنوشت‌ساز **تسک R9 (ماژول چت مدرن)** و **تسک R10 (مهاجرت کامپوننت‌های مشترک و بستن کدهای کهنه)** را به صورت ۱۰۰ درصد اتمیک پیاده‌سازی کنیم. تمام اطلاعات و نیازمندی‌های این دو تسک مستقیماً از مرجع برنامه یعنی `tasks.md` به شرح زیر استخراج شده است:
+فایل قدیمی `supabase/functions/ai-assistant/index.ts` حاوی بیش از ۶۰۰ خط کد است که تمام منطق‌های دانلود فایل، کوئری‌های دیتابیس، پردازش اکشن‌ها، لود امبدینگ و تولید پرامپت در آن تجمیع شده بود. این امر ریسک خطاهای ناگهانی و بروز نگهداری سخت را به بالاترین حد می‌رساند.
+در تسک B3، این فایل باید به طور کامل بازنویسی شود تا به عنوان یک ارکستراتور نازک، تمیز و گیت‌وی احراز هویت عمل کند.
 
-#### 💬 تسک R9: ماژول Chat (تاریخچه‌ی روزانه + استخراج با تأیید + جلوه‌ی مدرن نسل Z)
+### لاجیک و الگوهای رفتاری ارکستراتور در گام B3:
+1. **هدرهای امینیتی و CORS:** مدیریت درخواست‌های مقدماتی (OPTIONS) با پاسخ فوری 'ok' همراه با هدرهای ورودی از فایل مشترک `../_shared/cors.ts`.
+2. **کلاینت‌های توزیع شده:**
+   - استفاده از متد گارد `getAuthUser(req.headers.get('Authorization'))` برای دریافت سشن تایید شده کاربر و کلاینت کاربر-محور سوپابیس.
+   - کلاینت جنبه سرویسِ رول (Service Role) جهت عملیات‌های دانلود فایل‌ها از Storage خصوصی (خارج از محدودیت‌های دسترسی توکن محدود کاربر).
+3. **گارد بررسی تراکنش اعتباری (Quota Gateway):**
+   - فراخوانی متد RPC با شناسه `consume_ai_quota`.
+   - اگر از طرف پایگاه داده خطا پرتاب شد یا خروجی حاوی عدم مجوز بود، سرویس با پاسخ ۴۰۲ (Payment Required) متوقف می‌شود.
+   - بازیابی مدل تخصیص داده شده به سشن کاربر از روی خروجی سهمیه (مثلاً `gemini-2.5-flash-lite`).
+4. **زمان‌سنجی فیزیکی و بومی ایرانی:**
+   - استخراج روز جاری بر اساس فرمت تقویم هجری شمسی به زبان شیرین فارسی جهت تحلیل هوشمند رادارهای تاریخ کاربر:
+     ```typescript
+     const today = new Date();
+     const todayStr = today.toLocaleDateString('en-CA'); // YYYY-MM-DD
+     const dayName = today.toLocaleDateString('fa-IR', { weekday: 'long' });
+     const persianDate = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+       year: 'numeric',
+       month: 'long',
+       day: 'numeric'
+     }).format(today);
+     ```
+5. **موتور چندگانه همزمانی (Concurrent Context Architecture):**
+   - فراخوانی همزمان پردازش متاداده‌ها (تسک‌ها و یادداشت‌های ۵ روز اخیر) و RAG به کمک ابزار بیزینسی اختصاصی:
+     ```typescript
+     const isProposalMode = !!(audioPath || imagePath);
+     const ai = getGoogleGenAI();
 
-هدف این تسک دگرگون کردن بخش چت و ارتقای آن به ابزاری پایدار با الگوهای مدرن بصری و پیوند همیشگی با دیتابیس است:
+     // همزمانی کوئری‌ها جهت حداقل کردن تاخیر خطی آبشاری (Linear Waterfall Latency)
+     const [metaContext, ragData] = await Promise.all([
+       buildMetaContext(supabaseClient, mode, isProposalMode, todayStr),
+       buildRagContext(supabaseClient, ai, message)
+     ]);
+     ```
+6. **مدیریت محتویات ورودی و تاریخچه گفتگو (mergeConsecutiveRoles):**
+   - پیش‌بینی و هندل الگوریتم ادغام هوشمند رول‌های متوالی تکراری جمینی (در صورت بروز ناهماهنگی در آرایه ارسالی از کلاینت):
+     ```typescript
+     function mergeConsecutiveRoles(contents: any[]) {
+       if (!contents || contents.length === 0) return [];
+       const merged: any[] = [];
+       for (const item of contents) {
+         if (merged.length > 0 && merged[merged.length - 1].role === item.role) {
+           merged[merged.length - 1].parts.push(...item.parts);
+         } else {
+           merged.push({ role: item.role, parts: [...item.parts] });
+         }
+       }
+       return merged;
+     }
+     ```
+7. **بارگیری ایمن فایل‌های پیوست مدیا:**
+   - استفاده از پکیج کمکی `media-handler.ts` و فرستادن اطلاعات مدیا پارتس به جمینی به صورت تکه‌های Base64 تعبیه‌شده.
+8. **فراخوانی هسته مولد مدل جمینی:**
+   - فراخوانی `ai.models.generateContent` با ترتیبی کاملاً تمیز از تاریخچه گفتگوها و پارت‌های جدید پیام کاربر.
+9. **پردازشگر پس‌لرزه تراکنشی (Action Resolution Engine):**
+   - بررسی سناریوی Extraction/Proposal؛ در صورت فعال بودن مود پروپوزال، نوشتن روی دیتابیس مطلقاً ممنوع است (Zero-Write Enforcement).
+   - در صورت استفاده از چت آزاد تعاملی، اکشن‌های استخراج شده با فراکشن همزمان در `processActions` اجرا شده و پاسخ بازسازی شده به کاربر تحویل می‌گردد.
 
-1. **مدیریت تاریخچه و نشست‌ها (Persistent History):**
-   - دیگر حالت چت گذرا (Volatile State) لغو می‌شود. پیام‌ها باید در دیتابیس با فرخوانی صحیح RPCهای `get_or_create_today_session` و ذخیره پیام‌ها در جدول `chat_messages` همگام شوند.
-   - اضافه کردن دکمه‌ی شیک «چت‌های این ماه» که با کلیک بر روی آن، دراور مدرن و نیم‌صفحه `ChatHistoryDrawer` از پایین لود شود. 
-   - این دراور با فراخوانی RPC اتمیک `get_chat_sessions(p_limit)` لیست نشست‌های گذشته کاربر را واکشی می‌کند. با زدن دکمه روی هر چت قدیمی، آن پیام‌ها به صورت **«فقط-خواندنی» (Read-Only)** لود می‌شوند تا کاربر بتواند سوابق را بررسی کند. شروع روز جدید بر اساس منطقه زمانی رسمی ایران (Asia/Tehran) باشد.
+### کد دقیق و بهینه نهایی برای فایل `/supabase/functions/ai-assistant/index.ts`:
 
-2. **سیستم استخراج توصیه‌ها با تایید صریح (Extraction Proposals - تاییدیه نسل ۲):**
-   - عندما مدیا (صوت یا عکس) فرستاده می‌شود و توابع لبه لیست پیشنهادات یا پیش‌نویس‌های کار/یادداشت را در خروجی پاسخ Gemini با ساختار `proposals` برمی‌گردانند، فرانت‌اَند باید کارت‌های پروپوزال (`ProposalCard`) را رندر کند.
-   - کاربر باید بتواند هر پروپوزال (مثلاً ایجاد یک تسک نویسی از روی ویس) را تک‌به‌تک ویرایش یا به طور صریح تایید/حذف کند. به علاوه، دکمه‌ی «تأیید همه کارهای پیشنهادی» نیز در دسترس باشد. هیچ دیتایی نباید تا پیش از تایید صریح دکمه‌ی فیزیکی کاربر در دیتابیس ثبت شود تا جلوی آلودگی داده‌ها (Dirty Data) گرفته شود.
+```typescript
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { corsHeaders } from '../_shared/cors.ts';
+import { getAuthUser } from '../_shared/auth-guard.ts';
+import { getGoogleGenAI } from '../_shared/gemini-client.ts';
+import { buildSystemPrompt } from './lib/system-prompt.ts';
+import { buildMetaContext } from './lib/meta-context.ts';
+import { buildRagContext } from './lib/rag-context.ts';
+import { downloadMediaParts } from './lib/media-handler.ts';
+import { processActions } from './lib/action-processor.ts';
 
-3. **پیوند هوشمند (Smart Action Linker):**
-   - وقتی پاسخ حاوی پیشنهاداتی برای اتصال کارها و یادداشت‌های مرتبط است (`suggest_link` در لیست اکشن‌ها)، کارت‌های راهنما به زیبای رندر شده و کاربر با زدن دکمه‌ی تایید در داخل چت، RPC اتمیک `link_task_note` را فرخوانی کند تا سیستم اتصالات دوطرفه تحکیم شود.
+declare const Deno: any;
 
-4. **رفع اشکالات رفتاری و طراحی مدرن (Gen Z Visual Styling):**
-   - **آرایش حباب‌ها:** جهت پیام‌های کاربر متمایل راست و پیام‌های سیستم چپ باشد. حباب پیام کاربر با لبه تیز در بالا‌ راست (`rounded-tr-none`) و هوش مصنوعی بالا‌ چپ (`rounded-tl-none`) آراسته شود.
-   - ورودی پیام متنی به کلاس `dir="rtl"` مجهز بوده و چیپس‌های فیلتر چت (`Mode Chips`) به کمک `flex-wrap` در صفحه‌های کوچک مهار شوند.
-   - تمام ارتباطات تولید محتوای AI انحصاراً از طریق کلاینتِ `services/geminiService.ts` با توابع زیباشده جریان یابد و هیچ استفاده مستقیمی از کلاینت خام سوپابیس برای مدل در فرانت‌اَند نباشد.
-   - انیمیشن تایپینگ نرم به هنگام انتظار لود سیستم برقرار باشد.
+function mergeConsecutiveRoles(contents: any[]) {
+  if (!contents || contents.length === 0) return [];
+  const merged: any[] = [];
+  for (const item of contents) {
+    if (merged.length > 0 && merged[merged.length - 1].role === item.role) {
+      merged[merged.length - 1].parts.push(...item.parts);
+    } else {
+      merged.push({ role: item.role, parts: [...item.parts] });
+    }
+  }
+  return merged;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    const authHeader = req.headers.get('Authorization');
+    const { user, supabaseClient } = await getAuthUser(authHeader);
+
+    const { message, history, mode, audioPath, imagePath } = await req.json();
+
+    // ۱. بررسی اعتبار و سهمیه هوش مصنوعی (Quota Gateway)
+    const { data: quotaResult, error: quotaError } = await supabaseClient.rpc('consume_ai_quota');
+    if (quotaError) {
+      console.error("Quota Check Error from RPC:", quotaError);
+      throw new Error(`Quota restriction check failed: ${quotaError.message}`);
+    }
+
+    const quota = Array.isArray(quotaResult) ? quotaResult[0] : quotaResult;
+    if (!quota) {
+      throw new Error("Unable to retrieve quota information");
+    }
+
+    if (!quota.allowed) {
+      return new Response(JSON.stringify({
+        error: "Quota exceeded or subscription expired",
+        reason: quota.reason || "quota_exceeded"
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 402
+      });
+    }
+
+    const modelName = quota.model || 'gemini-2.5-flash-lite';
+    const ai = getGoogleGenAI();
+
+    // ۲. پردازش تاریخ‌های امروزی شمسی و میلادی
+    const today = new Date();
+    const todayStr = today.toLocaleDateString('en-CA');
+    const dayName = today.toLocaleDateString('fa-IR', { weekday: 'long' });
+    const persianDate = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }).format(today);
+
+    // ۳. همزمانی کوئری‌ها جهت جلوگیری از Waterfall Latency
+    const isProposalMode = !!(audioPath || imagePath);
+
+    const [metaContext, ragData] = await Promise.all([
+      buildMetaContext(supabaseClient, mode, isProposalMode, todayStr),
+      buildRagContext(supabaseClient, ai, message)
+    ]);
+
+    const context = `${metaContext}${ragData.contextString}`;
+    const systemPrompt = buildSystemPrompt({
+      context,
+      isProposalMode,
+      todayStr,
+      dayName,
+      persianDate
+    });
+
+    // ۴. دانلود و الحاق فایل‌های چندرسانه‌ای به کمک کلید سرویس رول امن
+    const supabaseService = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const userMessageParts: any[] = [];
+    if (message) userMessageParts.push({ text: message });
+
+    if (audioPath || imagePath) {
+      const mediaParts = await downloadMediaParts(supabaseService, { audioPath, imagePath }, user.id);
+      userMessageParts.push(...mediaParts);
+    }
+
+    // ۵. فرمت‌بندی تاریخچه تعاملی کاربر
+    const modelHistoryRaw = history ? history.slice(-5).map((h: any) => ({
+      role: h.sender === 'user' ? 'user' : 'model',
+      parts: [{ text: h.text }]
+    })) : [];
+
+    const modelHistory = mergeConsecutiveRoles(modelHistoryRaw);
+
+    // ۶. استعلام پاسخ از مدل هوشمند جمینی
+    const response = await ai.models.generateContent({
+      model: modelName,
+      contents: [
+        ...modelHistory,
+        { role: 'user', parts: userMessageParts }
+      ],
+      config: {
+        responseMimeType: 'application/json',
+        systemInstruction: systemPrompt,
+        temperature: 0.0,
+        maxOutputTokens: 8192
+      }
+    });
+
+    const rawText = response.text;
+    let aiResult;
+    try {
+      const cleanText = rawText?.replace(/```json\n?|\n?```/g, '').trim() || "{}";
+      aiResult = JSON.parse(cleanText);
+    } catch (e) {
+      console.error("JSON Parse Error. Raw Text:", rawText);
+      throw new Error("Failed to parse AI response. Invalid JSON format returned from model.");
+    }
+
+    const { actions, transcription, reply, proposals } = aiResult;
+    let actionResults: any[] = [];
+
+    // ۷. تفکیک پردازش به اکشن‌ها بر اساس نوع ورودی
+    if (isProposalMode) {
+      console.log("Zero write constraint: Skipping database mutations in extraction mode.");
+    } else if (actions && Array.isArray(actions)) {
+      actionResults = await processActions(actions, supabaseClient, ai, user.id);
+    }
+
+    return new Response(JSON.stringify({
+      reply: reply || "انجام شد.",
+      citations: ragData.citations,
+      actionResults,
+      proposals: proposals || [],
+      transcription: transcription || ""
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    });
+
+  } catch (error: any) {
+    console.error("AI Assistant Orchestrator General Error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: error.status || 500,
+    });
+  }
+});
+```
 
 ---
 
-#### 📦 تسک R10: مهاجرت کامپوننت‌های مشترک + Auth + سوییپ تمام ددکدها و کدهای بلااستفاده
+## ۳. مشخصات و راهنمای پیاده‌سازی تسک B4 (اصلاح وب‌هوک `vectorize/index.ts`)
 
-ایستگاه پایانی ریفکتور بزرگ کدیار، تمام بسته‌بندی نهایی و پاک‌سازی کامل ددکدها از روت قدیمی کامپوننت‌هاست:
+تفاوت مدلِ امبدینگ تعبیه‌سازی در چت جمینی (`gemini-embedding-2-preview`) با وکتورایزر مستقل دیتابیس (`text-embedding-004`) یکی از بزرگترین چالش‌های کارایی سیستم به حساب می‌آمد. برای اطمینان از تجانس کامل و شباهت بردارها در کوئری هیبریدی، هردو ماژول باید به صورت ۱۰۰٪ همگام رفتار کنند.
 
-1. **انتقال سیستم احراز هویت و Onboarding:**
-   - انتقال فایل‌های تداخل‌زا به پوشه جدید `/features/auth/`؛ فعال بودن گزینه `noValidate` همراه با سیستم بررسی ارورهای کاستوم فارسی.
-   - اصلاح صفحه `Onboarding.tsx` جهت نگهداری تخصصی یا فیلدهای مورد علاقه کاربر (`specialty` و `interests`) در جدول `profiles` و برطرف‌سازی خطاهای تعریفی تایپ‌های کلیک رویدادها (`MouseEvent` تایپ اسکریپت).
+### لاجیک ارتقا یافته‌ی وب‌هوک وکتورایزر در گام B4:
+1. **استفاده از هدرهای CORS به طور اشتراکی** برای یکپارچگی پاسخ‌ها.
+2. **استفاده از سیستم جمینی لنگرگاهی مشترک:**
+   - حذف ساختار دستی ساخت امپورت `new GoogleGenAI` با اطلاعات تکراری.
+   - ورود تابع `getGoogleGenAI()` و `generateEmbedding()` به طور مستقیم از پوشه `../_shared/gemini-client.ts`.
+3. **مقاوم‌سازی خطاهای تعبیه‌سازی:** در صورت روبرو شدن با عدم مقدار در امبدینگ، خطا بلافاصله گزارش داده شود.
+4. **ثبت اطلاعات بردار نویسی شده:** بازگشت متد موفق با ابعاد وکتور نهایی ذخیره شده برای لاگ مانیتورینگ سیستم.
 
-2. **انتقال ابزارهای گلوبال و فیلترها:**
-   - جابجایی تگ انتخاب‌گر تاریخ شمسی `PersianDatePicker` و فیلتر زمانی به پوشه زیرمجموعه اشتراکی و مهار و تبدیل کلس نامعتبر قدیمی `direction-rtl` به استانداردهای Tailwind و `dir="rtl"`.
-   - مرتب‌سازی تمامی ورودی‌های ایمپورت فرانت‌اَند در فایل `App.tsx` با ارجاع به ساختارهای اتمیک جدید.
+### کد دقیق و بهینه نهایی برای فایل `/supabase/functions/vectorize/index.ts`:
 
-3. **اسکن نهایی و حذف ددکدها (Dead Codes):**
-   - فایل‌های متراکم قدیمی واقع در ریشه‌ی `/components/` کاندیدای مرگ و حذف قطعی هستند؛ فایل‌هایی همچند `TasksView.tsx` ، `TaskEditorModal.tsx` ، `NotesView.tsx` ، `NoteEditorModal.tsx` و `HabitEditorModal.tsx` را به کلی حذف کنید تا کمترین آلودگی فایلی در سورس پروژه وجود نداشته باشد.
-   - بیلد نهایی برنامه را با `npm run build` انجام دهید تا موفقیت ۱۰۰ درصدی پروژه با استواری کامل ثبت شود.
+```typescript
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getGoogleGenAI, generateEmbedding } from '../_shared/gemini-client.ts';
+import { corsHeaders } from '../_shared/cors.ts';
+
+declare const Deno: any;
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    const payload = await req.json();
+    const { type, id } = payload;
+    
+    if (!id || !type) {
+      console.error("Missing payload required fields (id, type):", payload);
+      return new Response(JSON.stringify({ message: "Invalid payload: id or type missing" }), { status: 400, headers: corsHeaders });
+    }
+
+    const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!SERVICE_ROLE_KEY) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      SERVICE_ROLE_KEY
+    );
+
+    const table = type === 'task' ? 'tasks' : 'notes';
+
+    // بازیابی نسخه جدید رکورد
+    const { data: record, error: fetchError } = await supabaseClient
+      .from(table)
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (fetchError || !record) {
+      throw new Error(fetchError ? `Fetch error: ${fetchError.message}` : `Record with id ${id} not found in ${table}`);
+    }
+
+    // ساخت ترکیب متنی برای برداری کردن داده
+    let combinedText = '';
+    if (type === 'task') {
+      const title = record.title || '';
+      const description = record.description || '';
+      const tags = Array.isArray(record.tags) ? record.tags.join(' ') : '';
+      combinedText = `${title} ${description} ${tags}`.trim();
+    } else {
+      const title = record.title || '';
+      const content = record.content || '';
+      const tags = Array.isArray(record.tags) ? record.tags.join(' ') : '';
+      combinedText = `${title} ${content} ${tags}`.trim();
+    }
+
+    if (!combinedText) {
+      return new Response(JSON.stringify({ message: "Constructed content is empty, skipping vectorization" }), { status: 200, headers: corsHeaders });
+    }
+
+    // اجرای امبدینگ هوشمند با متد مشترک و هماهنگِ کل سیستم
+    const ai = getGoogleGenAI();
+    console.log(`Generating embedding for ${type} ID: ${id} with consistent model...`);
+    
+    const embeddingValues = await generateEmbedding(ai, combinedText);
+
+    // به‌روزرسانی مقدار برداری رکورد
+    const { error: updateError } = await supabaseClient
+      .from(table)
+      .update({ embedding: embeddingValues })
+      .eq('id', id);
+
+    if (updateError) {
+      throw new Error(`Supabase DB Error during update: ${updateError.message}`);
+    }
+
+    return new Response(JSON.stringify({ message: "Vectorized successfully", length: embeddingValues.length }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    });
+
+  } catch (error: any) {
+    console.error("Vectorize Error Details:", error);
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      stack: error.stack 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+    });
+  }
+});
+```
 
 ---
 
-### بخش سوم: وضعیت تسک‌های بعدی (Futuristic Track)
+## ۴. لیست نبایدهای بحرانی و الگوهای ضدبحران (Anti-Patterns)
 
-به عنوان تسک‌های آینده:
-- این جلسه، آخرین حلقه از تلاش‌های ریفکتور بزرگ کدیار (جدول کارهای R1 تا R10) است. پس فرآیند بعدی مستقیماً پس از بیلد موفق، بررسی سناریوهای کاربری بر روی کلاینت نسخه توسعه (Development Sandbox Check) و ثبت نهایی لاگ مهاجرت خواهد بود.
-
----
-
-### بخش چهارم: رله کانتکست (Context Relay - حافظه جاری پروژه)
-
-**مهم‌ترین دیتای کاربری برای شروع در چت جدید:**
-
-1. **وضعیت موفقیت‌های ثبت شده:**
-   - پایگاه داده سوپابیس به تمام جدول‌های افزوده‌شده نظیر `task_note_links`, `chat_sessions`, `chat_messages` متصل است.
-   - توابع RPC نظیر `get_usage_status` و `get_daily_usage` به طور زنده پیاده و توسط ماژول پرداخت ایمن به مصرف رسیده‌اند.
-   - ماژول پروژه‌ها به زیبایی کامپایل و تفکیک شده است.
-   - مبلع و اشتراک‌ها بر اساس اعتبار و ارتباط امن با وب‌هوک زیبال در فرانت پردازش می‌شوند و دکمه‌های ارتقا کار می‌کنند.
-
-2. **چالش‌ها یا نکات مستقر در ساختار کد:**
-   - تمام آیکون‌ها باید منحصراً از ماژول `/components/icons.tsx` ایمپورت شوند؛ از افزودن آیکون‌های وکتور مستقیم یا کتابخانه‌هایی غیر از Lucide پرهیز شود.
-   - برای جابجایی چت‌ویو به فرانت جدید، تمام متدهای فرستادن اطلاعات مدیا و ویس را در قالب هوک کاستوم `useMediaRecorder.ts` متمرکز سازید.
-   - در جریان آپدیت `App.tsx` دقت کنید که رفرنس‌های کامپوننت‌های حذف شده را با آدرس‌های جدیدِ قرار گرفته در پوشه `/features/` جایگزین کنید.
+- [ ] **تحت هیچ شرایطی** از مدل‌های منسوخ شده مانند `text-embedding-004` در هیچ فایلی استفاده نکنید؛ پیاده‌سازی متد امبدینگ ثبات صرفاً متعهد به مدل تعریف شده در `_shared/gemini-client.ts` است.
+- [ ] **از نوشتن منطق‌های تکراری** کلاینت سازی دیتابیس یا چک امنیتی مسیرها در بدنه فایل‌های index خودداری کنید؛ همه این بخش‌ها از پکیج‌های بیزینسی و به اشتراک‌گذاری شده بارگذاری می‌شوند.
+- [ ] **هرگز کدهای قدیمی به درد نخور را کامنت نکنید**؛ پس از استقرار منطق جدید، فایل‌ها به صورت تمیز عاری از لاگ‌های شلوغ یا کدهای بلااستفاده باشند.
+- [ ] **تا تایید نهایی از سلامت ریبیلد کل اپ مطمئن نشوید**؛ ران کردن گام موفق compile_applet یکی از بندهای اصلی تضمین لید دولوپر در کدیار است.
 
 ---
 
-## ۳. مکانیزم ساخت و آپدیت (چگونه کار می‌کند؟)
-
-این فایل عملکرد خود را به عنوان یک رله هوشمند از طریق فرآیندهای رایج زیر تکمیل می‌کند:
-
-1. **انتقال محلی رایگان (Zero-Cost Local Exchange):**
-   هیچ هزینه‌ای برای انتقال تسک‌ها از tasks.md به این فایل پرداخت نمی‌شود؛ فرآیند کاملاً از طریق کپی‌ رایت ساختار و هدایت فیلتر شده جریان دارد.
-
-2. **فشرده‌سازی و استخراج فیزیکی کدها:**
-   با توجه به محدودیت‌های کانتکست، مدل‌های کدنویس به محض باز شدن این فایل، آرایه مسیرهای کدهای هدف را تحلیل کرده و از فراخوانی فایل‌هایی غیر از این موارد خودداری می‌کنند.
-
-3. **نگارش و همپوشانی AI:**
-   این ردیف پس از تسک نهایی در جلسه آتی به طور کامل از روی سیستم عصبی پروژه در کدیار آرشیو خواهد گشت.
-
----
-
-**اکنون همه‌چیز برای ورود به جلسه بعدی و انجام فاز طلایی نهایی (R9 و R10) آماده و مهیاست! با تمرکز فوق‌العاده بر روی ساختار چت و مهاجرت کامپوننت‌ها، کدیار را به امن‌ترین و زیباترین دستیار هوشمند تبدیل کنید.**
+**موتور اجرایی کدیار! وظیفه شما هم‌اکنون آغاز می‌شود. فایل‌های تسک B3 و B4 را با توجه کامل به تمامی نکات مطرح شده تغییر دهید و پایداری برداری را به کل کورتکس هوشمند بازگردانید!**
