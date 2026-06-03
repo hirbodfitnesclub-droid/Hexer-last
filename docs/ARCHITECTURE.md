@@ -372,4 +372,81 @@ select:-webkit-autofill:focus {
 | 🟠 | `features/projects/ProjectsView.tsx` | گرید `md:grid-cols-2 lg:grid-cols-3` در اپ mobile-only | فقط `grid-cols-1` |
 | 🟡 | تمام مودال‌ها | z-index سلسله مراتب نامنظم | رعایت جدول §۷.۲ |
 
-markdown# 
+---
+
+## ۸. معماری فیچر «کارت به کارت + رسید» (Card-to-Card Technical Architecture)
+
+> این بخش backbone مشترک (DB/Storage/RPC) و سهم **کلاینت** را تعریف می‌کند. سهم پنل ادمین در `docs_of_manager_panel/ARCHITECTURE.md §۶`.
+> فایل SQL جدید: `supabase/sql/28_card_to_card_system.sql` (Idempotent، پیشوند `28` تا با `20–27` تداخل نکند). این فایل توسط مالک به‌صورت دستی در SQL Editor اجرا می‌شود.
+
+### ۸.۰. اصل طراحی: دو فلو، یک جدول، صفر آلودگی
+درگاه آنلاین زیبال (تایید اتوماتیک) و کارت‌به‌کارت (تایید دستی) روی **همان جدول `payments`** زندگی می‌کنند و فقط با `gateway` و `status` از هم جدا می‌شوند. تفاوت کلیدی **در زمان رزرو کوپن** است:
+
+| فلو | gateway | لحظه‌ی رزرو کوپن (`used_count++`) | فعال‌سازی |
+|-----|---------|----------------------------------|-----------|
+| آنلاین زیبال | `zibal` | در `activate_subscription` هنگام verify (موجود، دست‌نخورده) | اتوماتیک پس از verify |
+| تخفیف ۱۰۰٪ | `bypass` | در `activate_subscription` هنگام verify (موجود) | اتوماتیک، بدون بانک |
+| **کارت به کارت** | `card_to_card` | **در لحظه‌ی ثبت** داخل `submit_manual_payment` | دستی توسط ادمین |
+
+> ⚠️ **قانون ضدِ Double-Count:** چون کارت‌به‌کارت کوپن را در *ثبت* رزرو می‌کند، تایید ادمین از RPCِ مجزای `activate_manual_subscription` استفاده می‌کند که **کوپن را لمس نمی‌کند**. هرگز از `activate_subscription` آنلاین برای تایید دستی استفاده نشود.
+
+### ۸.۱. افزوده‌های اسکیما (`payments`)
+| ستون/مقدار | نوع | توضیح |
+|------------|-----|------|
+| `offline_receipt_url` | text null | مسیر رسید در باکت خصوصی `receipts` (نه URL عمومی، نه Base64) |
+| `manual_decline_reason` | text null | علت رد توسط ادمین، برای نمایش بنر به کاربر |
+| `status = 'pending_manual'` | مقدار جدید | رسید ثبت‌شده، منتظر رسیدگی ادمین. مقادیر قبلی (`pending`/`paid`/`failed`/`canceled`) حفظ می‌شوند |
+| `gateway = 'card_to_card'` | مقدار جدید | تفکیک ردیف‌های کارت‌به‌کارت از `zibal`/`bypass` |
+
+- **«رد شده» چگونه نمایش داده می‌شود؟** ردیفی با `gateway='card_to_card'` + `status='failed'` + `manual_decline_reason IS NOT NULL`. (status جدید برای «رد» نمی‌سازیم تا منطق درآمد ادمین ساده بماند.)
+- ستون‌های موجود `discount_code_id`, `discount_amount_irr`, `final_amount_irr`, `amount_irr` بدون تغییر استفاده می‌شوند.
+
+### ۸.۲. Storage — باکت خصوصی `receipts`
+- ساخت باکت خصوصی `receipts` (الگوی §موجودِ `11_storage.sql`). RLS سراسری `storage.objects` (کلید: `foldername[1] = auth.uid()`) **به‌صورت خودکار** کارت‌به‌کارت را پوشش می‌دهد؛ نیازی به policy جدید نیست.
+- ساختار مسیر: `{user_id}/{payment_or_uuid}.jpg`.
+- حذف رسید فقط از Edge Function ادمین با `service_role` (bypass RLS) پس از تایید/رد.
+
+### ۸.۳. افزوده‌های RPC (در `28_card_to_card_system.sql`)
+همه `SECURITY DEFINER SET search_path = public` و Idempotent (`create or replace`).
+
+| تابع | فراخوان | مسئولیت |
+|------|---------|---------|
+| `preview_discount(p_plan_code text, p_code text)` | **کلاینت** (read-only) | بدون هیچ نوشتن: اعتبار/انقضا/ظرفیت کوپن را چک و خروجی `(valid bool, reason text, plan_price bigint, discount_amount bigint, final_amount bigint, is_full_discount bool)` می‌دهد. فقط برای branching UI (نمایش «فعال‌سازی رایگان» در برابر دو دکمه‌ی پرداخت). |
+| `submit_manual_payment(p_plan_code text, p_code text, p_receipt_path text)` | **کلاینت** | اتمیک: (۱) اگر کاربر یک ردیف `pending_manual` باز دارد → خطا (یک درخواست در جریان). (۲) قیمت پلن را از `plans` می‌خواند. (۳) اگر کوپن بود: `SELECT ... FOR UPDATE` روی `discount_codes`، چک انقضا/ظرفیت، سپس `used_count++` (رزرو). (۴) `final_amount` را حساب می‌کند؛ اگر صفر شد خطا می‌دهد (مسیر ۱۰۰٪ باید bypass باشد نه کارت‌به‌کارت). (۵) ردیف payment با `status='pending_manual'`, `gateway='card_to_card'`, `offline_receipt_url=p_receipt_path`, `user_id=auth.uid()` درج می‌کند. خروجی: `payment_id`. |
+| `activate_manual_subscription(p_payment_id uuid)` | **ادمین** (service_role) | اعتبارسنجی `status='pending_manual'`؛ سپس `status='paid'`+`paid_at`، upsert اشتراک `active` و ریست `usage_counters` (دقیقاً مثل بخش ۲–۴ از `activate_subscription`). **کوپن را لمس نمی‌کند** (قبلاً در ثبت رزرو شده). |
+| `reject_manual_payment(p_payment_id uuid, p_reason text)` | **ادمین** (service_role) | اعتبارسنجی `status='pending_manual'`؛ `status='failed'`, `manual_decline_reason=p_reason`؛ اگر `discount_code_id` داشت رول‌بک رزرو: `used_count = greatest(0, used_count - 1)`. (حذف فایل رسید کارِ Edge Function است، نه RPC.) |
+
+> `activate_subscription` (آنلاین) و `زیبال` دست‌نخورده می‌مانند. RPCهای ادمین می‌توانند از Edge Function با service_role صدا زده شوند (که RLS را دور می‌زند) و صرفاً برای اتمیک‌بودن داخل RPC کپسوله شده‌اند.
+
+### ۸.۴. سهم کلاینت — لایه‌ی سرویس (`services/billingService.ts`)
+متدهای جدید/تغییر‌یافته (امضاها مینیمال و سازگار):
+- `startCheckout(planCode, discountCode?)` ← افزودن آرگومان اختیاری `discount_code` و پاس‌دادن آن به `zibal-request` (هم برای آنلاین، هم برای bypass ۱۰۰٪). zibal-request از قبل `{ plan_code, discount_code }` را می‌پذیرد.
+- `previewDiscount(planCode, code)` → `supabase.rpc('preview_discount', ...)`.
+- `submitManualPayment(planCode, code, file)`:
+  1. گارد حجم ورودی (>۲MB → خطای فارسی).
+  2. فشرده‌سازی تا <۵۰۰KB با حلقه روی `compressImage` از `utils/imageUtils.ts` (کاهش کیفیت/ابعاد تا رسیدن به آستانه)، سپس `dataURLtoBlob`.
+  3. آپلود به `receipts/{uid}/{uuid}.jpg` با `supabase.storage`.
+  4. `supabase.rpc('submit_manual_payment', { p_plan_code, p_code, p_receipt_path })`.
+- `getManualPaymentState()` → آخرین ردیف `gateway='card_to_card'` کاربر را می‌خواند (RLS فقط ردیف خودش) و وضعیت UI را برمی‌گرداند: `none` | `pending` (`pending_manual`) | `rejected` (`failed` + `manual_decline_reason`).
+
+> همه‌ی فعال‌سازی‌ها سمت سرور نهایی می‌شوند؛ کلاینت فقط `getSubscription`/`getManualPaymentState` را برای نمایش می‌خواند (ضدالگو ۳۲).
+
+### ۸.۵. سهم کلاینت — UI و ماشین وضعیت
+ساختار feature-based زیر `features/billing/`:
+- **`ProfileModal`** (`components/ProfileModal.tsx`): badge پلن فعلی → دکمه‌ی ورود به اشتراک. به‌جای trigger مستقیم Paywall، مودال جدید اشتراک را باز می‌کند.
+- **`SubscriptionModal`** (جدید، `features/billing/components/`): نمای **وضعیت فعلی** (پلن، انقضا، یا «در انتظار تایید»، یا بنر «رد شد + علت») در بالا؛ سپس لیست پلن‌ها با دکمه‌ی **«تمدید»** (اشتراک فعال) یا **«خرید»** (نداشتن/انقضا). در وضعیت `pending` دکمه‌ها قفل‌اند.
+- **`PaymentMethodModal`** (جدید): فیلد کد تخفیف → `previewDiscount`. اگر `is_full_discount` → تنها دکمه‌ی **«فعال‌سازی رایگان»** (`startCheckout(plan, code)` → مسیر bypass). در غیر این صورت دو دکمه: **آنلاین** (`startCheckout(plan, code)`) و **کارت به کارت** (باز کردن مودال رسید).
+- **`ReceiptUploadModal`** (جدید): نمایش اطلاعات کارت مقصد، فایل‌پیکر (`accept="image/*"`)، گارد ۲MB، پیش‌نمایش، و دکمه‌ی ثبت → `submitManualPayment`. پس از موفقیت، وضعیت `pending` و قفل.
+- **State machine نمایش اشتراک:**
+  - `active`/`expired` → پلن‌ها با «تمدید»/«خرید».
+  - `pending_manual` → فقط «در انتظار تایید»؛ بدون هیچ دکمه (ضدالگو ۳۱).
+  - `rejected` → بنر قرمز با `manual_decline_reason`، سپس باز شدن دوباره‌ی خرید.
+
+### ۸.۶. رجیستر باگ/ریسک‌های این فیچر
+| اولویت | ریسک | کنترل |
+|--------|------|-------|
+| 🔴 | Double-count کوپن در تایید دستی | RPC مجزای `activate_manual_subscription` بدون لمس کوپن |
+| 🔴 | پر شدن Storage رایگان | فشرده‌سازی <۵۰۰KB + گارد ۲MB + حذف فوری توسط ادمین |
+| 🟠 | چند درخواست هم‌زمانِ کاربر | گارد «یک `pending_manual` باز» در `submit_manual_payment` |
+| 🟠 | همزمانی ظرفیت کوپن | `SELECT ... FOR UPDATE` در رزرو و رول‌بک |
+| 🟡 | عدم تطابق `plan_code` کلاینت با `plans` | فقط plan_codeهای موجود در جدول `plans` استفاده شوند |
