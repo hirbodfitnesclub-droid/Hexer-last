@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../services/supabaseClient';
-import { ChatMessage, ChatMode, Citation, Task, Note, ActionResult, Project, ChatSession, ExtractionProposal } from '../../types';
+import { ChatMessage, ChatMode, Citation, Task, Note, ActionResult, Project, ChatSession, ExtractionProposal, Page } from '../../types';
 import { BotIcon, UserIcon, SendIcon, SparklesIcon, TargetIcon, LightbulbIcon, PencilIcon, NotebookIcon, ListChecksIcon, LinkIcon, CheckIcon, BriefcaseIcon, FlameIcon, PaperclipIcon, MicrophoneIcon, CalendarIcon, PlusIcon, XIcon, TrashIcon } from '../../components/icons';
 import { uploadChatMedia } from '../../services/mediaService';
 import { sendChatMessage, extractFromMedia } from '../../services/geminiService';

@@ -176,8 +176,8 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
         </div>
 
         {/* 2. Main Canvas: Creative Writing Area & Forms */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-2xl mx-auto px-6 py-6 sm:py-8 space-y-6 dir-rtl">
+        <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="max-w-2xl mx-auto px-6 py-6 sm:py-8 space-y-6" dir="rtl">
             <input
               value={formState.title || ''}
               onChange={e => setFormState(s => ({ ...s, title: e.target.value }))}
@@ -237,7 +237,7 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
         </div>
 
         {/* 3. Metadata Footer: The Control Center */}
-        <div className="shrink-0 bg-zinc-900/80 backdrop-blur-2xl border-t border-white/5 p-4 sm:p-6 pb-20 sm:pb-6 dir-rtl">
+        <div className="shrink-0 bg-zinc-900/80 backdrop-blur-2xl border-t border-white/5 p-4 sm:p-6 pb-20 sm:pb-6" dir="rtl">
           <div className="max-w-2xl mx-auto space-y-4">
             
             {/* Tags Section */}
@@ -279,7 +279,7 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
                         flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border transition-all whitespace-nowrap
                         ${isActive 
                           ? 'bg-zinc-100 text-zinc-900 border-zinc-100' 
-                          : 'bg-zinc-900 border-white/5 text-zinc-450 hover:border-zinc-700 hover:text-zinc-200'}
+                          : 'bg-zinc-900 border-white/5 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'}
                       `}
                     >
                       {preset.icon}
@@ -300,7 +300,7 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
                 <select 
                   value={formState.project_id || ''} 
                   onChange={e => setFormState(s => ({...s, project_id: e.target.value || undefined}))} 
-                  className="w-full bg-zinc-950 text-zinc-300 text-xs rounded-xl py-2 px-10 border border-zinc-850 outline-none focus:border-purple-500/50 appearance-none cursor-pointer transition-all hover:border-zinc-700 text-right font-bold"
+                  className="w-full bg-zinc-950 text-zinc-300 text-xs rounded-xl py-2 px-10 border border-zinc-800 outline-none focus:border-purple-500/50 appearance-none cursor-pointer transition-all hover:border-zinc-700 text-right font-bold"
                 >
                   <option value="" className="bg-zinc-950 text-zinc-500">اتصال به پروژه (اختیاری)</option>
                   {projects.map(p => <option key={p.id} value={p.id} className="bg-zinc-950">{p.title}</option>)}

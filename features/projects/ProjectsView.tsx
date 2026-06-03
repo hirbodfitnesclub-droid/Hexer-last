@@ -84,7 +84,7 @@ export const ProjectsView: React.FC = () => {
       {/* Main Grid Area */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-8 pt-8 max-w-[1600px] mx-auto w-full">
         {projects.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-4">
             {projects.map(project => {
               const stats = calculateProjectStats(project.id, tasks);
               return (
@@ -120,12 +120,12 @@ export const ProjectsView: React.FC = () => {
       {/* --- Inline elegant Edit/Add Project Modal --- */}
       {editingProject && (
         <div 
-          className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex justify-center items-end sm:items-center p-0 sm:p-4 animate-fade-in" 
+          className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex justify-center items-end sm:items-center p-0 sm:p-4 animate-fade-in" 
           onClick={() => setEditingProject(null)}
         >
           <div 
             onClick={e => e.stopPropagation()} 
-            className="bg-slate-900 border-t sm:border border-slate-700/85 w-full max-w-lg rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col h-[100dvh] sm:h-auto overflow-hidden animate-slide-up"
+            className="bg-slate-900 border-t sm:border border-slate-700/85 w-full max-w-lg rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col h-[100dvh] sm:h-auto animate-slide-up"
           >
             <div className="p-5 border-b border-white/5 flex justify-between items-center bg-slate-900 shrink-0">
               <h3 className="text-base font-bold text-white font-sans">{isAdding ? 'پروژه جدید' : 'ویرایش پروژه'}</h3>
@@ -137,13 +137,13 @@ export const ProjectsView: React.FC = () => {
               </button>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+            <div className="flex-1 overflow-y-auto min-h-0 p-5 sm:p-6 space-y-4">
               <input 
                 type="text" 
                 value={editingProject.title || ''} 
                 onChange={e => setEditingProject(s => s ? { ...s, title: e.target.value } : null)} 
                 placeholder="عنوان پروژه..." 
-                className="w-full bg-zinc-855 border border-zinc-800 px-4 py-3 rounded-xl text-sm font-semibold text-white placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all text-right" 
+                className="w-full bg-zinc-900 border border-zinc-800 px-4 py-3 rounded-xl text-sm font-semibold text-white placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all text-right" 
                 autoFocus
               />
               <textarea 
@@ -151,7 +151,7 @@ export const ProjectsView: React.FC = () => {
                 onChange={e => setEditingProject(s => s ? { ...s, description: e.target.value } : null)} 
                 placeholder="توضیحات و اهداف پروژه..." 
                 rows={4} 
-                className="w-full bg-zinc-855 border border-zinc-800 px-4 py-3 rounded-xl text-xs text-white placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-sky-500 min-h-[100px] resize-none transition-all text-right leading-relaxed" 
+                className="w-full bg-zinc-900 border border-zinc-800 px-4 py-3 rounded-xl text-xs text-white placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-sky-500 min-h-[100px] resize-none transition-all text-right leading-relaxed" 
               />
               
               <div className="space-y-1.5 pt-2">
@@ -159,7 +159,7 @@ export const ProjectsView: React.FC = () => {
                 <select 
                   value={editingProject.priority} 
                   onChange={e => setEditingProject(s => s ? { ...s, priority: e.target.value as Priority } : null)} 
-                  className="w-full bg-zinc-855 border border-zinc-800 p-3 rounded-xl text-xs font-bold text-zinc-200 focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all text-right cursor-pointer"
+                  className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs font-bold text-zinc-200 focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all text-right cursor-pointer"
                 >
                   {Object.values(Priority).map(p => {
                     const label = priorityClasses[p]?.label || p;

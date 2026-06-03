@@ -99,14 +99,14 @@ export const RenewReminderModal: React.FC = () => {
               // Since we operate under view modes we can use standard navigation
               window.dispatchEvent(new CustomEvent('navigate_to_subscription'));
             }}
-            className="flex-1 bg-red-650 hover:bg-red-550 text-white font-bold py-2.5 rounded-xl text-xs transition-colors text-center"
+            className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-xl text-xs transition-colors text-center"
           >
             تمدید آنی مأموریت
           </button>
           
           <button 
             onClick={handleDismiss}
-            className="px-4 py-2.5 bg-zinc-900 border border-zinc-850 hover:bg-zinc-850 text-zinc-400 rounded-xl font-bold text-xs transition-colors"
+            className="px-4 py-2.5 bg-zinc-900 border border-zinc-800 hover:bg-zinc-900 text-zinc-400 rounded-xl font-bold text-xs transition-colors"
           >
             بعداً یادآوری کن
           </button>

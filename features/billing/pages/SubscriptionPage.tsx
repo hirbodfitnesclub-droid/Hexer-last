@@ -140,7 +140,7 @@ export const SubscriptionPage: React.FC = () => {
                     </div>
                     <p className="text-[10px] text-zinc-500 font-bold">برای دوره زمان کاربری {plan.durationLabel}</p>
                     {plan.priceRials > 0 && (
-                      <p className="text-[9px] text-zinc-650 font-bold font-mono">برابر با {plan.priceRials.toLocaleString('fa-IR')} ریال</p>
+                      <p className="text-[9px] text-zinc-600 font-bold font-mono">برابر با {plan.priceRials.toLocaleString('fa-IR')} ریال</p>
                     )}
                   </div>
 
@@ -167,7 +167,7 @@ export const SubscriptionPage: React.FC = () => {
                       className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm ${
                         plan.isPopular 
                           ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-950/20' 
-                          : 'bg-zinc-800 hover:bg-zinc-750 text-zinc-200'
+                          : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200'
                       } disabled:opacity-50`}
                     >
                       {loadingPlan === plan.code ? 'کمی صبر کنید...' : 'فعال‌سازی و تمدید طرح'}
@@ -180,13 +180,13 @@ export const SubscriptionPage: React.FC = () => {
         </div>
 
         {/* Security / payment trust footer credentials info */}
-        <div className="border-t border-white/5 pt-6 max-w-xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-right text-zinc-550">
+        <div className="border-t border-white/5 pt-6 max-w-xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-right text-zinc-500">
           <div className="flex items-center gap-2">
-            <ShieldCheckIcon className="w-5 h-5 text-zinc-650" />
+            <ShieldCheckIcon className="w-5 h-5 text-zinc-600" />
             <span className="text-[10px] font-bold">تضمین پرداخت امن تحت درگاه رسمی بانکی شبکه شتاب (زیبال)</span>
           </div>
           <div className="flex items-center gap-2">
-            <CreditCardIcon className="w-5 h-5 text-zinc-650" />
+            <CreditCardIcon className="w-5 h-5 text-zinc-600" />
             <span className="text-[10px] font-bold">فعال‌سازی آنی حساب و خدمات پس از بازگشت موفق تراکنش</span>
           </div>
         </div>

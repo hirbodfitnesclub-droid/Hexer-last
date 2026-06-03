@@ -77,7 +77,7 @@ export const ProjectDetailsModal: React.FC<ProjectDetailsModalProps> = ({
   return (
     <div 
       onClick={onClose} 
-      className="fixed inset-0 bg-black/75 backdrop-blur-md z-45 flex justify-center items-end sm:items-center p-0 sm:p-4"
+      className="fixed inset-0 bg-black/75 backdrop-blur-md z-[70] flex justify-center items-end sm:items-center p-0 sm:p-4"
       role="dialog"
       aria-modal="true"
     >
@@ -85,7 +85,7 @@ export const ProjectDetailsModal: React.FC<ProjectDetailsModalProps> = ({
         onClick={e => e.stopPropagation()} 
         className="bg-slate-900 border-t sm:border border-slate-700/80 w-full max-w-2xl flex flex-col h-[100dvh] sm:h-[85vh] sm:rounded-2xl shadow-2xl overflow-hidden"
       >
-        <header className={`relative p-5 border-b border-white/5 bg-gradient-to-br ${colors.gradient} to-transparent shrink-0 dir-rtl text-right`}>
+        <header className={`relative p-5 border-b border-white/5 bg-gradient-to-br ${colors.gradient} to-transparent shrink-0 text-right`} dir="rtl">
           <div className="flex items-center gap-4">
             <div className={`w-11 h-11 rounded-xl ${colors.solidBg} flex items-center justify-center shrink-0`}>
               <BriefcaseIcon className="w-6 h-6 text-white/95" />
@@ -105,7 +105,7 @@ export const ProjectDetailsModal: React.FC<ProjectDetailsModalProps> = ({
           </button>
         </header>
 
-        <nav className="shrink-0 border-b border-white/5 px-2 sm:px-4 bg-slate-900 dir-rtl">
+        <nav className="shrink-0 border-b border-white/5 px-2 sm:px-4 bg-slate-900" dir="rtl">
           <div className="flex items-center">
             <TabButton label="نمای کلی" count={0} icon={<LayoutGridIcon className="w-4 h-4"/>} isActive={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
             <TabButton label="کارها" count={projectTasks.length} icon={<ListChecksIcon className="w-4 h-4"/>} isActive={activeTab === 'tasks'} onClick={() => setActiveTab('tasks')} />
@@ -113,7 +113,7 @@ export const ProjectDetailsModal: React.FC<ProjectDetailsModalProps> = ({
           </div>
         </nav>
         
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 bg-slate-950/20 dir-rtl">
+        <div className="flex-1 overflow-y-auto min-h-0 p-5 sm:p-6 bg-slate-950/20" dir="rtl">
           {activeTab === 'overview' && (
             <div className="space-y-6">
               <div className="p-4 bg-zinc-900/40 border border-white/5 rounded-2xl">

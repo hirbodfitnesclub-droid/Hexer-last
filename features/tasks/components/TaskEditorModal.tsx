@@ -252,7 +252,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex justify-center items-end sm:items-center p-0 sm:p-4" 
+      className="fixed inset-0 bg-black/75 backdrop-blur-md z-[60] flex justify-center items-end sm:items-center p-0 sm:p-4" 
       role="dialog" 
       aria-modal="true" 
       onClick={handleClose}
@@ -283,7 +283,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
         </div>
 
         {/* Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 dir-rtl pb-24 sm:pb-6">
+        <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6 space-y-6 pb-24 sm:pb-6" dir="rtl">
           {mode === 'view' ? (
             // --- VIEW MODE ---
             <div className="space-y-6">
@@ -432,7 +432,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
                 </button>
                 <button 
                   onClick={handleDelete} 
-                  className="px-5 py-3 bg-zinc-850 hover:bg-red-500/10 hover:text-red-400 text-zinc-400 rounded-xl font-semibold transition-colors border border-zinc-800 hover:border-red-500/15"
+                  className="px-5 py-3 bg-zinc-900 hover:bg-red-500/10 hover:text-red-400 text-zinc-400 rounded-xl font-semibold transition-colors border border-zinc-800 hover:border-red-500/15"
                 >
                   <TrashIcon className="w-5 h-5"/>
                 </button>
@@ -445,14 +445,14 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
                 value={formState.title || ''}
                 onChange={e => setFormState(s => ({ ...s, title: e.target.value }))}
                 placeholder="عنوان کار را بنویسید..."
-                className="w-full bg-zinc-850 border border-zinc-800 rounded-xl px-4 py-3 text-white placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-sky-500 text-sm font-semibold transition-all text-right"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-sky-500 text-sm font-semibold transition-all text-right"
                 autoFocus
               />
               <textarea
                 value={formState.description || ''}
                 onChange={e => setFormState(s => ({ ...s, description: e.target.value }))}
                 placeholder="توضیحات تکمیلی (اختیاری)..."
-                className="w-full bg-zinc-850 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-white placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-sky-500 min-h-[90px] resize-none transition-all text-right leading-relaxed"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-white placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-sky-500 min-h-[90px] resize-none transition-all text-right leading-relaxed"
                 rows={3}
               />
               
@@ -497,7 +497,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
               </div>
 
               {/* Properties Section */}
-              <div className="bg-zinc-950/10 border border-zinc-850 rounded-xl p-3 space-y-1">
+              <div className="bg-zinc-950/10 border border-zinc-800 rounded-xl p-3 space-y-1">
                 {/* Date Picker row */}
                 <PropertyRow icon={<CalendarIcon className="w-5 h-5" />} label="تاریخ ددلاین">
                   {hasDate ? (
@@ -517,7 +517,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
                   ) : (
                     <button 
                       onClick={handleAddDate} 
-                      className="text-xs text-sky-450 hover:text-sky-400 flex items-center gap-1 font-bold py-1"
+                      className="text-xs text-sky-400 hover:text-sky-300 flex items-center gap-1 font-bold py-1"
                     >
                       <PlusIcon className="w-3.5 h-3.5" /> افزودن تاریخ ددلاین
                     </button>
@@ -544,7 +544,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
                     ) : (
                       <button 
                         onClick={handleAddTime} 
-                        className="text-xs text-sky-450 hover:text-sky-400 flex items-center gap-1 font-bold py-1"
+                        className="text-xs text-sky-400 hover:text-sky-300 flex items-center gap-1 font-bold py-1"
                       >
                         <PlusIcon className="w-3.5 h-3.5" /> افزودن ساعت مشخص
                       </button>
@@ -577,7 +577,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
                     <select 
                       value={formState.project_id || ''} 
                       onChange={e => setFormState(s => ({...s, project_id: e.target.value || undefined}))} 
-                      className="bg-transparent bg-zinc-900 w-full px-3 py-2 pr-8 rounded-lg outline-none focus:ring-1 focus:ring-sky-500 text-xs text-zinc-200 font-bold appearance-none cursor-pointer border border-zinc-800 hover:border-zinc-750 transition-colors text-right"
+                      className="bg-transparent bg-zinc-900 w-full px-3 py-2 pr-8 rounded-lg outline-none focus:ring-1 focus:ring-sky-500 text-xs text-zinc-200 font-bold appearance-none cursor-pointer border border-zinc-800 hover:border-zinc-800 transition-colors text-right"
                     >
                       <option value="" className="bg-slate-900">بدون پروژه</option>
                       {projects.map(p => <option key={p.id} value={p.id} className="bg-slate-900">{p.title}</option>)}
@@ -601,7 +601,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
           {!isNew && (
             <button 
               onClick={() => setMode('view')} 
-              className="px-5 py-3 bg-zinc-850 hover:bg-zinc-800 text-zinc-350 rounded-xl font-bold transition-colors text-sm border border-zinc-800"
+              className="px-5 py-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-350 rounded-xl font-bold transition-colors text-sm border border-zinc-800"
             >
               انصراف
             </button>

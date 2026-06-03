@@ -18,7 +18,7 @@ export const NoteCard: React.FC<NoteCardProps> = ({ note, project, onEdit }) => 
       {/* Background & Glow */}
       <div className="absolute -inset-0.5 bg-gradient-to-br from-purple-500/20 to-fuchsia-600/20 rounded-[2rem] opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500"></div>
       
-      <div className="relative bg-zinc-90 w-full bg-zinc-900 border border-white/5 rounded-[1.75rem] overflow-hidden transition-all duration-300 group-hover:-translate-y-1 group-hover:border-purple-500/30">
+      <div className="relative w-full bg-zinc-900 border border-white/5 rounded-[1.75rem] overflow-hidden transition-all duration-300 group-hover:-translate-y-1 group-hover:border-purple-500/30">
         {/* Project line accent */}
         {project && (
           <div className={`absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-transparent via-${
@@ -43,7 +43,7 @@ export const NoteCard: React.FC<NoteCardProps> = ({ note, project, onEdit }) => 
           </div>
 
           {/* Content Preview */}
-          <p className="text-zinc-450 text-xs font-light leading-relaxed line-clamp-6 text-right whitespace-pre-wrap">
+          <p className="text-zinc-400 text-xs font-light leading-relaxed line-clamp-6 text-right whitespace-pre-wrap">
             {note.content}
           </p>
 

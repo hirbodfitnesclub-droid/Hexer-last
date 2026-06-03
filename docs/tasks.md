@@ -267,3 +267,238 @@ B1 (_shared modules + EMBEDDING_MODEL)
 B3 و B4 می‌توانند موازی اجرا شوند.
 
 > **نکته تحویل:** پس از اجرای B4، تمام embeddingهای موجود در DB باید مجدداً تولید شوند چون مدل قبلی (`gemini-embedding-2-preview`) بردارهای ناسازگار ذخیره کرده. این می‌تواند با یک اسکریپت یک‌بار‌مصرف که روی همه recordهای `tasks` و `notes` تریگر vectorize را trigger می‌کند انجام شود.
+
+
+
+
+> وابستگی: R11 → R12 → R13 → R14 (متوالی)
+
+---
+
+## فاز D — رفع باگ‌های بنیادی UI/CSS
+
+### تسک R11: Global CSS Foundation (index.css)
+
+**راهنمای پیاده‌سازی فنی:**
+
+فایل `index.css` باید آپدیت (یا ساخته) شود تا موارد زیر را cover کند:
+
+۱. **Autofill Override:** مرورگرها روی فیلدهای autofill رنگ سفید/آبی اعمال می‌کنند که با تم تیره ما تضاد دارد. باید با `-webkit-autofill` selector این را override کنیم:
+```css
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px #09090b inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff;
+  transition: background-color 5000s ease-in-out 0s;
+}
+```
+
+۲. **Safe Area Variables:**
+```css
+* { box-sizing: border-box; }
+:root {
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-top: env(safe-area-inset-top, 0px);
+}
+```
+
+۳. **iOS Smooth Scroll Fix:** برای اسکرول روان داخل مودال‌ها:
+```css
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+```
+
+۴. **Prevent text size adjustment (iOS):**
+```css
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+```
+
+**محدودیت‌ها:** فقط `index.css` لمس می‌شود؛ هیچ component تغییر نمی‌کند.
+
+`CONTEXT_FILES: ["index.html"]`
+
+---
+
+### تسک R12: Systematic Tailwind Class Audit — جایگزینی سراسری کلاس‌های نامعتبر
+
+**راهنمای پیاده‌سازی فنی:**
+
+این تسک یک **search-and-replace سیستماتیک** در تمام فایل‌های زیر است. هر جایگزینی با توضیح منطق آن:
+
+**نقشه جایگزینی (Replacement Map):**
+
+| نامعتبر | معتبر |
+|---------|-------|
+| `bg-zinc-855` | `bg-zinc-900` |
+| `bg-zinc-850` | `bg-zinc-900` |
+| `bg-zinc-750` | `bg-zinc-800` |
+| `border-zinc-850` | `border-zinc-800` |
+| `border-zinc-855` | `border-zinc-800` |
+| `text-zinc-350` | `text-zinc-300` |
+| `text-zinc-450` | `text-zinc-400` |
+| `text-zinc-550` | `text-zinc-500` |
+| `text-zinc-650` | `text-zinc-600` |
+| `text-zinc-750` | `text-zinc-700` |
+| `text-zinc-850` | `text-zinc-800` |
+| `hover:bg-zinc-750` | `hover:bg-zinc-800` |
+| `hover:bg-zinc-850` | `hover:bg-zinc-900` |
+| `bg-neutral-850` | `bg-neutral-900` |
+| `border-neutral-850` | `border-neutral-800` |
+| `hover:bg-neutral-850` | `hover:bg-neutral-900` |
+| `text-neutral-350` | `text-neutral-300` |
+| `text-neutral-850` | `text-neutral-800` |
+| `bg-red-650` | `bg-red-600` |
+| `hover:bg-red-650` | `hover:bg-red-600` |
+| `from-purple-650` | `from-purple-600` |
+| `bg-purple-650` | `bg-purple-600` |
+| `text-sky-450` | `text-sky-400` |
+| `z-15` | `z-10` |
+| `z-45` | `z-40` |
+
+**علاوه بر این، در `features/billing/components/RenewReminderModal.tsx`:**
+- `bg-red-650` → `bg-red-600`
+- `hover:bg-red-550` → `hover:bg-red-500`
+- `bg-red-550` → `bg-red-500`
+
+**فایل‌هایی که باید آپدیت شوند:**
+1. `features/tasks/components/TaskEditorModal.tsx`
+2. `features/habits/components/HabitEditorModal.tsx`
+3. `features/notes/components/NoteCard.tsx`
+4. `features/notes/components/NoteEditorModal.tsx`
+5. `features/billing/components/UsageMeter.tsx`
+6. `features/billing/components/RenewReminderModal.tsx`
+7. `features/billing/pages/SubscriptionPage.tsx`
+8. `components/PaywallModal.tsx`
+9. `components/ProfileModal.tsx`
+10. `features/tasks/TasksView.tsx` (فقط `z-15` → `z-10`)
+11. `features/projects/components/ProjectDetailsModal.tsx` (فقط `z-45` → `z-40`)
+
+**محدودیت‌ها:** فقط class name replacement — هیچ منطق، ساختار یا JSX تغییر نمی‌کند. باید مطمئن شویم هیچ جایگزینی ظاهر visual را به شکل ناخواسته تغییر ندهد (رنگ‌های جایگزین باید به 900/800/400 نزدیک باشند نه دور).
+
+`CONTEXT_FILES: ["features/tasks/components/TaskEditorModal.tsx", "features/habits/components/HabitEditorModal.tsx", "features/notes/components/NoteCard.tsx", "features/notes/components/NoteEditorModal.tsx", "features/billing/components/UsageMeter.tsx", "features/billing/components/RenewReminderModal.tsx", "features/billing/pages/SubscriptionPage.tsx", "components/PaywallModal.tsx", "components/ProfileModal.tsx", "features/tasks/TasksView.tsx", "features/projects/components/ProjectDetailsModal.tsx"]`
+
+---
+
+### تسک R13: Modal Architecture Fix — Z-index + Dir Attribute + Min-H-0 + Page Import
+
+**راهنمای پیاده‌سازی فنی:**
+
+این تسک چهار اصلاح معماری مجزا را در فایل‌های مودال انجام می‌دهد:
+
+**۱. رفع ایمپورت `Page` در ChatView (🔴 بحرانی):**
+
+در `features/chat/ChatView.tsx`، خط ایمپورت types باید آپدیت شود:
+```typescript
+// قبل:
+import { ChatMessage, ChatMode, Citation, Task, Note, ActionResult, Project, ChatSession, ExtractionProposal } from '../../types';
+// بعد:
+import { ChatMessage, ChatMode, Citation, Task, Note, ActionResult, Project, ChatSession, ExtractionProposal, Page } from '../../types';
+```
+
+**۲. رفع `dir-rtl` (کلاس ساختگی):**
+
+در تمام فایل‌های زیر، `className="... dir-rtl ..."` باید تبدیل شود. این کلاس هیچ اثری ندارد:
+- هرجا `dir-rtl` به صورت CSS class نوشته شده → باید به عنوان HTML attribute روی element ظاهر شود: `dir="rtl"`
+- مثال: `<div className="flex flex-col dir-rtl">` → `<div className="flex flex-col" dir="rtl">`
+
+فایل‌های affected:
+- `features/tasks/components/TaskEditorModal.tsx`
+- `features/habits/components/HabitEditorModal.tsx`
+- `features/projects/components/ProjectDetailsModal.tsx`
+- هر فایل دیگری که `dir-rtl` را به عنوان className داشته باشد
+
+**۳. افزودن `min-h-0` به content area در مودال‌ها:**
+
+در ساختار مودال، div اسکرول‌پذیر باید `min-h-0` داشته باشد:
+```jsx
+// قبل:
+
+
+// بعد:
+
+```
+
+این تغییر در فایل‌های زیر اعمال می‌شود:
+- `features/tasks/components/TaskEditorModal.tsx`
+- `features/habits/components/HabitEditorModal.tsx`
+- `features/notes/components/NoteEditorModal.tsx`
+- `features/projects/components/ProjectDetailsModal.tsx`
+
+**۴. تنظیم سلسله مراتب Z-Index طبق جدول §۷.۲:**
+
+| فایل | z-index فعلی | z-index صحیح |
+|------|-------------|-------------|
+| `features/tasks/components/TaskEditorModal.tsx` | `z-50` | `z-[60]` |
+| `features/habits/components/HabitEditorModal.tsx` | `z-50` | `z-[60]` |
+| `features/notes/components/NoteEditorModal.tsx` | `z-[60]` | ✅ صحیح است |
+| `features/projects/components/ProjectDetailsModal.tsx` | `z-45` (invalid) | `z-[70]` |
+| `features/chat/components/ChatHistoryDrawer.tsx` | `z-50` | `z-[60]` |
+
+**محدودیت‌ها:** هیچ منطق یا ساختار JSX تغییر نمی‌کند؛ فقط class attribute ها آپدیت می‌شوند. وابسته به R12 (چون برخی فایل‌ها مشترک هستند).
+
+`CONTEXT_FILES: ["features/chat/ChatView.tsx", "features/tasks/components/TaskEditorModal.tsx", "features/habits/components/HabitEditorModal.tsx", "features/notes/components/NoteEditorModal.tsx", "features/projects/components/ProjectDetailsModal.tsx", "features/chat/components/ChatHistoryDrawer.tsx", "types.ts"]`
+
+---
+
+### تسک R14: Mobile-Only Polish — ProjectsView و Bottom Nav Safety
+
+**راهنمای پیاده‌سازی فنی:**
+
+**۱. حذف Breakpoint‌های Desktop از ProjectsView:**
+
+در `features/projects/ProjectsView.tsx`، گرید به mobile-only تبدیل می‌شود:
+```jsx
+// قبل (desktop + mobile):
+
+
+// بعد (mobile-only):
+
+```
+
+**۲. اصلاح مودال inline پروژه برای موبایل:**
+
+مودال ویرایش پروژه درون `ProjectsView.tsx` باید با الگوی استاندارد §۷.۳ همخوانی داشته باشد:
+- `h-[100dvh]` روی modal sheet
+- Header و Footer با `shrink-0`
+- Content با `flex-1 overflow-y-auto min-h-0`
+- حذف هر `overflow-hidden` از root container (چون باعث clip محتوا می‌شود)
+
+**۳. بررسی `pb-24` در صفحات اسکرول‌دار:**
+
+تمام صفحات (نه مودال‌ها) باید `pb-24` داشته باشند تا محتوا زیر Bottom Nav مخفی نشود:
+- `features/tasks/TasksView.tsx`: دارد ✅ (`pb-32`)
+- `features/notes/NotesView.tsx`: دارد ✅ (`pb-32`)
+- `features/projects/ProjectsView.tsx`: دارد ✅ (`pb-32`)
+- `features/billing/pages/SubscriptionPage.tsx`: بررسی شود
+
+**۴. اصلاح فاصله‌های گوشه و padding در ProjectCard:**
+
+در `features/projects/components/ProjectCard.tsx`، فاصله‌ها باید مینیمال‌تر شوند:
+- padding داخلی card: `p-5` → `p-4`
+- gap بین card ها در گرید: `gap-6` → `gap-4`
+
+این تغییر برای صفحات موبایل کوچک‌تر فضای بهتری ایجاد می‌کند.
+
+**محدودیت‌ها:** فقط `features/projects/` لمس می‌شود؛ هیچ منطق داده‌ای تغییر نمی‌کند.
+
+`CONTEXT_FILES: ["features/projects/ProjectsView.tsx", "features/projects/components/ProjectCard.tsx", "features/projects/components/ProjectDetailsModal.tsx", "features/billing/pages/SubscriptionPage.tsx"]`
+
+---
+
+## نقشه وابستگی (فاز D)
+R11 (index.css) → R12 (invalid classes) → R13 (modal arch) → R14 (projects mobile)
+↓                     ↓                      ↓
+autofill fix         visual repair         structural fix
+
+> R11 و R12 مستقل‌ترین هستند و می‌توانند با یک session اجرا شوند.  
+> R13 وابسته به R12 است چون برخی فایل‌ها مشترکند.  
+> R14 کاملاً ایزوله است.

@@ -41,7 +41,7 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm transition-opacity">
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-sm transition-opacity">
       <div className="absolute inset-0" onClick={onClose}></div>
       <div className="relative w-full max-w-lg bg-gray-950 border-t border-white/10 rounded-t-3xl shadow-2xl flex flex-col max-h-[80vh] z-10 animate-fade-in-up">
         {/* Header */}

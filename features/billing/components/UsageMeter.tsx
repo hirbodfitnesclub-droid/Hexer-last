@@ -48,7 +48,7 @@ export const UsageMeter: React.FC = () => {
     return (
       <div className="bg-zinc-900/40 p-5 rounded-2xl border border-white/5 animate-pulse flex flex-col items-center justify-center min-h-[140px]" dir="rtl">
         <CpuIcon className="w-6 h-6 text-zinc-700 animate-spin mb-2" />
-        <span className="text-[10px] text-zinc-650 font-bold">درحال بارگذاری گزارش مصرف...</span>
+        <span className="text-[10px] text-zinc-500 font-bold">درحال بارگذاری گزارش مصرف...</span>
       </div>
     );
   }
@@ -73,7 +73,7 @@ export const UsageMeter: React.FC = () => {
             <SparklesIcon className="w-2.5 h-2.5" /> پریمیوم
           </span>
         ) : (
-          <span className="px-2 py-0.5 rounded-md bg-zinc-800 border border-zinc-750 text-[9px] font-bold text-zinc-400">
+          <span className="px-2 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-[9px] font-bold text-zinc-400">
             رایگان
           </span>
         )}
@@ -81,7 +81,7 @@ export const UsageMeter: React.FC = () => {
 
       {/* Progress Line */}
       <div className="space-y-1.5">
-        <div className="flex justify-between items-center text-[10px] font-bold text-zinc-550 font-mono">
+        <div className="flex justify-between items-center text-[10px] font-bold text-zinc-500 font-mono">
           <span>{count} درخواست مصرف شده</span>
           <span>{remaining} عدد باقی‌مانده از {limit}</span>
         </div>
@@ -100,7 +100,7 @@ export const UsageMeter: React.FC = () => {
       {dailyLog && dailyLog.length > 0 && (
         <div className="pt-2 border-t border-white/5 space-y-3">
           <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-500">
-            <ActivityIcon className="w-3.5 h-3.5 text-zinc-650" />
+            <ActivityIcon className="w-3.5 h-3.5 text-zinc-600" />
             <span>روند استفاده ۷ روز گذشته</span>
           </div>
           
@@ -115,9 +115,9 @@ export const UsageMeter: React.FC = () => {
 
               return (
                 <div key={day.usage_date} className="flex flex-col items-center h-full flex-1 gap-1.5 group select-none">
-                  <div className="w-2.5 bg-zinc-850 hover:bg-purple-500/30 border border-white/5 rounded-t-sm h-full flex items-end justify-center transition-all relative">
+                  <div className="w-2.5 bg-zinc-900 hover:bg-purple-500/30 border border-white/5 rounded-t-sm h-full flex items-end justify-center transition-all relative">
                     <div 
-                      className="w-full bg-gradient-to-t from-purple-650 to-indigo-500 rounded-t-sm transition-all duration-300" 
+                      className="w-full bg-gradient-to-t from-purple-600 to-indigo-500 rounded-t-sm transition-all duration-300" 
                       style={{ height: `${barHeight}%` }}
                     ></div>
                     {/* Hover Tooltip displaying transaction/request count */}
@@ -137,9 +137,9 @@ export const UsageMeter: React.FC = () => {
 
       {/* Subscription Expiry indicator */}
       {usage?.expires_at && (
-        <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-bold text-zinc-550">
+        <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-bold text-zinc-500">
           <div className="flex items-center gap-1">
-            <CalendarIcon className="w-3.5 h-3.5 text-zinc-650" />
+            <CalendarIcon className="w-3.5 h-3.5 text-zinc-600" />
             <span>تاریخ پایان اشتراک:</span>
           </div>
           <span className="font-mono text-zinc-400">

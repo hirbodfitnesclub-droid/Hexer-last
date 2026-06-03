@@ -243,3 +243,133 @@ Request
 | 🟡 | ChatView | `compressImage` بدون try/catch | try/catch + پیام فارسی |
 | 🟡 | TaskEditorModal | edge case `hasTime` (پیش‌فرض ظهر) | تمایز «بدون ساعت» از «ساعت ۱۲» |
 | 🟡 | App | `removeNotification` بدون useCallback | پایداری closure |
+
+
+
+
+---
+
+## ۷. معماری UI — استانداردها و قراردادها
+
+### ۷.۱. جدول رنگ‌های معتبر Tailwind (سریع‌مرجع)
+
+| مقدار نامعتبر | جایگزین صحیح | توضیح |
+|---|---|---|
+| `zinc-850`, `zinc-855` | `zinc-900` | کمی تیره‌تر از 800 |
+| `zinc-750` | `zinc-800` | بین 700 و 800 |
+| `zinc-650` | `zinc-600` | ← از این استفاده کن |
+| `zinc-550` | `zinc-500` | |
+| `zinc-450` | `zinc-400` | |
+| `zinc-350` | `zinc-300` | |
+| `neutral-850` | `neutral-900` | |
+| `red-650` | `red-600` | |
+| `purple-650` | `purple-600` | |
+| `z-15` | `z-10` یا `z-20` | |
+| `z-45` | `z-40` یا `z-50` | |
+
+### ۷.۲. سلسله مراتب Z-Index (قرارداد پروژه)
+
+| لایه | مقدار | کامپوننت |
+|---|---|---|
+| Content | default | همه المان‌های عادی |
+| Bottom Nav | `z-50` | BottomNav |
+| Modals (سطح ۱) | `z-[60]` | TaskEditor, NoteEditor, HabitEditor |
+| Modals (سطح ۲) | `z-[70]` | ProjectDetailsModal |
+| Critical Modals | `z-[90]` | ProfileModal |
+| Full-Screen Overlays | `z-[100]` | PaywallModal, RenewReminderModal |
+| Toast/Alerts | `z-[100]` | ToastNotifications |
+| Network Banner | `z-[9999]` | NetworkBanner |
+
+> قانون: هر مودالی که Modal دیگری را cover می‌کند باید z-index بالاتری داشته باشد.
+
+### ۷.۳. الگوی استاندارد مودال برای Mobile
+
+مودال‌هایی که از پایین باز می‌شوند باید این ساختار را دقیقاً رعایت کنند:
+
+```jsx
+{/* Backdrop */}
+
+  
+  {/* Modal Sheet */}
+  <div className="flex flex-col w-full max-w-xl
+                  h-[100dvh]           {/* ارتفاع کامل viewport داینامیک */}
+                  rounded-t-3xl        {/* فقط بالا گرد */}
+                  overflow-hidden"     {/* clip محتوا */}
+       onClick={e => e.stopPropagation()}>
+    
+    {/* Header — ثابت، shrink نمی‌شود */}
+    
+      {/* عنوان + دکمه بستن */}
+    
+    
+    {/* Content — اسکرول‌پذیر، min-h-0 حیاتی است */}
+    
+      {/* محتوای فرم */}
+    
+    
+    {/* Footer — ثابت، shrink نمی‌شود، pb-safe برای notch */}
+    
+      {/* دکمه‌های ذخیره/انصراف */}
+    
+  
+
+```
+
+**چرا `min-h-0` حیاتی است:**  
+در `flex-col`، فرزندان flex به صورت پیش‌فرض `min-height: auto` دارند یعنی نمی‌توانند از محتوایشان کوچک‌تر شوند. بدون `min-h-0` روی بخش محتوا، وقتی کیبورد باز می‌شود و viewport کوچک می‌شود، فوتر از صفحه خارج می‌شود.
+
+**چرا `h-[100dvh]` درست است:**  
+واحد `dvh` (Dynamic Viewport Height) در مرورگرهای مدرن به کیبورد واکنش نشان می‌دهد — برخلاف `vh` که ثابت است. این باعث می‌شود مودال با باز شدن کیبورد جمع شود و footer همیشه قابل دسترس بماند.
+
+### ۷.۴. Autofill Override (باید در index.css باشد)
+
+```css
+/* Override browser autofill white background on dark theme inputs */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px #09090b inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff;
+  transition: background-color 5000s ease-in-out 0s;
+}
+```
+
+### ۷.۵. فاصله از Bottom Navigation
+
+هر صفحه‌ای که اسکرول دارد باید `pb-24` داشته باشد تا محتوای انتهایی زیر BottomNav مخفی نشود. مودال‌های `fixed inset-0` این نیاز را ندارند چون خودشان overlay هستند.
+
+### ۷.۶. Safe Area Insets (برای iPhone با Notch/Dynamic Island)
+
+```css
+/* در index.css */
+:root {
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+}
+```
+
+و در Tailwind config یا inline:
+```jsx
+
+```
+
+### ۷.۷. رجیستر باگ‌های R11-R14 (اضافه به §۶)
+
+| # | فایل | باگ | راه‌حل |
+|---|------|-----|--------|
+| 🔴 | `index.css` | autofill browser سفید می‌شود | `-webkit-autofill` override |
+| 🔴 | تمام فایل‌های component | `bg-zinc-855`, `z-45`, `dir-rtl` کلاس | جایگزینی سیستماتیک |
+| 🔴 | `features/chat/ChatView.tsx` | `Page` enum ایمپورت نشده — runtime error | اضافه کردن import |
+| 🟠 | `features/projects/components/ProjectDetailsModal.tsx` | `z-45` invalid، `dir-rtl` بی‌اثر | `z-[70]` و `dir="rtl"` |
+| 🟠 | تمام مودال‌ها | `min-h-0` روی content area نیست | افزودن به div اسکرول‌پذیر |
+| 🟠 | `features/projects/ProjectsView.tsx` | گرید `md:grid-cols-2 lg:grid-cols-3` در اپ mobile-only | فقط `grid-cols-1` |
+| 🟡 | تمام مودال‌ها | z-index سلسله مراتب نامنظم | رعایت جدول §۷.۲ |
+
+markdown# 

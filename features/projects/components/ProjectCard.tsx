@@ -42,7 +42,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
       dir="rtl"
     >
       <div className={`h-1.5 ${colors.solidBg}/80`}></div>
-      <div className="p-5">
+      <div className="p-4">
         <div className="flex justify-between items-start text-right">
           <div>
             <h3 className="font-bold text-base text-zinc-100 font-sans">{project.title}</h3>

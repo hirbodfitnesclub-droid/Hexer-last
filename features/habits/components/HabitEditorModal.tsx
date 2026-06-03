@@ -55,7 +55,7 @@ export const HabitEditorModal: React.FC<HabitEditorModalProps> = ({ habit, isOpe
 
   return (
     <div 
-      className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex justify-center items-end sm:items-center p-0 sm:p-4" 
+      className="fixed inset-0 bg-black/75 backdrop-blur-md z-[60] flex justify-center items-end sm:items-center p-0 sm:p-4" 
       role="dialog" 
       aria-modal="true" 
       onClick={handleClose}
@@ -67,7 +67,7 @@ export const HabitEditorModal: React.FC<HabitEditorModalProps> = ({ habit, isOpe
         }`}
       >
         {/* Header - Fixed */}
-        <div className="p-5 border-b border-white/5 flex justify-between items-center shrink-0 dir-rtl">
+        <div className="p-5 border-b border-white/5 flex justify-between items-center shrink-0" dir="rtl">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-orange-500/10 rounded-xl text-orange-500 shrink-0">
               <FlameIcon className="w-5 h-5"/>
@@ -85,7 +85,7 @@ export const HabitEditorModal: React.FC<HabitEditorModalProps> = ({ habit, isOpe
         </div>
 
         {/* Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 dir-rtl text-right">
+        <div className="flex-1 overflow-y-auto min-h-0 p-6 space-y-6 text-right" dir="rtl">
           {mode === 'view' ? (
             // --- VIEW MODE ---
             <div className="space-y-6">
@@ -119,7 +119,7 @@ export const HabitEditorModal: React.FC<HabitEditorModalProps> = ({ habit, isOpe
                 </button>
                 <button 
                   onClick={handleDelete} 
-                  className="px-5 py-3 bg-zinc-850 hover:bg-red-500/10 hover:text-red-400 text-zinc-400 rounded-xl font-semibold transition-colors border border-zinc-800 hover:border-red-500/15"
+                  className="px-5 py-3 bg-zinc-900 hover:bg-red-500/10 hover:text-red-400 text-zinc-400 rounded-xl font-semibold transition-colors border border-zinc-800 hover:border-red-500/15"
                 >
                   <TrashIcon className="w-5 h-5"/>
                 </button>
@@ -134,7 +134,7 @@ export const HabitEditorModal: React.FC<HabitEditorModalProps> = ({ habit, isOpe
                   value={formState.name || ''}
                   onChange={e => setFormState(s => ({ ...s, name: e.target.value }))}
                   placeholder="مثلاً: ورزش صبحگاهی یا نوشتن روزانه..."
-                  className="w-full bg-zinc-855 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-650 focus:outline-none focus:ring-1 focus:ring-orange-500 font-semibold transition-all text-right"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-orange-500 font-semibold transition-all text-right"
                   autoFocus
                 />
               </div>
@@ -147,7 +147,7 @@ export const HabitEditorModal: React.FC<HabitEditorModalProps> = ({ habit, isOpe
                     min="1"
                     value={formState.target_count || 1}
                     onChange={e => setFormState(s => ({ ...s, target_count: parseInt(e.target.value) || 1 }))}
-                    className="w-full bg-zinc-855 border border-zinc-800 rounded-xl px-4 py-3 text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-orange-500 text-right font-mono"
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-orange-500 text-right font-mono"
                   />
                 </div>
                 <div>
@@ -156,7 +156,7 @@ export const HabitEditorModal: React.FC<HabitEditorModalProps> = ({ habit, isOpe
                     <select 
                       value={formState.frequency || 'daily'}
                       onChange={e => setFormState(s => ({ ...s, frequency: e.target.value }))}
-                      className="w-full bg-zinc-855 border border-zinc-800 rounded-xl px-4 py-3 text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-orange-500 appearance-none text-right cursor-pointer"
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-orange-500 appearance-none text-right cursor-pointer"
                     >
                       <option value="daily" className="bg-slate-900">روزانه</option>
                       <option value="weekly" className="bg-slate-900">هفتگی</option>
@@ -172,7 +172,7 @@ export const HabitEditorModal: React.FC<HabitEditorModalProps> = ({ habit, isOpe
                   onChange={e => setFormState(s => ({ ...s, description: e.target.value }))}
                   placeholder="انگیزه یا هدف خود از انجام مرتب این کار را بنویسید..."
                   rows={4}
-                  className="w-full bg-zinc-855 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-white placeholder-zinc-650 focus:outline-none focus:ring-1 focus:ring-orange-500 transition-all resize-none min-h-[100px] leading-relaxed"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-orange-500 transition-all resize-none min-h-[100px] leading-relaxed"
                 />
               </div>
 

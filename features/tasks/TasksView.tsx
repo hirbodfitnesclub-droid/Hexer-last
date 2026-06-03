@@ -113,7 +113,7 @@ export const TasksView: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full bg-slate-950" dir="rtl">
-      <header className="p-4 pt-8 sticky top-0 bg-slate-950/80 backdrop-blur-md z-15 border-b border-white/5 space-y-4 shrink-0">
+      <header className="p-4 pt-8 sticky top-0 bg-slate-950/80 backdrop-blur-md z-10 border-b border-white/5 space-y-4 shrink-0">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <h1 className="text-2xl font-black text-white pr-1">کارها</h1>
           <div className="relative w-full md:max-w-xs group">
