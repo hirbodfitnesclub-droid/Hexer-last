@@ -3,9 +3,13 @@ import { supabase } from '../../../services/supabaseClient';
 import { CpuIcon, SparklesIcon, CalendarIcon, ActivityIcon } from '../../../components/icons';
 
 interface UsageStatus {
-  query_limit: number;
-  query_count: number;
-  is_premium: boolean;
+  plan_code: string;
+  display_name: string;
+  monthly_quota: number;
+  request_count: number;
+  remaining: number;
+  period_start: string | null;
+  period_end: string | null;
   expires_at: string | null;
 }
 
@@ -26,7 +30,7 @@ export const UsageMeter: React.FC = () => {
         // 1. Get total usage status
         const { data: usageData, error: usageErr } = await supabase.rpc('get_usage_status');
         if (!usageErr && usageData) {
-          setUsage(usageData);
+          setUsage(Array.isArray(usageData) ? usageData[0] : usageData);
         }
 
         // 2. Get past 7 days daily usage
@@ -54,10 +58,10 @@ export const UsageMeter: React.FC = () => {
   }
 
   // Fallbacks
-  const limit = usage?.query_limit || 20;
-  const count = usage?.query_count || 0;
+  const limit = usage?.monthly_quota || 30;
+  const count = usage?.request_count || 0;
   const remaining = Math.max(0, limit - count);
-  const percent = limit > 0 ? Math.round((count / limit) * 105) : 100; // Cap at 100 for representation
+  const percent = limit > 0 ? Math.round((count / limit) * 100) : 100; // Cap at 100 for representation
   const boundedPercent = Math.min(100, Math.max(0, percent));
 
   return (
@@ -68,13 +72,13 @@ export const UsageMeter: React.FC = () => {
           <CpuIcon className="w-4 h-4 text-purple-400" />
           <span className="text-xs font-black text-zinc-300">سهمیه مصرف هوش مصنوعی</span>
         </div>
-        {usage?.is_premium ? (
+        {usage?.plan_code && usage.plan_code !== 'free' ? (
           <span className="px-2 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/20 text-[9px] font-black text-purple-300 flex items-center gap-1">
-            <SparklesIcon className="w-2.5 h-2.5" /> پریمیوم
+            <SparklesIcon className="w-2.5 h-2.5" /> {usage.display_name}
           </span>
         ) : (
           <span className="px-2 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-[9px] font-bold text-zinc-400">
-            رایگان
+            {usage?.display_name || 'رایگان'}
           </span>
         )}
       </div>

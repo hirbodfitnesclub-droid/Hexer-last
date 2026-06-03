@@ -49,6 +49,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
     const getPlanBadgeText = () => {
         if (!subscription) return 'نسخه رایگان (ارتقا ⚡)';
         switch (subscription.plan_code) {
+            case 'starter': return 'طرح استارتر (Starter) ⚡';
             case 'plus': return 'طرح پلاس (Plus) ✨';
             case 'pro': return 'طرح حرفه‌ای (Pro) 🏆';
             default: return 'نسخه رایگان (ارتقا ⚡)';
@@ -61,7 +62,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
             onClick={onClose}
         >
             <div 
-                className="bg-neutral-950 border border-neutral-850 rounded-[28px] shadow-[0_24px_60px_-15px_rgba(0,0,0,0.8)] w-full max-w-sm flex flex-col max-h-[85vh] overflow-hidden transform transition-all relative"
+                className="bg-neutral-950 border border-neutral-800 rounded-[28px] shadow-[0_24px_60px_-15px_rgba(0,0,0,0.8)] w-full max-w-sm flex flex-col max-h-[85vh] overflow-hidden transform transition-all relative"
                 onClick={e => e.stopPropagation()}
                 dir="rtl"
             >
@@ -117,7 +118,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                                 disabled 
                                 type="text" 
                                 value={profile?.full_name || "کاربر خوش‌سلیقه هکسر"} 
-                                className="w-full bg-neutral-900/60 border border-neutral-850 rounded-xl px-3.5 py-2.5 text-xs text-neutral-350 cursor-not-allowed font-medium" 
+                                className="w-full bg-neutral-900/60 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-xs text-neutral-400 cursor-not-allowed font-medium" 
                             />
                         </div>
                     </div>
@@ -166,7 +167,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                         <button 
                             onClick={handleExport}
                             disabled={status.type === 'loading'}
-                            className="flex items-center justify-center gap-2 p-3 bg-neutral-900 hover:bg-neutral-850 rounded-xl transition-all border border-neutral-850 group disabled:opacity-50 active:scale-95"
+                            className="flex items-center justify-center gap-2 p-3 bg-neutral-900 hover:bg-neutral-800 rounded-xl transition-all border border-neutral-800 group disabled:opacity-50 active:scale-95"
                         >
                             <DownloadIcon className="w-4 h-4 text-[#00d2ff] group-hover:translate-y-[1px] transition-transform" />
                             <span className="text-[11px] font-bold text-neutral-300">پشتیبان</span>
@@ -174,7 +175,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                         <button 
                             onClick={handleImportClick}
                             disabled={status.type === 'loading'}
-                            className="flex items-center justify-center gap-2 p-3 bg-neutral-900 hover:bg-neutral-850 rounded-xl transition-all border border-neutral-850 group disabled:opacity-50 active:scale-95"
+                            className="flex items-center justify-center gap-2 p-3 bg-neutral-900 hover:bg-neutral-800 rounded-xl transition-all border border-neutral-800 group disabled:opacity-50 active:scale-95"
                         >
                             <UploadIcon className="w-4 h-4 text-emerald-400 group-hover:-translate-y-[1px] transition-transform" />
                             <span className="text-[11px] font-bold text-neutral-300">بازگردانی</span>

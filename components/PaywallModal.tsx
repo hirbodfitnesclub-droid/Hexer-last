@@ -33,35 +33,52 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
   const plans = [
     {
       code: 'free',
-      name: 'پلان استارتر (Free)',
+      name: 'طرح رایگان (Free)',
       price: 'رایگان',
-      period: '۳ روز تست',
+      period: '۳ روزه',
       quota: '۳۰ درخواست اولیه',
-      model: 'Flash Lite 2.5',
+      model: 'Gemini 3.1 Lite',
       features: [
-        'دسترسی کوتاه ۳ روزه',
-        'محدود به ۳۰ تسک هوشمند',
-        'موتور هوش مصنوعی استاندارد',
-        'امکان آپلود اولیه تصاویر و صوت'
+        'دسترسی رایگان ۳ روزه تستی',
+        '۳۰ درخواست اولیه خلاقانه',
+        'موتور هوش مصنوعی Gemini 3.1',
+        'بدون محدودیت روزانه درخواست'
       ],
       popular: false,
-      color: 'border-neutral-850 bg-neutral-900/30 text-neutral-400',
-      tag: 'استارتر',
+      color: 'border-neutral-800 bg-neutral-900/30 text-neutral-400',
+      tag: 'تست رایگان',
       tagColor: 'bg-neutral-800 text-neutral-400'
     },
     {
-      code: 'plus',
-      name: 'پلان پلاس (Plus) ✨',
+      code: 'starter',
+      name: 'طرح استارتر (Starter)',
       price: '۹۹,۰۰۰',
       period: '۳۰ روزه',
-      quota: '۴۰۰ درخواست هوشمند',
-      model: 'Flash Lite 2.5',
+      quota: '۳۰۰ درخواست هوشمند',
+      model: 'Gemini 3.1 Lite',
       features: [
-        'دسترسی ۳۰ روزه پایدار',
-        '۴۰۰ درخواست طلایی ماهانه',
-        'موتور پرسرعت Gemini AI',
-        'آپلود آسان عکس، اسکرین‌شات و صوت',
-        'یادآوری کارهای مهم در مرورگر'
+        'دسترسی ۳۰ روزه پایدار تمدیدپذیر',
+        '۳۰۰ درخواست هوشمند ماهانه',
+        'بدون محدودیت روزانه درخواست',
+        'تعریف نامحدود یادداشت‌ها و کارها'
+      ],
+      popular: false,
+      color: 'border-zinc-800 bg-neutral-900/40 text-white hover:border-zinc-700',
+      tag: 'اقتصادی',
+      tagColor: 'bg-zinc-800 text-zinc-300'
+    },
+    {
+      code: 'plus',
+      name: 'طرح پلاس (Plus) ✨',
+      price: '۱۹۹,۰۰۰',
+      period: '۳۰ روزه',
+      quota: '۷۰۰ درخواست هوشمند',
+      model: 'Gemini 3.1 Lite',
+      features: [
+        'دسترسی ۳۰ روزه پایدار تمدیدپذیر',
+        '۷۰۰ درخواست هوشمند ماهانه',
+        'بدون محدودیت روزانه درخواست',
+        'بارگذاری مستقیم تصاویر و صوت'
       ],
       popular: true,
       color: 'border-[#00d2ff]/30 bg-neutral-900/60 text-white ring-1 ring-[#00d2ff]/10 shadow-[0_0_30px_rgba(0,210,255,0.03)]',
@@ -70,22 +87,20 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
     },
     {
       code: 'pro',
-      name: 'پلان پرو (Pro) 🏆',
-      price: '۲۹۹,۰۰۰',
+      name: 'طرح پرو (Pro) 🏆',
+      price: '۳۶۹,۰۰۰',
       period: '۳۰ روزه',
-      quota: '۱,۰۰۰ درخواست هوشمند',
-      model: 'Gemini 3.1 Pro Vibe',
+      quota: '۱,۳۰۰ درخواست هوشمند',
+      model: 'Gemini 3.1 Lite',
       features: [
-        'دسترسی بی‌کران به تمام ابزارها',
-        '۱,۰۰۰ درخواست هوشمند پیشرفته',
-        'قوی‌ترین موتور استنتاج Gemini 3.1',
-        'درک پیشرفته مستندات و صوت شلوغ',
-        'یادآوری‌های همزمان فوق‌سریع',
-        'پشتیبانی VIP و اولویت پردازش'
+        'دسترسی ۳۰ روزه ممتاز و نامحدود',
+        '۱,۳۰۰ درخواست هوشمند ماهانه',
+        'بدون محدودیت روزانه درخواست',
+        'پشتیبانی VIP و پردازش کارهای سنگین'
       ],
       popular: false,
       color: 'border-fuchsia-500/30 bg-neutral-900/50 text-white ring-1 ring-fuchsia-500/10 shadow-[0_0_40px_rgba(217,70,239,0.05)]',
-      tag: 'کاربر حرفه‌ای 👑',
+      tag: 'کاربر سنترال 👑',
       tagColor: 'bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white font-black'
     }
   ];
@@ -109,7 +124,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
           </div>
           <button 
             onClick={onClose} 
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-neutral-900 hover:bg-neutral-850 text-neutral-400 hover:text-white border border-neutral-850 transition-all duration-300"
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-white border border-neutral-800 transition-all duration-300"
           >
             <XIcon className="w-4 h-4" />
           </button>
@@ -199,7 +214,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
                     isActive 
                       ? 'bg-emerald-600/10 text-emerald-400 border border-emerald-500/20 cursor-not-allowed'
                       : p.code === 'free'
-                      ? 'bg-neutral-900 text-neutral-600 border border-neutral-850/50 cursor-not-allowed text-[10px]'
+                      ? 'bg-neutral-900 text-neutral-600 border border-neutral-800/50 cursor-not-allowed text-[10px]'
                       : p.popular
                       ? 'bg-[#00d2ff] hover:bg-[#00c0eb] text-neutral-950 shadow-lg shadow-[#00d2ff]/10 active:scale-95'
                       : 'bg-neutral-800 hover:bg-neutral-750 text-white active:scale-95 border border-neutral-700/40'

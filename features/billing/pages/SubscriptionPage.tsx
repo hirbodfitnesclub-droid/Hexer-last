@@ -22,48 +22,64 @@ export const SubscriptionPage: React.FC = () => {
     {
       id: 'free',
       code: 'free',
-      name: 'طرح برنزی (رایگان)',
+      name: 'طرح رایگان (Free)',
       priceRials: 0,
       priceTomansLabel: 'رایگان',
-      durationLabel: 'مادام‌العمر',
+      durationLabel: '۳ روزه',
       isPopular: false,
       features: [
-        'سهمیه ۲۰ درخواست هوش مصنوعی در ماه',
-        'ساخت و مدیریت نامحدود یادداشت‌ها',
-        'ایجاد تا ۳ کار و کارهای زیرمجموعه',
-        'امکان دسترسی به نمای کلی داشبورد'
+        'سهمیه ۳۰ درخواست اولیه هوشمند',
+        'بدون محدودیت تعداد درخواست روزانه',
+        'مدل هوش مصنوعی پیشرفته gemini-3.1-flash-lite',
+        'دسترسی ۳ روزه آزمایشی برای ارزیابی قابلیت‌ها'
       ]
     },
     {
-      id: 'gold_monthly',
-      code: 'gold_monthly',
-      name: 'پریمیوم طلایی (ماهانه)',
-      priceRials: 490000,
-      priceTomansLabel: '۴۹ هزار تومان',
-      durationLabel: '۳۰ روزه',
+      id: 'starter',
+      code: 'starter',
+      name: 'طرح استارتر (Starter)',
+      priceRials: 990000,
+      priceTomansLabel: '۹۹ هزار تومان',
+      durationLabel: 'ماهانه (۳۰ روزه)',
+      isPopular: false,
+      features: [
+        '۳۰۰ درخواست هوشمند مجاز ماهانه',
+        'بدون محدودیت تعداد درخواست روزانه',
+        'مدل هوش مصنوعی پیشرفته gemini-3.1-flash-lite',
+        'ساخت و مدیریت نامحدود یادداشت‌ها و کارها',
+        'پشتیبان‌گیری امن و همگام‌سازی سریع پایگاه داده'
+      ]
+    },
+    {
+      id: 'plus',
+      code: 'plus',
+      name: 'طرح پلاس (Plus) ✨',
+      priceRials: 1990000,
+      priceTomansLabel: '۱۹۹ هزار تومان',
+      durationLabel: 'ماهانه (۳۰ روزه)',
       isPopular: true,
       features: [
-        'درخواست نامحدود ماهانه هوش مصنوعی کدیار',
-        'پشتیبانی کامپایلر هوشمند پروژه‌ها',
-        'بدون محدودیت در تعریف پروژه‌ها',
-        'پشتیبان‌گیری امن و همگام‌سازی ابری',
-        'اولویت بالای پردازش مدل‌های پردازش زبان'
+        '۷۰۰ درخواست هوشمند مجاز ماهانه',
+        'بدون محدودیت تعداد درخواست روزانه',
+        'مدل هوش مصنوعی پیشرفته gemini-3.1-flash-lite',
+        'بارگذاری مستقیم عکس، اسکرین‌شات و صوت',
+        'پشتیبان‌گیری رمزنگاری‌شده و امنیت اولویت بالا'
       ]
     },
     {
-      id: 'gold_yearly',
-      code: 'gold_yearly',
-      name: 'پریمیوم الماس (سالانه)',
-      priceRials: 3900000,
-      priceTomansLabel: '۳۹۰ هزار تومان (اقتصادی)',
-      durationLabel: '۳۶۵ روزه',
+      id: 'pro',
+      code: 'pro',
+      name: 'طرح پرو (Pro) 🏆',
+      priceRials: 3690000,
+      priceTomansLabel: '۳۶۹ هزار تومان',
+      durationLabel: 'ماهانه (۳۰ روزه)',
       isPopular: false,
       features: [
-        'تمام ویژگی‌های طرح پریمیوم طلایی کدیار',
-        '۳۳٪ صرفه‌جویی اقتصادی نسبت به تمدید ماهانه',
-        'پشتیبانی شخصی VIP ۲۴ ساعته',
-        'تضمین ثبات قیمت در دوره فعال اشتراک',
-        'آزاد شدن دسترسی‌های پیش‌نمایش به نسخه بتا'
+        '۱,۳۰۰ درخواست هوشمند مجاز ماهانه',
+        'بدون محدودیت تعداد درخواست روزانه',
+        'مدل هوش مصنوعی پیشرفته gemini-3.1-flash-lite',
+        'درک همزمان چندرسانه‌ای‌های شلوغ و سنگین',
+        'پشتیبانی VIP اختصاصی ۲۴ ساعته در هفت روز هفته'
       ]
     }
   ];
@@ -109,7 +125,7 @@ export const SubscriptionPage: React.FC = () => {
         )}
 
         {/* Plan Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-2">
           {plans.map(plan => (
             <div 
               key={plan.id}
