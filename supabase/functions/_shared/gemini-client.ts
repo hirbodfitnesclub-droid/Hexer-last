@@ -17,10 +17,17 @@ export function getGoogleGenAI(): GoogleGenAI {
   return aiInstance;
 }
 
-export async function generateEmbedding(ai: GoogleGenAI, text: string): Promise<number[]> {
+export async function generateEmbedding(ai: GoogleGenAI, text: string, prefixType?: 'query' | 'document'): Promise<number[]> {
+  let processedText = text;
+  if (prefixType === 'query') {
+    processedText = "task: search_query | query: " + text;
+  } else if (prefixType === 'document') {
+    processedText = "task: search_document | document: " + text;
+  }
+
   const response = await ai.models.embedContent({
     model: EMBEDDING_MODEL,
-    contents: text,
+    contents: processedText,
   });
 
   let values: number[] | undefined = undefined;

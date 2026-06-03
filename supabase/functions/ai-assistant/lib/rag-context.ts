@@ -12,12 +12,12 @@ export async function buildRagContext(
   }
 
   try {
-    const embedding = await generateEmbedding(ai, message);
+    const embedding = await generateEmbedding(ai, message, 'query');
 
     const { data: documents, error: matchError } = await supabaseClient.rpc('hybrid_search', {
       p_query_embedding: embedding,
       p_query_text: message,
-      p_match_count: 5
+      p_match_count: 15
     });
 
     if (matchError) {
@@ -33,11 +33,12 @@ export async function buildRagContext(
         id: doc.id,
         type: doc.type,
         title: doc.title || (doc.snippet ? (doc.snippet.split(' ').slice(0, 5).join(' ') + '...') : ''),
+        snippet: doc.snippet || doc.content || '',
         similarity: doc.score
       }));
 
       contextString += "\n\nRelevant Context from User Memory (Hybrid Search):\n";
-      documents.forEach((doc: any) => {
+      documents.slice(0, 5).forEach((doc: any) => {
         contextString += `- [${doc.type.toUpperCase()}] ${doc.title} (Excerpt: ${doc.snippet}) (ID: ${doc.id})\n`;
       });
     }

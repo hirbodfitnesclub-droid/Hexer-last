@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     const ai = getGoogleGenAI();
     console.log(`Generating embedding for ${type} ID: ${id} with consistent model...`);
     
-    const embeddingValues = await generateEmbedding(ai, combinedText);
+    const embeddingValues = await generateEmbedding(ai, combinedText, 'document');
 
     // به‌روزرسانی مقدار برداری رکورد
     const { error: updateError } = await supabaseClient

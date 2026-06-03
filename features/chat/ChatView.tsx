@@ -17,6 +17,7 @@ import { CitationCard } from './components/CitationCard';
 import { ActionResultCard } from './components/ActionResultCard';
 import { ProposalCard } from './components/ProposalCard';
 import { ChatHistoryDrawer } from './components/ChatHistoryDrawer';
+import { MoreCitationsModal } from './components/MoreCitationsModal';
 
 interface ChatViewProps {
   onEditTask: (task: Task) => void;
@@ -58,6 +59,15 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
   
   // Proposal support state
   const [activeProposals, setActiveProposals] = useState<ExtractionProposal[]>([]);
+
+  // More citations modal state
+  const [selectedForMoreCitations, setSelectedForMoreCitations] = useState<Citation[]>([]);
+  const [isMoreCitationsOpen, setIsMoreCitationsOpen] = useState(false);
+
+  const handleShowMoreCitations = (citations: Citation[]) => {
+    setSelectedForMoreCitations(citations);
+    setIsMoreCitationsOpen(true);
+  };
 
   // Hook up sound recorder
   const {
@@ -562,10 +572,22 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
               
               {/* Citations references */}
               {msg.citations && msg.citations.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {msg.citations.map((citation, idx) => (
-                    <CitationCard key={idx} citation={citation} onClick={handleCitationClick} />
-                  ))}
+                <div className="flex flex-col gap-2 mt-1 items-start">
+                  <div className="flex flex-wrap gap-2">
+                    {msg.citations.slice(0, 5).map((citation, idx) => (
+                      <CitationCard key={idx} citation={citation} onClick={handleCitationClick} />
+                    ))}
+                  </div>
+                  {msg.citations.length > 5 && (
+                    <button
+                      onClick={() => handleShowMoreCitations(msg.citations)}
+                      className="text-xs text-sky-400 hover:text-sky-300 font-medium flex items-center gap-1.5 mt-1 transition-all bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/5 hover:border-sky-500/30"
+                      id={`view-more-${msg.id}`}
+                    >
+                      <PlusIcon className="w-3.5 h-3.5 text-sky-400" />
+                      مشاهده نتایج مشابه بیشتر ({msg.citations.length - 5} مورد دیگر)
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -781,6 +803,14 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
         onClose={() => setDrawerOpen(false)}
         onSelectSession={handleSelectSession}
         selectedSessionId={activeSession?.id || null}
+      />
+
+      {/* More Citations Modal */}
+      <MoreCitationsModal
+        isOpen={isMoreCitationsOpen}
+        onClose={() => setIsMoreCitationsOpen(false)}
+        citations={selectedForMoreCitations}
+        onCitationClick={handleCitationClick}
       />
     </div>
   );
