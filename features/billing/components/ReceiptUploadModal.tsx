@@ -148,17 +148,17 @@ export const ReceiptUploadModal: React.FC<ReceiptUploadModalProps> = ({ isOpen, 
             <div className="space-y-2.5 text-xs">
               <div className="flex justify-between items-center bg-neutral-950/40 p-2 rounded-xl border border-neutral-800/40">
                 <span className="text-zinc-400 font-medium">شماره کارت:</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-indigo-400 font-black font-mono tracking-wider text-sm select-all">
+                <div className="flex items-center gap-1.5" dir="ltr">
+                  <span className="text-indigo-400 font-black font-mono tracking-wider text-xs md:text-sm select-all">
                     6219 8619 1717 9755
                   </span>
                   <button 
                     onClick={handleCopyCard}
                     type="button"
-                    className="p-1.5 text-neutral-400 hover:text-white bg-neutral-900 hover:bg-neutral-850 rounded-lg transition-all active:scale-95 border border-neutral-800"
+                    className="p-1 text-neutral-400 hover:text-white bg-neutral-900 hover:bg-neutral-850 rounded-lg transition-all active:scale-95 border border-neutral-800"
                     title="کپی شماره کارت"
                   >
-                    <CopyIcon className="w-3.5 h-3.5" />
+                    <CopyIcon className="w-3 h-3" />
                   </button>
                 </div>
               </div>
