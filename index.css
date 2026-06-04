@@ -1,0 +1,44 @@
+/* ==========================================
+   Project Hexer - Global Theme and Resets
+   ========================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+/* تنظیم متغیرهای Safe Area برای ابزارهای آیفون دارای Notch یا جزیره پویا */
+:root {
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-top: env(safe-area-inset-top, 0px);
+}
+
+/* جلوگیری از تغییر ابعاد فونت‌ها توسط مرورگرهای موبایل (iOS) */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* تصحیح رفتار اسکرول مودال‌ها و تب‌ها در سیستم‌های iOS */
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* 
+  غلبه بر رنگ پس‌زمینه سفید/آبی پیش‌فرض مرورگر در فیلدهای Autofill.
+  بدون این سلکتورها، مرورگرها استایل سفید روی فیلدها اعمال کرده و متن‌ها را ناخوانا می‌کنند.
+*/
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px #09090b inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff;
+  transition: background-color 5000s ease-in-out 0s;
+}

@@ -114,9 +114,16 @@ export interface Subscription {
   id: string;
   user_id: string;
   plan_code: string;
-  status: 'active' | 'expired' | 'canceled' | 'pending';
+  status: 'active' | 'expired' | 'canceled' | 'pending' | 'pending_manual';
   started_at: string;
   expires_at: string;
+}
+
+export type ManualPaymentStatus = 'none' | 'pending' | 'rejected';
+
+export interface ManualPaymentState {
+  state: ManualPaymentStatus;
+  reason?: string;
 }
 
 export interface UsageStatus {
