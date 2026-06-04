@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Plan } from './SubscriptionModal';
 import * as billingService from '../../../services/billingService';
 import { useData } from '../../../contexts/DataContext';
-import { XIcon, UploadIcon, CheckIcon, WarningIcon } from '../../../components/icons';
+import { XIcon, UploadIcon, CheckIcon, WarningIcon, CopyIcon } from '../../../components/icons';
 
 interface ReceiptUploadModalProps {
   isOpen: boolean;
@@ -23,6 +23,11 @@ export const ReceiptUploadModal: React.FC<ReceiptUploadModalProps> = ({ isOpen, 
   const [dragActive, setDragActive] = useState(false);
 
   if (!isOpen) return null;
+
+  const handleCopyCard = () => {
+    navigator.clipboard.writeText("6219861917179755");
+    addNotification("شماره کارت با موفقیت کپی شد.", "success");
+  };
 
   const handleFile = (file: File) => {
     setErrorMessage(null);
@@ -140,18 +145,30 @@ export const ReceiptUploadModal: React.FC<ReceiptUploadModalProps> = ({ isOpen, 
           <div className="bg-neutral-900/60 border border-neutral-800 rounded-2xl p-4 space-y-3 text-right">
             <span className="text-[9px] text-zinc-500 font-bold block uppercase tracking-wider">حساب بانکی مقصد جهت کارت‌به‌کارت</span>
             
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between">
+            <div className="space-y-2.5 text-xs">
+              <div className="flex justify-between items-center bg-neutral-950/40 p-2 rounded-xl border border-neutral-800/40">
                 <span className="text-zinc-400 font-medium">شماره کارت:</span>
-                <span className="text-indigo-400 font-black font-mono tracking-wider">۶۰۳۷-۹۹۷۹-۱۲۳۴-۵۶۷۸</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-indigo-400 font-black font-mono tracking-wider text-sm select-all">
+                    6219 8619 1717 9755
+                  </span>
+                  <button 
+                    onClick={handleCopyCard}
+                    type="button"
+                    className="p-1.5 text-neutral-400 hover:text-white bg-neutral-900 hover:bg-neutral-850 rounded-lg transition-all active:scale-95 border border-neutral-800"
+                    title="کپی شماره کارت"
+                  >
+                    <CopyIcon className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between px-1">
                 <span className="text-zinc-400 font-medium">نام بانک:</span>
-                <span className="text-white font-extrabold">بانک ملی هکسر</span>
+                <span className="text-white font-extrabold">بلو بانک سامان</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between px-1">
                 <span className="text-zinc-400 font-medium">به نام:</span>
-                <span className="text-white font-extrabold">حساب مالی شرکت پلتفرم هوشمند هکسر</span>
+                <span className="text-white font-extrabold">آرش مکی</span>
               </div>
             </div>
           </div>
