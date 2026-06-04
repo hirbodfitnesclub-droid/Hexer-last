@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { User } from '@supabase/supabase-js';
 import { UserIcon, XIcon, ShieldIcon, BellIcon, MoonIcon, LogOutIcon, DownloadIcon, UploadIcon, CheckIcon } from './icons';
 import { exportUserData, importUserData } from '../services/backupService';
+import SubscriptionModal from '../features/billing/components/SubscriptionModal';
 
 interface ProfileModalProps {
     isOpen: boolean;
@@ -16,6 +17,7 @@ interface ProfileModalProps {
 const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, signOut, subscription, onTriggerUpgrade, profile }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [status, setStatus] = useState<{ type: 'success' | 'error' | 'loading' | null; message: string }>({ type: null, message: '' });
+    const [isSubModalOpen, setIsSubModalOpen] = useState(false);
 
     if (!isOpen) return null;
 
@@ -87,8 +89,8 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                     
                     {/* Badge upgraded to premium glass pill */}
                     <button 
-                        onClick={onTriggerUpgrade}
-                        className="mt-2 px-3 py-1 bg-neutral-900 hover:bg-neutral-850 active:scale-95 transition-all rounded-full text-[9px] font-black text-sky-400 border border-neutral-800/80 shadow-md shadow-black/30"
+                        onClick={() => setIsSubModalOpen(true)}
+                        className="mt-2 px-3 py-1 bg-neutral-900 hover:bg-neutral-800 active:scale-95 transition-all rounded-full text-[9px] font-black text-sky-400 border border-neutral-800/80 shadow-md shadow-black/30"
                     >
                         {getPlanBadgeText()}
                     </button>
@@ -193,6 +195,8 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                     
                 </div>
             </div>
+            
+            <SubscriptionModal isOpen={isSubModalOpen} onClose={() => setIsSubModalOpen(false)} />
         </div>
     );
 }
