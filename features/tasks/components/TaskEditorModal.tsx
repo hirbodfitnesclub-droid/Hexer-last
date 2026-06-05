@@ -380,47 +380,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
                 )}
               </div>
 
-              {/* TWO-WAY BIDIRECTIONAL NOTES LINKING SECTION */}
-              {!isNew && (
-                <div className="p-4 bg-zinc-950/25 border border-white/5 rounded-2xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-zinc-400">یادداشت‌های مرتبط</span>
-                    <span className="text-[10px] font-mono text-zinc-600">{linkedNotes.length} لینک شده</span>
-                  </div>
 
-                  {linkedNotes.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {linkedNotes.map(n => (
-                        <div key={n.id} className="flex items-center justify-between p-2.5 bg-zinc-900/60 rounded-xl border border-white/5 text-right">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <NotebookIcon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                            <span className="text-xs text-zinc-300 font-medium truncate">{n.title || 'یادداشت بدون عنوان'}</span>
-                          </div>
-                          <button
-                            onClick={() => handleUnlink(n.id)}
-                            className="p-1 hover:text-red-400 hover:bg-red-500/10 rounded text-zinc-600 transition-colors"
-                            title="حذف پیوند"
-                          >
-                            <XIcon className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-[11px] text-zinc-600 block text-right">هیچ یادداشت مرتبطی وجود ندارد.</span>
-                  )}
-
-                  <div className="pt-2">
-                    <LinkNotePicker 
-                      taskId={task.id!}
-                      notes={notes}
-                      taskDueDate={formState.due_date}
-                      onLinkAdded={loadLinks}
-                      linkedNoteIds={linkedNotes.map(l => l.id)}
-                    />
-                  </div>
-                </div>
-              )}
 
               <div className="pt-6 flex gap-3">
                 <button 
@@ -585,6 +545,52 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
                     <ChevronDownIcon className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500"/>
                   </div>
                 </PropertyRow>
+              </div>
+
+              {/* TWO-WAY BIDIRECTIONAL NOTES LINKING SECTION */}
+              <div className="p-4 bg-zinc-950/25 border border-white/5 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-zinc-400">یادداشت‌های مرتبط</span>
+                  <span className="text-[10px] font-mono text-zinc-600">{linkedNotes.length} لینک شده</span>
+                </div>
+
+                {linkedNotes.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {linkedNotes.map(n => (
+                      <div key={n.id} className="flex items-center justify-between p-2.5 bg-zinc-900/60 rounded-xl border border-white/5 text-right">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <NotebookIcon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                          <span className="text-xs text-zinc-300 font-medium truncate">{n.title || 'یادداشت بدون عنوان'}</span>
+                        </div>
+                        <button
+                          onClick={() => handleUnlink(n.id)}
+                          className="p-1 hover:text-red-400 hover:bg-red-500/10 rounded text-zinc-600 transition-colors"
+                          title="حذف پیوند"
+                        >
+                          <XIcon className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-[11px] text-zinc-600 block text-right">هیچ یادداشت مرتبطی وجود ندارد.</span>
+                )}
+
+                <div className="pt-2">
+                  {!isNew && formState.id ? (
+                    <LinkNotePicker 
+                      taskId={formState.id}
+                      notes={notes}
+                      taskDueDate={formState.due_date}
+                      onLinkAdded={loadLinks}
+                      linkedNoteIds={linkedNotes.map(l => l.id)}
+                    />
+                  ) : (
+                    <div className="text-xs text-zinc-500 bg-zinc-900/50 p-2.5 rounded-xl border border-white/5 text-right font-medium">
+                      پس از ذخیره اولیه کار، امکان متصل کردن یادداشت فعال خواهد شد.
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

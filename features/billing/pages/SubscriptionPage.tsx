@@ -125,11 +125,11 @@ export const SubscriptionPage: React.FC = () => {
         )}
 
         {/* Plan Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-2">
+        <div className="grid grid-cols-1 gap-6 pt-2">
           {plans.map(plan => (
             <div 
               key={plan.id}
-              className={`rounded-2xl border flex flex-col relative overflow-hidden h-full text-right transition-all duration-300 hover:-translate-y-1 ${
+              className={`rounded-2xl border flex flex-col relative overflow-hidden h-full min-w-0 max-w-full break-words text-right transition-all duration-300 hover:-translate-y-1 ${
                 plan.isPopular 
                   ? 'bg-zinc-900 border-purple-500/35 ring-1 ring-purple-500/20 shadow-xl shadow-purple-950/20' 
                   : 'bg-zinc-900/40 border-white/5 hover:border-zinc-800'

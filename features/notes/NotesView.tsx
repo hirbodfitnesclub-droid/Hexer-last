@@ -78,7 +78,7 @@ export const NotesView: React.FC = () => {
       </header>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-8 pt-8 max-w-[1600px] mx-auto w-full">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-8 pt-8 max-w-[1600px] mx-auto w-full scroll-fade-edge">
         {filteredNotes.length > 0 ? (
           // Masonry Layout using CSS Columns
           <div className="columns-1 md:columns-2 xl:columns-3 gap-6 space-y-6">

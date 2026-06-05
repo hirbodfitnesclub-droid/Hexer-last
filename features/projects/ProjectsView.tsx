@@ -82,7 +82,7 @@ export const ProjectsView: React.FC = () => {
       </header>
 
       {/* Main Grid Area */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-8 pt-8 max-w-[1600px] mx-auto w-full">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-8 pt-8 max-w-[1600px] mx-auto w-full scroll-fade-edge">
         {projects.length > 0 ? (
           <div className="grid grid-cols-1 gap-4">
             {projects.map(project => {

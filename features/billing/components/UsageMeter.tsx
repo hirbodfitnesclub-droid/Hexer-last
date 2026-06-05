@@ -18,7 +18,7 @@ interface DailyUsage {
   count: number;
 }
 
-export const UsageMeter: React.FC = () => {
+export const UsageMeter: React.FC<{ compact?: boolean }> = ({ compact = false }) => {
   const [usage, setUsage] = useState<UsageStatus | null>(null);
   const [dailyLog, setDailyLog] = useState<DailyUsage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,10 +33,12 @@ export const UsageMeter: React.FC = () => {
           setUsage(Array.isArray(usageData) ? usageData[0] : usageData);
         }
 
-        // 2. Get past 7 days daily usage
-        const { data: dailyData, error: dailyErr } = await supabase.rpc('get_daily_usage', { p_days: 7 });
-        if (!dailyErr && dailyData) {
-          setDailyLog(dailyData);
+        // 2. Get past 7 days daily usage (only if not compact)
+        if (!compact) {
+          const { data: dailyData, error: dailyErr } = await supabase.rpc('get_daily_usage', { p_days: 7 });
+          if (!dailyErr && dailyData) {
+            setDailyLog(dailyData);
+          }
         }
       } catch (err) {
         console.error('Error loading usage meter stats:', err);
@@ -46,9 +48,17 @@ export const UsageMeter: React.FC = () => {
     };
 
     fetchUsage();
-  }, []);
+  }, [compact]);
 
   if (loading) {
+    if (compact) {
+      return (
+        <div className="bg-zinc-900/40 rounded-xl border border-white/5 p-3 w-full animate-pulse flex items-center justify-between" dir="rtl">
+          <span className="text-[10px] text-zinc-500 font-bold">درحال بارگذاری سهمیه مصرف...</span>
+          <div className="w-20 bg-zinc-950 h-2 rounded-full"></div>
+        </div>
+      );
+    }
     return (
       <div className="bg-zinc-900/40 p-5 rounded-2xl border border-white/5 animate-pulse flex flex-col items-center justify-center min-h-[140px]" dir="rtl">
         <CpuIcon className="w-6 h-6 text-zinc-700 animate-spin mb-2" />
@@ -63,6 +73,31 @@ export const UsageMeter: React.FC = () => {
   const remaining = Math.max(0, limit - count);
   const percent = limit > 0 ? Math.round((count / limit) * 100) : 100; // Cap at 100 for representation
   const boundedPercent = Math.min(100, Math.max(0, percent));
+
+  if (compact) {
+    return (
+      <div className="bg-zinc-900/40 rounded-xl border border-white/5 p-2.5 w-full space-y-1.5 text-right" dir="rtl">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-300">
+            <CpuIcon className="w-3.5 h-3.5 text-purple-400" />
+            <span>سهمیه هوش مصنوعی:</span>
+          </div>
+          <span className="text-[10px] font-black text-purple-400 font-mono">
+            {remaining} از {limit} باقی‌مانده
+          </span>
+        </div>
+        <div className="w-full bg-zinc-950 h-1.5 rounded-full overflow-hidden">
+          <div 
+            className={`h-full rounded-full transition-all duration-500 ${
+              boundedPercent > 85 ? 'bg-red-500 shadow-sm' :
+              boundedPercent > 60 ? 'bg-yellow-500' : 'bg-sky-500'
+            }`}
+            style={{ width: `${boundedPercent}%` }}
+          ></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-zinc-900/60 rounded-2xl border border-white/5 p-5 space-y-4" dir="rtl">

@@ -144,7 +144,7 @@ export const TasksView: React.FC = () => {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 space-y-8 pb-32 pt-4">
+      <div className="flex-1 overflow-y-auto px-4 space-y-8 pb-32 pt-4 scroll-fade-edge">
         {groupedTasks.length > 0 ? (
           groupedTasks.map(group => (
             <div key={group.id} className="space-y-3">

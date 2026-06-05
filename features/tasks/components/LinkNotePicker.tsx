@@ -117,7 +117,7 @@ export const LinkNotePicker: React.FC<LinkNotePickerProps> = ({
                     key={note.id}
                     onClick={() => handleLink(note.id)}
                     disabled={loading}
-                    className="w-full flex items-center gap-2 p-2 bg-zinc-900/40 hover:bg-purple-950/20 rounded-lg text-right text-xs text-zinc-350 hover:text-purple-300 transition-all border border-transparent hover:border-purple-500/10"
+                    className="w-full flex items-center gap-2 p-2 bg-zinc-900/40 hover:bg-purple-950/20 rounded-lg text-right text-xs text-zinc-300 hover:text-purple-300 transition-all border border-transparent hover:border-purple-500/10"
                   >
                     <NotebookIcon className="w-3.5 h-3.5 text-zinc-500" />
                     <span className="flex-1 truncate">{note.title || 'بدون عنوان'}</span>

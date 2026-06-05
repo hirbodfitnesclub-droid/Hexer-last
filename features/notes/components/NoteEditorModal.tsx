@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Note, Project, Task } from '../../../types';
 import { 
-  XIcon, TrashIcon, BriefcaseIcon, ChevronDownIcon, 
+  XIcon, TrashIcon, BriefcaseIcon, ChevronDownIcon, ChevronRightIcon,
   HashIcon, LightbulbIcon, ClockIcon, FileTextIcon, 
   PlusIcon, CheckIcon, ListChecksIcon 
 } from '../../../components/icons';
@@ -151,7 +151,7 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
             className="group flex items-center gap-2 text-zinc-400 hover:text-white transition-colors"
           >
             <div className="p-2 rounded-xl bg-white/5 group-hover:bg-white/10 transition-colors">
-              <ChevronDownIcon className="w-5 h-5 rotate-90" />
+              <ChevronRightIcon className="w-5 h-5" />
             </div>
             <span className="text-xs font-bold font-sans hidden sm:block">بازگشت</span>
           </button>
@@ -185,54 +185,58 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
               className="w-full bg-transparent border-none p-0 text-2xl sm:text-3.5xl font-black text-white placeholder-zinc-800 focus:ring-0 focus:outline-none leading-relaxed text-right font-sans"
               autoFocus
             />
+
+            {/* TWO-WAY TASKS LINKING SECTION */}
+            <div className="py-4 border-y border-white/5 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">کارهای لینک‌شده</span>
+                <span className="text-[10px] font-mono text-zinc-600">{linkedTasks.length} لینک شده</span>
+              </div>
+
+              {linkedTasks.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {linkedTasks.map(t => (
+                    <div key={t.id} className="flex items-center justify-between p-2.5 bg-zinc-900/60 rounded-xl border border-white/5 text-right">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <ListChecksIcon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                        <span className="text-xs text-zinc-300 font-medium truncate">{t.title || 'کار بدون عنوان'}</span>
+                      </div>
+                      <button
+                        onClick={() => handleUnlink(t.id)}
+                        className="p-1 hover:text-red-400 hover:bg-red-500/10 rounded text-zinc-600 transition-colors"
+                        title="حذف پیوند"
+                      >
+                        <XIcon className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-xs text-zinc-600 block text-right">هیچ کاری به این یادداشت لینک نشده است.</span>
+              )}
+
+              <div className="pt-1">
+                {!isNew && note.id ? (
+                  <LinkTaskPicker 
+                    noteId={note.id}
+                    tasks={tasks}
+                    noteCreatedAt={formState.created_at}
+                    onLinkAdded={loadLinks}
+                    linkedTaskIds={linkedTasks.map(l => l.id)}
+                  />
+                ) : (
+                  <div className="text-[11px] text-zinc-500 bg-zinc-950/40 p-2.5 rounded-xl border border-white/5 text-right font-medium">
+                    پس از ثبت یادداشت، امکان متصل کردن کار مرتبط فعال خواهد شد.
+                  </div>
+                )}
+              </div>
+            </div>
             <textarea
               value={formState.content || ''}
               onChange={e => setFormState(s => ({ ...s, content: e.target.value }))}
               placeholder="شروع به نوشتن کنید..."
               className="w-full h-[35vh] sm:h-[40vh] bg-transparent border-none p-0 text-sm sm:text-base text-zinc-300 placeholder-zinc-800 focus:ring-0 focus:outline-none resize-none leading-relaxed font-light text-right"
             />
-
-            {/* TWO-WAY TASKS LINKING SECTION */}
-            {!isNew && (
-              <div className="pt-6 border-t border-white/5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">کارهای لینک‌شده</span>
-                  <span className="text-[10px] font-mono text-zinc-600">{linkedTasks.length} لینک شده</span>
-                </div>
-
-                {linkedTasks.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {linkedTasks.map(t => (
-                      <div key={t.id} className="flex items-center justify-between p-2.5 bg-zinc-900/60 rounded-xl border border-white/5 text-right">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <ListChecksIcon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                          <span className="text-xs text-zinc-300 font-medium truncate">{t.title || 'کار بدون عنوان'}</span>
-                        </div>
-                        <button
-                          onClick={() => handleUnlink(t.id)}
-                          className="p-1 hover:text-red-400 hover:bg-red-500/10 rounded text-zinc-600 transition-colors"
-                          title="حذف پیوند"
-                        >
-                          <XIcon className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <span className="text-xs text-zinc-600 block text-right">هیچ کاری به این یادداشت لینک نشده است.</span>
-                )}
-
-                <div className="pt-2">
-                  <LinkTaskPicker 
-                    noteId={note.id!}
-                    tasks={tasks}
-                    noteCreatedAt={formState.created_at}
-                    onLinkAdded={loadLinks}
-                    linkedTaskIds={linkedTasks.map(l => l.id)}
-                  />
-                </div>
-              </div>
-            )}
           </div>
         </div>
 

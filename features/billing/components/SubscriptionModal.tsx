@@ -4,6 +4,7 @@ import * as billingService from '../../../services/billingService';
 import { ManualPaymentState, Plan as PlanType } from '../../../types';
 import { CpuIcon, SparklesIcon, CheckIcon, ShieldCheckIcon, CreditCardIcon, XIcon, WarningIcon } from '../../../components/icons';
 import PaymentMethodModal from './PaymentMethodModal';
+import { UsageMeter } from './UsageMeter';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -176,6 +177,9 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
           ) : (
             /* --- NORMAL OR REJECTED STATE --- */
             <>
+              {/* USAGE METER */}
+              <UsageMeter />
+
               {/* STATE 2: REJECTED BANNER */}
               {manualState?.state === 'rejected' && (
                 <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl flex items-start gap-3 text-right animate-fade-in relative overflow-hidden">

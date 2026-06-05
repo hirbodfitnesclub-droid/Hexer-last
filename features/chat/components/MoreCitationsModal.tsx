@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Citation } from '../../../types';
-import { XIcon, ListChecksIcon, NotebookIcon, ChevronLeftIcon, ChevronRightIcon, LinkIcon } from '../../../components/icons';
+import { XIcon, ListChecksIcon, NotebookIcon, ChevronLeftIcon, ChevronRightIcon, LinkIcon, BriefcaseIcon } from '../../../components/icons';
 
 interface MoreCitationsModalProps {
   isOpen: boolean;
@@ -15,22 +15,46 @@ export const MoreCitationsModal: React.FC<MoreCitationsModalProps> = ({
   citations,
   onCitationClick
 }) => {
-  const [activeTab, setActiveTab] = useState<'task' | 'note'>('task');
+  const [activeTab, setActiveTab] = useState<'task' | 'note' | 'project'>('task');
   const [taskPage, setTaskPage] = useState(1);
   const [notePage, setNotePage] = useState(1);
+  const [projectPage, setProjectPage] = useState(1);
 
   if (!isOpen) return null;
 
   // Filter citations based on model types
   const taskCitations = citations.filter((c) => c.type === 'task');
   const noteCitations = citations.filter((c) => c.type === 'note');
+  const projectCitations = citations.filter((c) => c.type === 'project');
 
   const pageSize = 5;
 
   // Determine pagination variables based on active tab
-  const currentItems = activeTab === 'task' ? taskCitations : noteCitations;
-  const currentPage = activeTab === 'task' ? taskPage : notePage;
-  const setCurrentPage = activeTab === 'task' ? setTaskPage : setNotePage;
+  const getTabItems = () => {
+    if (activeTab === 'task') return taskCitations;
+    if (activeTab === 'note') return noteCitations;
+    return projectCitations;
+  };
+
+  const getTabPage = () => {
+    if (activeTab === 'task') return taskPage;
+    if (activeTab === 'note') return notePage;
+    return projectPage;
+  };
+
+  const setTabPage = (value: number | ((prev: number) => number)) => {
+    if (activeTab === 'task') {
+      setTaskPage(value);
+    } else if (activeTab === 'note') {
+      setNotePage(value);
+    } else {
+      setProjectPage(value);
+    }
+  };
+
+  const currentItems = getTabItems();
+  const currentPage = getTabPage();
+  const setCurrentPage = setTabPage;
 
   const totalPages = Math.max(1, Math.ceil(currentItems.length / pageSize));
   
@@ -78,27 +102,39 @@ export const MoreCitationsModal: React.FC<MoreCitationsModalProps> = ({
         <div className="flex border-b border-white/5 mb-4 gap-2">
           <button
             onClick={() => setActiveTab('task')}
-            className={`flex-1 pb-3 text-sm font-semibold transition-all border-b-2 flex items-center justify-center gap-2 ${
+            className={`flex-1 pb-3 text-[11px] sm:text-xs font-semibold transition-all border-b-2 flex items-center justify-center gap-1.5 ${
               activeTab === 'task'
                 ? 'border-sky-500 text-sky-400'
                 : 'border-transparent text-gray-400 hover:text-gray-200'
             }`}
             id="tab-task"
           >
-            <ListChecksIcon className="w-4 h-4" />
+            <ListChecksIcon className="w-3.5 h-3.5" />
             کارهای مرتبط ({taskCitations.length})
           </button>
           <button
             onClick={() => setActiveTab('note')}
-            className={`flex-1 pb-3 text-sm font-semibold transition-all border-b-2 flex items-center justify-center gap-2 ${
+            className={`flex-1 pb-3 text-[11px] sm:text-xs font-semibold transition-all border-b-2 flex items-center justify-center gap-1.5 ${
               activeTab === 'note'
                 ? 'border-sky-500 text-sky-400'
                 : 'border-transparent text-gray-400 hover:text-gray-200'
             }`}
             id="tab-note"
           >
-            <NotebookIcon className="w-4 h-4" />
+            <NotebookIcon className="w-3.5 h-3.5" />
             یادداشت‌های مرتبط ({noteCitations.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('project')}
+            className={`flex-1 pb-3 text-[11px] sm:text-xs font-semibold transition-all border-b-2 flex items-center justify-center gap-1.5 ${
+              activeTab === 'project'
+                ? 'border-sky-500 text-sky-400'
+                : 'border-transparent text-gray-400 hover:text-gray-200'
+            }`}
+            id="tab-project"
+          >
+            <BriefcaseIcon className="w-3.5 h-3.5" />
+            پروژه‌های مرتبط ({projectCitations.length})
           </button>
         </div>
 
@@ -152,7 +188,7 @@ export const MoreCitationsModal: React.FC<MoreCitationsModalProps> = ({
               className="flex items-center gap-1 bg-gray-800 border border-white/5 hover:border-sky-500/20 text-gray-300 px-3 py-1.5 rounded-lg disabled:opacity-30 disabled:pointer-events-none transition-all"
               id="pg-prev-btn"
             >
-              <ChevronRightIcon className="w-4 h-4" />
+              <ChevronLeftIcon className="w-4 h-4" />
               <span>صفحه بعدی</span>
             </button>
 
@@ -167,7 +203,7 @@ export const MoreCitationsModal: React.FC<MoreCitationsModalProps> = ({
               id="pg-next-btn"
             >
               <span>صفحه قبلی</span>
-              <ChevronLeftIcon className="w-4 h-4" />
+              <ChevronRightIcon className="w-4 h-4" />
             </button>
           </div>
         )}

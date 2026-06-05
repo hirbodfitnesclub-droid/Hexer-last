@@ -18,6 +18,7 @@ import { ActionResultCard } from './components/ActionResultCard';
 import { ProposalCard } from './components/ProposalCard';
 import { ChatHistoryDrawer } from './components/ChatHistoryDrawer';
 import { MoreCitationsModal } from './components/MoreCitationsModal';
+import { UsageMeter } from '../billing/components/UsageMeter';
 
 interface ChatViewProps {
   onEditTask: (task: Task) => void;
@@ -475,6 +476,9 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
     } else if (citation.type === 'note') {
       const note = notes.find(n => n.id === citation.id);
       if (note) onEditNote(note);
+    } else if (citation.type === 'project') {
+      const project = projects.find(p => p.id === citation.id);
+      if (project) onEditProject(project);
     }
   };
 
@@ -518,9 +522,14 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
         </div>
 
         <div className="flex flex-wrap gap-2 pt-1 w-full">
-          <ModeChip m="auto" currentMode={mode} label="خودکار" icon={<SparklesIcon className="w-3.5 h-3.5"/>} onClick={setMode} />
-          <ModeChip m="action" currentMode={mode} label="دستور" icon={<TargetIcon className="w-3.5 h-3.5"/>} onClick={setMode} />
-          <ModeChip m="memory" currentMode={mode} label="حافظه" icon={<LightbulbIcon className="w-3.5 h-3.5"/>} onClick={setMode} />
+          <ModeChip mode="auto" currentMode={mode} label="خودکار" icon={<SparklesIcon className="w-3.5 h-3.5"/>} onClick={setMode} />
+          <ModeChip mode="action" currentMode={mode} label="دستور" icon={<TargetIcon className="w-3.5 h-3.5"/>} onClick={setMode} />
+          <ModeChip mode="memory" currentMode={mode} label="حافظه" icon={<LightbulbIcon className="w-3.5 h-3.5"/>} onClick={setMode} />
+        </div>
+
+        {/* Compact AI Usage Quota Display */}
+        <div className="pt-0.5 select-none w-full">
+          <UsageMeter compact />
         </div>
       </div>
 
