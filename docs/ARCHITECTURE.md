@@ -450,3 +450,112 @@ select:-webkit-autofill:focus {
 | 🟠 | چند درخواست هم‌زمانِ کاربر | گارد «یک `pending_manual` باز» در `submit_manual_payment` |
 | 🟠 | همزمانی ظرفیت کوپن | `SELECT ... FOR UPDATE` در رزرو و رول‌بک |
 | 🟡 | عدم تطابق `plan_code` کلاینت با `plans` | فقط plan_codeهای موجود در جدول `plans` استفاده شوند |
+
+---
+
+## ۹. فاز F — نقشه‌ی مهندسی (PWA، باگ‌ها، مصرف، تیکت، RAG پروژه، رفتار AI)
+
+> «چه چیزی/چرا» در `PROJECT.md §۸`. گام‌به‌گام در `tasks.md` (F1–F9). یادآوری قانون SQL: **فایل SQL موجود ویرایش نمی‌شود؛ فایل جدید با پیشوند `31`+ ساخته می‌شود** و مالک آن را دستی در SQL Editor اجرا می‌کند.
+
+### ۹.۰. خلاصه‌ی نگاشت درخواست‌ها به تسک‌ها
+| درخواست کاربر | تسک |
+|---|---|
+| ۱ سافاری + PWA کامل | F1 |
+| ۲ اسکرول افقی اشتراک | F3 |
+| ۳ جهت آیکون بازگشت RTL | F2 |
+| ۴ باگ دکمه‌های حالت AI | F4 |
+| ۵ نمایش مصرف (چت + اشتراک) | F3 + F4 |
+| ۶ درک عمیق پروژه‌ها (RAG) | F7 + F8 |
+| ۷ سیستم تیکت پشتیبانی | F9 |
+| ۸ فید شدن لبه‌های لیست | F6 |
+| ۹ جایگاه دکمه‌ی لینک تسک↔یادداشت | F5 |
+| ۱۰ جلوگیری از پیشنهاد خودسرانه AI | F8 |
+
+### ۹.۱. PWA و رفع باگ سافاری (F1)
+- **فایل‌های جدید:**
+  - `public/manifest.webmanifest`: `name`, `short_name=Hexer`, `start_url="/"`, `scope="/"`, `display="standalone"`, `orientation="portrait"`, `background_color="#09090b"`, `theme_color="#09090b"`, `dir="rtl"`, `lang="fa"`, آرایه‌ی `icons` شامل `192×192`, `512×512` و یک آیکون `512×512` با `purpose:"maskable"`.
+  - `public/icon-192.png`, `public/icon-512.png`, `public/icon-maskable-512.png`, `public/apple-touch-icon.png` (۱۸۰×۱۸۰). آیکون‌ها با لوگوی اختصاصی هکسر تولید می‌شوند (پس‌زمینه‌ی تیره، تم برند).
+  - `public/sw.js`: Service Worker مینیمال. استراتژی **network-first** برای `navigate` و درخواست‌های Supabase/API؛ **cache-first** فقط برای asset‌های ثابت (فونت، آیکون، manifest). نسخه‌بندی cache با ثابت `CACHE_VERSION` و پاک‌سازی کش قدیمی در `activate`. هرگز پاسخ‌های `*.supabase.co` کش نشوند.
+- **`index.html`:** افزودن `<link rel="manifest" href="/manifest.webmanifest">`، `<meta name="theme-color" content="#09090b">`، `<meta name="apple-mobile-web-app-capable" content="yes">`، `<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">`، `<link rel="apple-touch-icon" href="/apple-touch-icon.png">`، و اصلاح viewport به `width=device-width, initial-scale=1.0, viewport-fit=cover`.
+- **`index.tsx`:** ثبت Service Worker پس از `load` (`navigator.serviceWorker.register('/sw.js')` با گارد `'serviceWorker' in navigator` و try/catch).
+- **رفع باگ هدر سافاری (chrome/address-bar):** ریشه از `h-screen` (`100vh` ثابت) است که با نوار آدرس داینامیک iOS هماهنگ نیست؛ در `App.tsx` کانتینر ریشه به `h-[100dvh]` تغییر کند. در `index.css`: `html, body { height: 100%; overscroll-behavior-y: none; }` و افزودن `--safe-area-inset-*` (اگر نیست). هدرهای `sticky top-0` با ثابت‌شدن ارتفاع ویوپورت دیگر نیاز به اسکرول اولیه ندارند.
+- **محدودیت:** بدون افزودن کتابخانه‌ی PWA (مثل workbox)؛ SW دست‌نویس و سبک. هیچ کش تهاجمی (ضدالگو ۳۳/۳۴).
+
+### ۹.۲. جهت آیکون بازگشت RTL (F2)
+- ریشه: در RTL، بازگشت باید به **راست** اشاره کند. نمونه‌های خطا: `NoteEditorModal.tsx` از `ChevronDownIcon` با `rotate-90` (به چپ) استفاده می‌کند؛ بررسی `ProjectDetailsModal.tsx` و `MoreCitationsModal.tsx`.
+- راه‌حل: استفاده از `ChevronRightIcon` (در `components/icons.tsx` موجود است) برای دکمه‌ی بازگشت RTL؛ حذف ترفند `rotate-90`. ضدالگو ۳۶.
+
+### ۹.۳. باگ دکمه‌های حالت AI (F4)
+- ریشه: در `features/chat/ChatView.tsx` کامپوننت `ModeChip` با پراپ `m=` صدا زده می‌شود ولی `ModeChip` پراپ `mode` می‌خواهد → `currentMode === undefined` و highlight شکسته. همچنین کلاس نامعتبر `ring-sky-450/55` در `ModeChip.tsx`.
+- راه‌حل: تصحیح فراخوانی به `mode=`؛ اصلاح کلاس به `ring-sky-400/50`. تضمین «دقیقاً یک حالت فعال» با کنتراست بصری واضح (ضدالگو ۲۲ و ۳۷).
+
+### ۹.۴. نمایش مصرف (F3 + F4)
+- کامپوننت `UsageMeter` (موجود در `features/billing/components/UsageMeter.tsx`) از RPCهای `get_usage_status` و `get_daily_usage` تغذیه می‌شود و قبلاً فقط در `SubscriptionPage` استفاده شده.
+- **اشتراک (F3):** افزودن `UsageMeter` به بالای `SubscriptionModal` در حالت عادی/active (نه در حالت `pending` قفل‌شده).
+- **چت (F4):** یک نمای **فشرده** از مصرف در هدر `ChatView` یا حالت empty-state. برای جلوگیری از تکرار کوئری، یا یک پراپ `compact` به `UsageMeter` افزوده شود یا یک کامپوننت سبک `UsagePill` که فقط `get_usage_status` را می‌خواند. کوئری نباید در رندر لوپ شود (deps پایدار، ضدالگو ۳).
+
+### ۹.۵. اسکرول افقی اشتراک (F3)
+- منابع محتمل بیرون‌زدگی: گریدهای دسکتاپ‌محور (`md:grid-cols-2 lg:grid-cols-4` در `SubscriptionPage`)، عرض‌های ثابت، اعداد `font-mono` طولانی بدون شکست، و نبود `overflow-x-hidden` روی ویوپورت اصلی (`App.tsx` → `<main>`).
+- راه‌حل: حذف گریدهای دسکتاپ در اپ mobile-only (فقط `grid-cols-1`)، افزودن `min-w-0`/`max-w-full`/`break-words` به کارت‌ها و باکس فاکتور، و `overflow-x-hidden` روی `<main>` در `App.tsx`. ممیزی `SubscriptionModal`, `PaymentMethodModal`, `ReceiptUploadModal`. ضدالگو ۳۵/۲۶.
+
+### ۹.۶. جایگاه دکمه‌ی لینک تسک↔یادداشت (F5)
+- وضعیت فعلی: `LinkNotePicker` فقط در **حالت view** و فقط برای آیتم موجود (`!isNew`) در `TaskEditorModal` نمایش داده می‌شود؛ در حالت ساخت/ویرایش فرم در دسترس نیست. مشابهاً `LinkTaskPicker` در `NoteEditorModal` انتهای canvas است.
+- راه‌حل UX: انتقال بخش لینک به **داخل فرم اصلی (edit mode)** در جایگاهی منطقی (پس از فیلدهای اصلی، کنار انتخاب پروژه). برای آیتم جدیدی که هنوز `id` ندارد، یا لینک پس از اولین ذخیره فعال شود یا بخش لینک به‌صورت غیرفعال با راهنمای کوتاه نمایش داده شود. اتصال‌ها همچنان از `services/linkService.ts` (`linkTaskNote`/`unlinkTaskNote`/`getLinked*`) انجام می‌شوند. بدون تغییر بک‌اند.
+
+### ۹.۷. فید شدن لبه‌های لیست‌های اسکرول‌خور (F6)
+- هدف: محو نرم (fade) لبه‌های بالا/پایین نواحی اسکرول در `NotesView`, `ProjectsView` (و در صورت نیاز `TasksView`) به‌جای کات سخت.
+- راه‌حل: کلاس کمکی در `index.css` با `mask-image: linear-gradient(...)` (و `-webkit-mask-image`) روی کانتینر اسکرول، یا overlay‌های gradient ثابت `pointer-events-none` در بالا/پایین. باید با پس‌زمینه‌ی واقعی هر صفحه (`zinc-950`/`slate-950`) هماهنگ باشد و عملکرد اسکرول/کلیک را خراب نکند.
+
+### ۹.۸. RAG و درک عمیق پروژه‌ها (F7 backend + F8 context)
+**F7 — دیتابیس و وکتورایز (فایل جدید `supabase/sql/31_rag_projects.sql`):**
+- افزودن ستون `embedding vector(768)` به `projects` (مثل tasks/notes).
+- تریگر `enqueue_vectorize` روی `projects` (الگوی موجود `22_fix_vectorize_webhook.sql`) که با `type='project'` به تابع `vectorize` پیام می‌دهد. (کلاینت هرگز مستقیم — ضدالگو ۴۰/۱۵.)
+- بازنویسی `hybrid_search` (فایل جدید، مثل `26_update_hybrid_search.sql`) برای افزودن `UNION ALL` پروژه‌ها: `type='project'`, `snippet = COALESCE(description,'')`, با همان آستانه‌ها و RFF و `where user_id = auth.uid()`.
+- `NOTIFY pgrst, 'reload schema';` در انتها.
+- **`supabase/functions/vectorize/index.ts`:** افزودن شاخه‌ی `type==='project'` → `table='projects'`, `combinedText = title + ' ' + description`.
+
+**F8 — زمینه و Intent (Edge `ai-assistant`):**
+- **`lib/meta-context.ts`:** هنگام واکشی پروژه‌ها، علاوه بر `id,title` فیلد `description` نیز خوانده و **خلاصه‌ای** از هدف هر پروژه به context افزوده شود تا AI «هدف پروژه» را بفهمد (برای لینک نوت/تسک به پروژه‌ی درست).
+- **`lib/system-prompt.ts`:**
+  - معرفی پروژه‌ها به‌عنوان موجودیت قابل‌مرجع و امکان نسبت‌دادن آیتم به پروژه‌ی مرتبط.
+  - **Intent-gating (ضدالگو ۳۸):** قانون صریح که `SUGGEST_LINK` و پیشنهاد دیتای مرتبط فقط هنگام نیت آشکارِ جستجو/پیدا کردن/ساختن/پیگیری/لینک مجاز است؛ در گفت‌وگوی معمولی هیچ پیشنهاد اضافه تولید نشود. (دستور فعلی `SUGGEST_LINK` تا حدی این را دارد؛ باید سخت‌گیرتر و شامل تحلیل Intent اولیه شود.)
+- **`lib/action-processor.ts`:** چون `hybrid_search` اکنون پروژه هم برمی‌گرداند، `SUGGEST_LINK` می‌تواند `type='project'` نیز تولید کند؛ مدیریت ایمن این نوع در نتایج (بدون شکستن مسیرهای task/note).
+- قرارداد API بدون تغییر؛ فرانت‌اند تغییر اجباری نمی‌بیند (citations ممکن است `type='project'` داشته باشد → مدیریت کلیک امن در `ChatView`/`CitationCard`).
+
+### ۹.۹. سیستم تیکت پشتیبانی (F9)
+> الگوی مرجع: «فیش‌های بانکی» (جدول + RLS مالک‌محور + تریگر تلگرام + اکشن `admin-api`). فایل SQL جدید: `supabase/sql/32_support_tickets.sql` (Idempotent، اجرای دستی).
+
+**۹.۹.۱. اسکیما — `support_tickets`:**
+| ستون | نوع | توضیح |
+|------|-----|------|
+| id | uuid PK default gen_random_uuid() | |
+| user_id | uuid not null FK→auth.users | RLS |
+| subject | text not null | عنوان تیکت |
+| message | text not null | توضیحات |
+| status | text default 'open' check in ('open','closed') | |
+| created_at | timestamptz default now() | ایندکس `(user_id, created_at)` |
+
+- **RLS فعال:** `auth.uid() = user_id` برای SELECT/INSERT مالک. بدون UPDATE/DELETE کلاینت (مدیریت با ادمین). ضدالگو ۱/۳۹.
+- **تریگر تلگرام:** تابع `notify_telegram_on_new_ticket()` دقیقاً مثل `notify_telegram_on_manual_payment` در `30_telegram_notifications.sql` — خواندن `telegram_settings` (همان جدول)، ساخت پیام HTML فارسی (نام کاربر از `profiles`، عنوان، خلاصه‌ی متن)، و `net.http_post` غیرمسدودکننده به `sendMessage`. تریگر `AFTER INSERT ON public.support_tickets`.
+- `NOTIFY pgrst, 'reload schema';`.
+
+**۹.۹.۲. پنل ادمین — `supabase/functions/admin-api/index.ts`:**
+- افزودن اکشن `list_tickets` (الگوی `list_manual_payments`): واکشی `support_tickets` + join دستی با `profiles` برای نمایش نام/ایمیل کاربر. (اکشن `close_ticket` اختیاری برای آینده.) توکن تلگرام فقط سمت سرور.
+
+**۹.۹.۳. کلاینت:**
+- **`services/ticketService.ts` (جدید):** `submitTicket(subject, message)` → یا INSERT مستقیم با RLS مالک، یا RPC `submit_ticket` (ترجیح: INSERT مستقیم چون policy مالک کافی است). و `getMyTickets()` اختیاری.
+- **`components/SupportTicketModal.tsx` (جدید):** فرم عنوان + توضیحات، اعتبارسنجی، ارسال، پیام موفقیت Toast. علاوه بر دکمه‌ی ثبت، یک دکمه‌ی **«گفتگو در تلگرام»** که لینک مستقیم چت تلگرامی پشتیبانی را در تب جدید باز می‌کند (آیدی تلگرام پشتیبانی به‌صورت ثابت/کانفیگ کلاینت؛ نه توکن بات).
+- **`components/ProfileModal.tsx`:** افزودن آیتم «پشتیبانی و ارسال تیکت» که `SupportTicketModal` را باز می‌کند (جایگزین یکی از placeholderهای غیرفعال فعلی).
+- z-index طبق §۷.۲ (مودال روی ProfileModal `z-[90]` → تیکت `z-[100]`+).
+
+### ۹.۱۰. رجیستر باگ‌های فاز F (افزوده به §۶ و §۷.۷)
+| # | فایل | باگ | رفع |
+|---|------|-----|-----|
+| 🔴 | `App.tsx` | `h-screen` (۱۰۰vh ثابت) → هدر سافاری تا اسکرول نچسبد | `h-[100dvh]` + overscroll در `index.css` |
+| 🔴 | `features/chat/ChatView.tsx` | `ModeChip` با `m=` صدا زده می‌شود (حالت فعال خراب) | تصحیح به `mode=` |
+| 🔴 | `features/chat/components/ModeChip.tsx` | کلاس نامعتبر `ring-sky-450/55` | `ring-sky-400/50` |
+| 🟠 | `features/billing/pages/SubscriptionPage.tsx` | گرید دسکتاپ `md:/lg:` در اپ mobile-only + بیرون‌زدگی عرضی | `grid-cols-1` + `min-w-0`/`overflow-x-hidden` |
+| 🟠 | `features/notes/components/NoteEditorModal.tsx` | آیکون بازگشت با `rotate-90` به چپ اشاره می‌کند (RTL) | `ChevronRightIcon` |
+| 🟠 | `features/tasks/components/TaskEditorModal.tsx` | دکمه‌ی لینک یادداشت فقط در view-mode/آیتم موجود | انتقال به فرم اصلی |
+| 🟡 | `features/notes/NotesView.tsx`, `features/projects/ProjectsView.tsx` | کات سخت لبه‌های اسکرول | fade با mask/gradient |
+| 🟡 | `features/tasks/components/LinkNotePicker.tsx` | کلاس نامعتبر `text-zinc-350` | `text-zinc-300` |
