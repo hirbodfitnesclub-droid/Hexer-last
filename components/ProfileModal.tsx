@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { User } from '@supabase/supabase-js';
-import { UserIcon, XIcon, ShieldIcon, BellIcon, MoonIcon, LogOutIcon, DownloadIcon, UploadIcon, CheckIcon } from './icons';
+import { UserIcon, XIcon, ShieldIcon, BellIcon, MoonIcon, LogOutIcon, DownloadIcon, UploadIcon, CheckIcon, BotIcon } from './icons';
 import { exportUserData, importUserData } from '../services/backupService';
 import SubscriptionModal from '../features/billing/components/SubscriptionModal';
+import SupportTicketModal from './SupportTicketModal';
 
 interface ProfileModalProps {
     isOpen: boolean;
@@ -18,6 +19,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [status, setStatus] = useState<{ type: 'success' | 'error' | 'loading' | null; message: string }>({ type: null, message: '' });
     const [isSubModalOpen, setIsSubModalOpen] = useState(false);
+    const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
 
     if (!isOpen) return null;
 
@@ -128,13 +130,17 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                     <div className="h-px bg-neutral-900 my-2"></div>
 
                     {/* Styled Settings Placeholders */}
-                    <div className="space-y-1">
-                        <button disabled className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-neutral-900/50 transition-all group cursor-not-allowed opacity-50">
+                    <div className="space-y-1 font-sans">
+                        <button 
+                            type="button"
+                            onClick={() => setIsTicketModalOpen(true)}
+                            className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-neutral-900/50 transition-all group cursor-pointer active:scale-[0.98]"
+                        >
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
-                                    <ShieldIcon className="w-4 h-4" />
+                                    <BotIcon className="w-4 h-4" />
                                 </div>
-                                <span className="text-xs text-neutral-300 font-bold">بخش حریم خصوصی و امنیت</span>
+                                <span className="text-xs text-neutral-300 font-bold">پشتیبانی و ارسال تیکت</span>
                             </div>
                         </button>
                         <button disabled className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-neutral-900/50 transition-all group cursor-not-allowed opacity-50">
@@ -197,6 +203,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
             </div>
             
             <SubscriptionModal isOpen={isSubModalOpen} onClose={() => setIsSubModalOpen(false)} />
+            <SupportTicketModal isOpen={isTicketModalOpen} onClose={() => setIsTicketModalOpen(false)} />
         </div>
     );
 }

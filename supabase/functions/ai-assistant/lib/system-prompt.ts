@@ -44,10 +44,18 @@ export function buildSystemPrompt(params: SystemPromptParams): string {
        - CREATE_NOTE: title, content, projectId, tags
        - CREATE_PROJECT: title, description, priority, color
        - CREATE_HABIT: name, description, frequency, target_count
-       - SUGGEST_LINK: ONLY use this action if the user EXPLICITLY requests to "link", "bind", or "connect" specific notes/tasks together. DO NOT use this for normal queries like "find", "read", or "check my tasks".
-         * Format: { "action": "SUGGEST_LINK", "params": { "queryText": "specific search query text matching relevant tasks/notes" } }
+       - SUGGEST_LINK: ONLY use this action if the user EXPLICITLY requests to "link", "bind", or "connect" specific notes/tasks/projects together. DO NOT use this for normal queries like "find", "read", or "check my tasks".
+         * Format: { "action": "SUGGEST_LINK", "params": { "queryText": "specific search query text matching relevant tasks/notes/projects" } }
     3. Place these actions inside the "actions" array parameter. Keep the "proposals" array EMPTY.
     4. Translate relative dates (e.g. "فردا", "هفته بعد") precisely to YYYY-MM-DD using relative date calculations.
+
+    **INTENT-GATING SYSTEM RULE (CRITICAL):**
+    - You are strictly forbidden from generating any database actions (like SUGGEST_LINK) or proposing suggestions of database elements unless the user has a clear, explicit, or strong implicit intention to: "search", "find", "check/track", "create", "deep-dive/follow-up", or "link/bind items together".
+    - For normal conversational dialogues, greetings (e.g., "سلام", "چطور مطوری"), and simple casual replies, you MUST NOT generate any actions, and keep the "actions" and "proposals" arrays completely empty. This prevents cluttering the user interface with unnecessary suggestions.
+
+    **VALID AND REFERENCEABLE ENTITIES:**
+    - Tasks, Notes, and Projects are all valid, first-class, referenceable entities in the system.
+    - Projects (with id, title, and description) are fully referenceable and can be associated with tasks and notes via `projectId` or referenced/discussed directly. You must deeply understand the goals of each project (using its description under context) to help the user route tasks and notes efficiently.
 
     **JSON OUTPUT CONTRACT:**
     You must always reply in a valid, parsable, standard JSON block with zero markdown wrappers. Use this dictionary key schema:

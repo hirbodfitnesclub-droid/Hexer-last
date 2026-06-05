@@ -254,9 +254,9 @@ const MainApp: React.FC = () => {
   }
 
   return (
-    <div className="relative flex flex-col h-screen" id="main-app-container">
+    <div className="relative flex flex-col h-[100dvh]" id="main-app-container">
       <NetworkBanner />
-      <main className="flex-1 overflow-y-auto pb-24" id="view-viewport">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden pb-24" id="view-viewport">
         {renderContent()}
       </main>
       <ToastNotifications notifications={notifications} onRemove={removeNotification} />
@@ -303,7 +303,7 @@ const AppContent: React.FC = () => {
   
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen" id="main-loader">
+      <div className="flex items-center justify-center h-[100dvh]" id="main-loader">
         <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-sky-500"></div>
       </div>
     );

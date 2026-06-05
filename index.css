@@ -10,6 +10,14 @@
 :root {
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+}
+
+/* اساسی‌ترین تنظیمات ریشه برای جلوگیری از اسکرول پرشی و اوراسکرول در سافاری موبایل */
+html, body {
+  height: 100%;
+  overscroll-behavior-y: none;
 }
 
 /* جلوگیری از تغییر ابعاد فونت‌ها توسط مرورگرهای موبایل (iOS) */
@@ -41,4 +49,10 @@ select:-webkit-autofill:focus {
   -webkit-text-fill-color: #ffffff !important;
   caret-color: #ffffff;
   transition: background-color 5000s ease-in-out 0s;
+}
+
+/* کلاس کمکی برای فید (محو نرم) لبه‌های بالا و پایین نواحی اسکرول */
+.scroll-fade-edge {
+  mask-image: linear-gradient(to bottom, transparent, black 4%, black 96%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 4%, black 96%, transparent);
 }

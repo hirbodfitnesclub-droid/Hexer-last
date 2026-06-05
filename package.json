@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "node generate_icons.cjs && vite",
+    "build": "node generate_icons.cjs && vite build",
     "preview": "vite preview"
   },
   "dependencies": {

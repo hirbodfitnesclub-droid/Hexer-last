@@ -72,7 +72,7 @@ export async function buildMetaContext(
       // Fetch active projects to help mapping names/IDs in action calls
       const { data: projects, error: projectsError } = await supabaseClient
         .from('projects')
-        .select('id, title');
+        .select('id, title, description');
 
       if (projectsError) {
         console.error("Fetch projects in buildMetaContext failed:", projectsError);

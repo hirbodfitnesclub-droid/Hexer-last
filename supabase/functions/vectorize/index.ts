@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
       SERVICE_ROLE_KEY
     );
 
-    const table = type === 'task' ? 'tasks' : 'notes';
+    const table = type === 'task' ? 'tasks' : type === 'note' ? 'notes' : 'projects';
 
     // بازیابی نسخه جدید رکورد
     const { data: record, error: fetchError } = await supabaseClient
@@ -46,11 +46,16 @@ Deno.serve(async (req) => {
       const description = record.description || '';
       const tags = Array.isArray(record.tags) ? record.tags.join(' ') : '';
       combinedText = `${title} ${description} ${tags}`.trim();
-    } else {
+    } else if (type === 'note') {
       const title = record.title || '';
       const content = record.content || '';
       const tags = Array.isArray(record.tags) ? record.tags.join(' ') : '';
       combinedText = `${title} ${content} ${tags}`.trim();
+    } else if (type === 'project') {
+      const title = record.title || '';
+      const description = record.description || '';
+      const tags = Array.isArray(record.tags) ? record.tags.join(' ') : '';
+      combinedText = `${title} ${description} ${tags}`.trim();
     }
 
     if (!combinedText) {

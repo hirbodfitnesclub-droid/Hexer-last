@@ -66,7 +66,7 @@ export type ChatMode = 'auto' | 'action' | 'memory';
 
 export interface Citation {
   id: string;
-  type: 'task' | 'note';
+  type: 'task' | 'note' | 'project';
   title: string;
   similarity: number;
 }
