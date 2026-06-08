@@ -1,0 +1,42 @@
+name: Sync to Public Repo
+
+on:
+  push:
+    branches:
+      - main  # یا master
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Private Repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve Repo ID and Push to Public Repo
+        run: |
+          # فراخوانی API گیت‌هاب برای دریافت نام فعلی ریپازیتوری بر اساس ID
+          RESPONSE=$(curl -s -H "Authorization: Bearer ${{ secrets.PUBLIC_REPO_TOKEN }}" \
+            "https://api.github.com/repositories/${{ secrets.PUBLIC_REPO_ID }}")
+          
+          # استخراج نام کامل (username/repo-name) از خروجی JSON
+          FULL_NAME=$(echo $RESPONSE | jq -r .full_name)
+          
+          # بررسی اینکه آیا نام با موفقیت دریافت شده است یا خیر
+          if [ "$FULL_NAME" == "null" ] || [ -z "$FULL_NAME" ]; then
+            echo "Error: Could not resolve repository full_name. Please check your PUBLIC_REPO_ID and token."
+            exit 1
+          fi
+          
+          echo "Syncing to target repository: $FULL_NAME"
+          
+          # تنظیم مشخصات گیت
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          
+          # ساخت URL داینامیک و اضافه کردن ریموت
+          git remote add public "https://${{ secrets.PUBLIC_REPO_TOKEN }}@github.com/$FULL_NAME.git"
+          
+          # فرستادن کدها به پروژه عمومی
+          git push public main --force
