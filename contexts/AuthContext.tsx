@@ -26,7 +26,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     getSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' && typeof navigator !== 'undefined' && navigator.onLine === false) {
+        console.log('Ignored SIGNED_OUT event because client is offline');
+        return;
+      }
       setSession(session);
       setUser(session?.user ?? null);
       if (loading) setLoading(false);
