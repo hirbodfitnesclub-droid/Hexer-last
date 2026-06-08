@@ -98,6 +98,9 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
     if (!user) return;
     setIsLoading(true);
     try {
+      // Clean token refresh sequentially before making subsequent API/RPC calls
+      await supabase.auth.getSession();
+      
       const { data: sess, error: sessErr } = await supabase.rpc('get_or_create_today_session');
       if (sessErr) throw sessErr;
       
