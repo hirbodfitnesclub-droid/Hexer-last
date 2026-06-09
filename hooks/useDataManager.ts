@@ -178,7 +178,7 @@ export const useDataManager = (user: any) => {
   }, [projects, addNotification]);
 
   // Tasks CRUD - Optimistic UI & Atomic checks
-  const addTask = useCallback(async (task: Omit<Task, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'status' | 'completed_at'>) => {
+  const addTask = useCallback(async (task: Omit<Task, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'status' | 'completed_at'>): Promise<Task> => {
     const originalTasks = [...tasks];
     const tempId = 'temp-' + Date.now();
     const tempTask: Task = {
@@ -197,9 +197,11 @@ export const useDataManager = (user: any) => {
       const newTask = await taskService.createTask(task);
       setTasks(prev => prev.map(t => t.id === tempId ? newTask : t));
       addNotification("کار با موفقیت اضافه شد.");
+      return newTask;
     } catch (error) {
       setTasks(originalTasks);
       addNotification("خطا در افزودن کار.", "error");
+      throw error;
     }
   }, [tasks, user, addNotification]);
 
@@ -251,7 +253,7 @@ export const useDataManager = (user: any) => {
   }, [tasks, addNotification]);
 
   // Notes CRUD - Optimistic UI
-  const addNote = useCallback(async (note: Omit<Note, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+  const addNote = useCallback(async (note: Omit<Note, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<Note> => {
     const originalNotes = [...notes];
     const tempId = 'temp-' + Date.now();
     const tempNote: Note = {
@@ -268,9 +270,11 @@ export const useDataManager = (user: any) => {
       const newNote = await noteService.createNote(note);
       setNotes(prev => prev.map(n => n.id === tempId ? newNote : n));
       addNotification("یادداشت با موفقیت اضافه شد.");
+      return newNote;
     } catch (error) {
       setNotes(originalNotes);
       addNotification("خطا در افزودن یادداشت.", "error");
+      throw error;
     }
   }, [notes, user, addNotification]);
 

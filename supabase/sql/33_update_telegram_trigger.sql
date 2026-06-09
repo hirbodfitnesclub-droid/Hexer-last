@@ -40,7 +40,9 @@ BEGIN
                      '📱 <b>موبایل:</b> ' || COALESCE(v_user_phone, 'نامشخص') || E'\n' ||
                      '🏷️ <b>موضوع:</b> ' || NEW.subject || E'\n\n' ||
                      '📝 <b>متن تیکت:</b>' || E'\n' || NEW.message || E'\n\n' ||
-                     '👇 برای پاسخ یا مدیریت تیکت‌ها، به پنل مدیریت مراجعه کنید.';
+                     '👇 برای پاسخ یا مدیریت تیکت‌ها، به پنل مدیریت مراجعه کنید.
+                     panel.hexerapp.ir
+                     ';
         
         -- Perform the non-blocking HTTP request asynchronously to Telegram sendMessage API
         PERFORM net.http_post(

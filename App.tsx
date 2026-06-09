@@ -14,16 +14,19 @@ import AuthComponent from './components/Auth';
 import { DataProvider, useData } from './contexts/DataContext';
 import { useRealtimeSync } from './hooks/useRealtimeSync';
 import { supabase } from './services/supabaseClient';
+import { useReminderScheduler } from './hooks/useReminderScheduler';
+import { requestNotificationPermission, subscribeToPush, saveSubscription } from './services/reminderService';
 
 // Import components
 import TaskEditorModal from './features/tasks/components/TaskEditorModal';
 import NoteEditorModal from './features/notes/components/NoteEditorModal';
-import { HabitEditorModal } from './features/habits/components/HabitEditorModal';
+import { HabitManagerModal } from './features/habits/components/HabitManagerModal';
 import { PaywallModal } from './components/PaywallModal';
 import { Onboarding } from './components/Onboarding';
 import { NetworkBanner } from './components/NetworkBanner';
 import { ToastNotifications } from './components/ui/ToastNotifications';
 import * as billingService from './services/billingService';
+import { AnnouncementManager } from './features/announcements/AnnouncementManager';
 
 const MainApp: React.FC = () => {
   const { user } = useAuth();
@@ -92,6 +95,45 @@ const MainApp: React.FC = () => {
     addNotification
   });
 
+  // Activate Foreground Tasks/Nudges scheduler
+  useReminderScheduler();
+
+  // Natural moment setup: Ask for notification permission and subscribe to Web Push (Layer B)
+  useEffect(() => {
+    if (!user) return;
+
+    let timeoutId: number;
+
+    const setupPushManager = async () => {
+      try {
+        const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+        if (!vapidKey) {
+          console.warn('[Push] VITE_VAPID_PUBLIC_KEY environment variable is not defined.');
+          return;
+        }
+
+        // Only ask/subscribe if the client browser supports PushManager
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+          const isGranted = await requestNotificationPermission();
+          if (isGranted) {
+            const subscription = await subscribeToPush(vapidKey);
+            if (subscription) {
+              await saveSubscription(subscription);
+              console.log('[Push] User registration stored & sync completed successfully.');
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[Push] Setup degraded gracefully with fallback to foreground:', err);
+      }
+    };
+
+    // Deliberate delay of 3 seconds after load to feel natural to the user
+    timeoutId = window.setTimeout(setupPushManager, 3000);
+
+    return () => clearTimeout(timeoutId);
+  }, [user]);
+
   // --- Payment Redirect and Verification Handler ---
   useEffect(() => {
     if (!user) return;
@@ -138,20 +180,18 @@ const MainApp: React.FC = () => {
 
   const handleSaveModalTask = (taskToSave: Task | Partial<Task>) => {
     if ('id' in taskToSave && taskToSave.id) {
-      updateTask(taskToSave);
+      return updateTask(taskToSave);
     } else {
-      addTask(taskToSave as any);
+      return addTask(taskToSave as any);
     }
-    setEditingTask(null);
   };
 
   const handleSaveModalNote = (noteToSave: Note | Partial<Note>) => {
     if ('id' in noteToSave && noteToSave.id) {
-      updateNote(noteToSave);
+      return updateNote(noteToSave);
     } else {
-      addNote(noteToSave as any);
+      return addNote(noteToSave as any);
     }
-    setEditingNote(null);
   };
 
   const handleSaveModalHabit = (habitToSave: Habit | Partial<Habit>) => {
@@ -278,7 +318,7 @@ const MainApp: React.FC = () => {
         />
       )}
       {editingHabit && (
-        <HabitEditorModal
+        <HabitManagerModal
           isOpen={!!editingHabit} habit={editingHabit}
           onClose={() => setEditingHabit(null)} onSave={handleSaveModalHabit} onDelete={deleteHabit}
         />
@@ -294,6 +334,9 @@ const MainApp: React.FC = () => {
 
       {/* Renew Subscription Smart Reminder Alert */}
       <RenewReminderModal />
+
+      {/* Announcements Temporary Modals System */}
+      <AnnouncementManager />
     </div>
   );
 };

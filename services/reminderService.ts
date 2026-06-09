@@ -73,3 +73,100 @@ export function sendBrowserNotification(title: string, body: string) {
     }
   }
 }
+
+// Help convert VAPID base64 key to Uint8Array for PushManager subscription
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+/**
+ * Registers user's browser with the Service Worker push manager
+ */
+export async function subscribeToPush(vapidPublicKey: string): Promise<PushSubscription | null> {
+  if (
+    typeof window === 'undefined' ||
+    !('serviceWorker' in navigator) ||
+    !('PushManager' in window)
+  ) {
+    console.warn('Push Notifications are not supported in this browser environment.');
+    return null;
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    let subscription = await registration.pushManager.getSubscription();
+    
+    if (!subscription) {
+      const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertedVapidKey
+      });
+    }
+    
+    return subscription;
+  } catch (err) {
+    console.error('Error during Push subscription setup:', err);
+    throw err;
+  }
+}
+
+/**
+ * Invokes the database RPC to store the Web Push endpoint details
+ */
+export async function saveSubscription(
+  subscription: PushSubscription,
+  userAgent: string = typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown'
+): Promise<void> {
+  const subscriptionJson = subscription.toJSON();
+  
+  if (!subscriptionJson.endpoint || !subscriptionJson.keys?.p256dh || !subscriptionJson.keys?.auth) {
+    throw new Error('مشخصات اشتراک نوتیفیکیشن ناقص است.');
+  }
+
+  const { error } = await supabase.rpc('upsert_push_subscription', {
+    p_endpoint: subscriptionJson.endpoint,
+    p_p256dh: subscriptionJson.keys.p256dh,
+    p_auth: subscriptionJson.keys.auth,
+    p_user_agent: userAgent
+  });
+
+  if (error) {
+    console.error('Failed to save push subscription in database:', error);
+    throw new Error('خطا در ذخیره‌سازی اشتراک نوتیفیکیشن: ' + error.message);
+  }
+}
+
+/**
+ * Direct delivery of a visible notification via the Service Worker registration
+ */
+export async function showViaSW(title: string, body: string, options: any = {}): Promise<void> {
+  if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.showNotification(title, {
+        body,
+        dir: 'rtl',
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        ...options
+      });
+      return;
+    } catch (err) {
+      console.warn('showNotification through register failed, dropping back to direct Notification:', err);
+    }
+  }
+  sendBrowserNotification(title, body);
+}
+
