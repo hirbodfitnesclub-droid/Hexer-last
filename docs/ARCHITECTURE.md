@@ -584,3 +584,148 @@ select:-webkit-autofill:focus {
      - **نمایش آی‌دی کاربری یا آدرس مخاطب (`ProfileModal.tsx`):**
        `{user?.email || user?.phone || 'کاربر مهمان'}`
 
+
+---
+
+# ۱۰. فاز G — نقشه‌ی مهندسی (نوتیفیکیشن، آکاردئون، مودال موقت، لینک، عادات)
+
+> پروژه از‌قبل موجود است؛ کل درخت فایل دوباره رسم نمی‌شود. در ادامه فقط **منطق مسیردهی** و **مسیر دقیقِ فایل‌های جدید/ویرایش‌شده** برای هر تسک می‌آید. قواعد عمومی مسیردهی همچنان: کامپوننت‌های هر فیچر در `features/<name>/components/`، توابع خالص در `utils/`، هوک‌ها در `hooks/`، لایه‌ی سرویس در `services/`، SQL شماره‌دار و Idempotent در `supabase/sql/`، توابع لبه در `supabase/functions/<name>/index.ts` (اجرای دستی، بدون CLI).
+
+## ۱۰.۰. وضعیت موجودِ مرتبط (Snapshot — برای زمینه)
+- جدول `reminders` و RLS آن از‌قبل در `supabase/sql/05_reminders.sql` ساخته شده (`remind_at`, `type`, `is_sent`, `is_read`, `related_entity_type/id`).
+- `services/reminderService.ts` از‌قبل `requestNotificationPermission()` و `sendBrowserNotification()` (Notification API، `dir:'rtl'`) دارد.
+- `public/sw.js` (نسخه‌بندی‌شده، استراتژی network-first/cache-first) موجود است اما **هیچ هندلر `push`/`notificationclick` ندارد**.
+- زیرساخت `net.http_post` (pg_net) از‌قبل در `30_telegram_notifications.sql` استفاده شده ⇒ pg_net فعال است.
+- `linkService.ts` و RPCهای `link_task_note`/`unlink_task_note`/`get_linked_notes`/`get_linked_tasks` موجود و معتبرند.
+- `habit_completions` (date به فرمت `YYYY-MM-DD`) و `habitService.getHabits()` که `completedDates` کاملِ هر عادت را برمی‌گرداند، موجودند ⇒ تسک ۵ **نیازی به مهاجرت دیتابیس ندارد**.
+
+---
+
+## ۱۰.۱. تسک ۱ — سیستم نوتیفیکیشن هوشمند (Smart Reminders)
+
+### معماری دولایه
+- **لایه A (Foreground / On-Open) — تضمینی:** هوک `hooks/useReminderScheduler.ts` هنگام mount و روی رویدادهای `visibilitychange`/`online`، تسک‌های امروز را از state می‌خواند:
+  - تسک‌های امروزِ **زمان‌دار** (`due_date` دارای جزء ساعت): برای هر کدام که هنوز در آینده‌ی امروز است یک `setTimeout` تا لحظه‌ی دقیق تنظیم و سرِ ساعت با `registration.showNotification(title, {body, dir:'rtl', tag})` نمایش داده می‌شود.
+  - تسک‌های امروزِ **بدون‌ساعت**: «تلنگر روزانه» — اگر امروز (به وقت Tehran) هنوز تلنگری نخورده و از آستانه‌ی زمانیِ مناسب گذشته‌ایم، یک نوتیفیکیشن کلیِ صمیمی نمایش و در `localStorage` ثبت می‌شود.
+- **لایه B (Background Web Push) — ارتقا:** وقتی سایت بسته است اما مرورگر باز است. مسیر: `pushManager.subscribe({applicationServerKey: VAPID_PUBLIC})` ⇒ ذخیره‌ی subscription در DB ⇒ Edge `push-dispatch` (با زمان‌بند) موارد سررسیده را اسکن و Web Push می‌فرستد ⇒ هندلر `push` در `sw.js` نوتیفیکیشن را نشان می‌دهد. در نبودِ پشتیبانی، فقط لایه A فعال می‌ماند.
+
+### Schema Δ — `supabase/sql/34_push_subscriptions.sql` (جدید، Idempotent)
+```sql
+create table if not exists public.push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  endpoint text not null,
+  p256dh text not null,
+  auth text not null,
+  user_agent text,
+  created_at timestamptz default now(),
+  unique (user_id, endpoint)
+);
+create index if not exists idx_push_subs_user on public.push_subscriptions(user_id);
+alter table public.push_subscriptions enable row level security;
+drop policy if exists "own push subs" on public.push_subscriptions;
+create policy "own push subs" on public.push_subscriptions
+  for all to authenticated
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+-- RPC امن برای upsert subscription از کلاینت
+create or replace function public.upsert_push_subscription(
+  p_endpoint text, p_p256dh text, p_auth text, p_user_agent text default null
+) returns void language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.push_subscriptions(user_id, endpoint, p256dh, auth, user_agent)
+  values (auth.uid(), p_endpoint, p_p256dh, p_auth, p_user_agent)
+  on conflict (user_id, endpoint) do update
+    set p256dh = excluded.p256dh, auth = excluded.auth, user_agent = excluded.user_agent;
+end; $$;
+notify pgrst, 'reload schema';
+```
+
+### Schema/Cron Δ — `supabase/sql/35_reminder_dispatch.sql` (جدید، Idempotent)
+- یک VIEW/تابع برای یافتنِ تسک‌های زمان‌دارِ سررسیده‌ی پنجره‌ی جاری (join با `push_subscriptions`) و دِدوپ با کمک `reminders.is_sent`.
+- زمان‌بندی با `pg_cron` که هر دقیقه Edge `push-dispatch` را با `net.http_post` صدا می‌زند (هم‌سبک با تریگر تلگرام).
+
+### Edge — `supabase/functions/push-dispatch/index.ts` (جدید)
+- با `service_role`، موارد سررسیده + تلنگر روزانه را جمع و با پروتکل Web Push (VAPID از `Deno.env`) به subscriptionها می‌فرستد؛ سپس `is_sent=true`. کلید خصوصی فقط اینجا.
+
+### SW Δ — `public/sw.js` (ویرایش)
+- افزودن `self.addEventListener('push', ...)` (نمایش با داده‌ی payload، `dir:'rtl'`) و `notificationclick` (focus/باز کردن `'/'` و مسیردهی به تسک). بامپ `CACHE_VERSION`.
+
+### Client Δ
+- ویرایش `services/reminderService.ts`: افزودن `subscribeToPush(vapidPublicKey)`، `saveSubscription()` (صدا زدن RPC `upsert_push_subscription`)، و `showViaSW(title, body)`.
+- جدید `utils/notificationCopy.ts`: توابع خالص بازگرداننده‌ی متنِ تلنگر صمیمی (آرایه‌ی کوچک چرخشی؛ مثل «رفیق یه سر به هکسر بزن، کارای امروزت منتظرن!»).
+- جدید `hooks/useReminderScheduler.ts`: منطق لایه A.
+- ویرایش `App.tsx`: mount هوک + درخواست permission در لحظه‌ی طبیعی (نه روی لود اولیه‌ی خشک).
+
+---
+
+## ۱۰.۲. تسک ۲ — آکاردئون لیست پروژه‌ها
+
+### منطق مسیردهی
+- صفحه‌ی مرجع: `features/projects/ProjectsView.tsx` (هم‌اکنون `ProjectCard`های خلاصه را map می‌کند و تسک‌ها در `ProjectDetailsModal` دیده می‌شوند).
+- **جدید:** `features/projects/components/ProjectAccordionItem.tsx` — هدرِ قابل‌کلیک (نقطه‌ی رنگ پروژه + نام + `ChevronDownIcon` با چرخش + شمارنده‌ی تسک از `calculateProjectStats`) و بدنه‌ی collapsible که لیستِ inlineِ فشرده‌ی تسک‌های همان پروژه را نشان می‌دهد (چک‌باکس toggle + کلیک برای باز کردن `TaskEditorModal`).
+- **ویرایش `ProjectsView.tsx`:** نگه‌داری `expandedIds: Set<string>` (پیش‌فرض **خالی** ⇒ همه بسته)؛ map روی `ProjectAccordionItem` به‌جای `ProjectCard`؛ فیلتر تسک‌ها با `task.project_id === project.id`؛ گروهِ اختیاریِ «بدون پروژه» در انتها. وضعیت expanded اختیاری در `localStorage` (UI-only) ماندگار می‌شود.
+- دسترس‌پذیری: `aria-expanded`، tap target ≥ ۴۴px، انیمیشن باز/بسته با کلاس‌های موجود.
+
+---
+
+## ۱۰.۳. تسک ۳ — سیستم مودال‌های موقت (Announcements)
+
+### منطق مسیردهی و کشف خودکار
+- پوشه‌ی اختصاصی: `features/announcements/TemporaryModals/` — هر فایل `*.tsx` مستقیماً داخل آن = **فعال**.
+- زیرپوشه‌ی آرشیو: `features/announcements/TemporaryModals/archive/` — نادیده گرفته می‌شود (به‌خاطر الگوی **غیربازگشتیِ** glob).
+- کشف: `import.meta.glob('./TemporaryModals/*.tsx', { eager: true })` در `AnnouncementManager`. هر ماژول `export default` (کامپوننت) و `export const meta = { id, version, priority?, startsAt?, endsAt? }` دارد.
+
+### فایل‌ها (جدید)
+- `features/announcements/AnnouncementManager.tsx` — کنترلر: جمع‌آوری ماژول‌های فعال، اعمال سیاست نمایش، رندر مودالِ منتخب با `components/Modal.tsx`.
+- `features/announcements/config.ts` — ۳ بازه‌ی زمانیِ Asia/Tehran (مثلاً صبح/بعدازظهر/شب) + `MAX_PER_DAY = 3`.
+- `features/announcements/storage.ts` — هلپرهای `localStorage` کلید‌خورده با `getTehranDateString` (impression در هر بازه + `dismissedIds` با version).
+- `features/announcements/types.ts` — تایپ `AnnouncementMeta`.
+- `features/announcements/TemporaryModals/_Example.tsx` — نمونه‌ی الگو.
+- `features/announcements/TemporaryModals/archive/.gitkeep`.
+
+### سیاست نمایش (Display Policy)
+- هنگام ورود به اپ: بازه‌ی زمانیِ جاری محاسبه می‌شود؛ اگر آن بازه امروز هنوز نمایش نداده و مودالِ واجدِ شرایطی (نه آرشیو، داخل بازه‌ی تاریخیِ اختیاری، نه قبلاً «دیگر نشان نده» شده) موجود است، نمایش و impression آن بازه ثبت می‌شود. سقف کل = ۳ impression/روز (یکی در هر بازه).
+- انتخاب بین چند مودال فعال: بر اساس `priority` سپس `version`/تازگی.
+
+### ویرایش
+- `App.tsx`: mount `<AnnouncementManager />` در ریشه‌ی `MainApp` (هم‌تراز سایر مودال‌های سراسری).
+
+---
+
+## ۱۰.۴. تسک ۴ — بازطراحی فلوی لینک تسک↔یادداشت
+
+### ریشه‌ی باگ‌ها و قرارداد جدید
+- **`hooks/useDataManager.ts` (ویرایش):** `addTask` و `addNote` باید موجودیتِ ساخته‌شده را `return` کنند (`return newTask;` / `return newNote;`). امروز برنمی‌گردانند ⇒ فلوی ایجاد نمی‌تواند روی `id` واقعی لینک بزند.
+- **`App.tsx` و `features/projects/ProjectsView.tsx` (ویرایش):** هندلرهای save مودال‌ها مقدارِ برگشتیِ موجودیتِ ذخیره‌شده را `return`/`await` کنند تا به مودال برسد (`onSave: (e) => Promise<Task|Note>`).
+- **Pickerها (ویرایش `features/tasks/components/LinkNotePicker.tsx` و `features/notes/components/LinkTaskPicker.tsx`):** به الگوی «انتخاب‌گرِ ارائه‌ای» refactor شوند — به‌جای صدا زدن مستقیم `linkService`، یک callbackِ `onSelect(item)` بدهند. تصمیم persistence به مودال منتقل می‌شود.
+
+### فلوی ایجاد (هر دو مودال)
+- state محلی `pendingLinkIds`. در حالت new، انتخاب در picker فقط `pendingLinkIds` را پر می‌کند (بدون DB) و آیتم‌ها به‌صورت چیپِ «در انتظار» نمایش می‌یابند. هنگام Save: `const saved = await onSave(formState); if (isNew && saved?.id) await Promise.all(pendingLinkIds.map(id => linkService(saved.id, id)));`. در حالت ویرایش، رفتار فعلی (linkService فوری) حفظ می‌شود.
+
+### جایگاه UI (فقط مودال یادداشت)
+- **`features/notes/components/NoteEditorModal.tsx` (ویرایش):** بلوک «کارهای لینک‌شده + LinkTaskPicker» از میان عنوان و `textarea` بدنه **خارج** و به ناحیه‌ی متادیتای پایین (Control Center، کنار تگ‌ها و انتخاب‌گر پروژه) منتقل شود؛ هم‌ساختار با `TaskEditorModal`. ناحیه‌ی نوشتن = فقط عنوان + بدنه.
+
+> ترتیب اجرا: G4.1 (لایه‌ی داده) باید **پیش از** G4.2/G4.3 انجام شود چون فایل‌های مشترک (`useDataManager`, `App.tsx`, `ProjectsView`) را لمس می‌کند.
+
+---
+
+## ۱۰.۵. تسک ۵ — داشبورد و مدیریت جامع عادات
+
+### بدون مهاجرت DB
+- `habit_completions` و `habitService.getHabits()` (که `completedDates` کامل را برمی‌گرداند) کفایت می‌کنند.
+
+### فایل‌ها
+- **جدید `utils/habitStats.ts` (توابع خالص، Tehran-aware):** `computeStreaks` (جاری/بهترین)، `weekdayBreakdown` (نرخ موفقیت در هر روز هفته)، `monthlyTrend` (تعداد در N ماه اخیر)، `weeklyHeatmap` (شبکه‌ی ~۱۲ هفته‌ی اخیر، سبکِ contribution-grid). همه با `getTehranDateString`/`utils/dateUtils.ts`.
+- **جدید `features/habits/components/HabitStatsView.tsx`:** ارائه‌ی آماری با **SVG/CSS سبک** (بدون کتابخانه‌ی چارت): heatmap، میله‌های ماهانه، نوار روزهای هفته، streak.
+- **جدید `features/habits/components/HabitForm.tsx`:** استخراج فرمِ ویرایش از `HabitEditorModal` فعلی (نام/تکرار/تعداد/توضیح) برای استفاده‌ی مشترک در ایجاد و تب ویرایش.
+- **جدید `features/habits/components/HabitManagerModal.tsx`:** ظرف اصلی — حالت new ⇒ فقط `HabitForm`؛ حالت موجود ⇒ تب‌های «آمار» (`HabitStatsView`) و «مدیریت» (`HabitForm` + حذف کامل با تأیید). استفاده از `habitService` (نه supabase مستقیم در کامپوننت).
+
+### مسیردهی/ویرایش
+- **`App.tsx` (ویرایش):** مودالِ سراسریِ `editingHabit` از `HabitEditorModal` به `HabitManagerModal` سوییچ شود (همان state `editingHabit`/`setEditingHabit` از `DataContext`).
+- **`features/dashboard/components/HabitTracker.tsx`:** بدون تغییرِ منطقی لازم — همان `editHabit(habit)` اکنون مدیر جدید را باز می‌کند.
+- `components/HabitEditorModal.tsx` و نسخه‌ی فیچرِ قدیمی پس از استخراج فرم، می‌توانند منسوخ/حذف‌ـازـمسیر شوند (بدون شکستن import در `App.tsx`).
+
+## ۱۰.۶. هم‌زمانی و نقاط داغِ مشترک (Conflict Map)
+- **`App.tsx`** توسط G1.5، G3، G4.1 و G5 لمس می‌شود ⇒ این تسک‌ها روی `App.tsx` **سریال** اجرا شوند (هرگز موازی).
+- G2 (پروژه‌ها)، G3 (announcements به‌جز mount در App)، و G5 (به‌جز App) عمدتاً فایل‌های مجزا دارند و پس از آزاد شدنِ `App.tsx` می‌توانند مستقل پیش بروند.
+- G4.2 و G4.3 پس از G4.1 فایل‌های مجزا دارند (مودال/پیکر مختص خود) و می‌توانند موازی شوند.
