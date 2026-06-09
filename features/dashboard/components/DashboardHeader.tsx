@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useData } from '../../../contexts/DataContext';
 import { UserIcon } from '../../../components/icons';
 
 interface DashboardHeaderProps {
@@ -14,6 +15,10 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   hasTasksToday,
 }) => {
   const { user } = useAuth();
+  const { profile } = useData();
+  
+  const displayName = (profile?.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || '').trim();
+  const avatarLetter = displayName ? displayName.charAt(0).toUpperCase() : null;
   
   const size = 44; 
   const strokeWidth = 3; 
@@ -79,7 +84,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
             {/* Avatar - w-10 = 40px */}
             <div className="w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center text-white font-bold text-sm overflow-hidden relative z-10 border border-gray-800">
-              {user?.email?.[0].toUpperCase() || <UserIcon className="w-5 h-5"/>}
+              {avatarLetter || <UserIcon className="w-5 h-5"/>}
               <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
             </div>
           </button>
