@@ -1,27 +1,23 @@
 import React, { useState, useMemo } from 'react';
 import { Task } from '../../../types';
-import { linkTaskNote } from '../../../services/linkService';
 import { SearchIcon, PlusIcon, ListChecksIcon } from '../../../components/icons';
 import { isSameTehranDay } from '../../../utils/dateUtils';
 
 interface LinkTaskPickerProps {
-  noteId: string;
   tasks: Task[];
   noteCreatedAt?: string | null;
-  onLinkAdded: () => void;
+  onSelect: (taskId: string) => void;
   linkedTaskIds: string[];
 }
 
 export const LinkTaskPicker: React.FC<LinkTaskPickerProps> = ({
-  noteId,
   tasks,
   noteCreatedAt,
-  onLinkAdded,
+  onSelect,
   linkedTaskIds
 }) => {
   const [showPicker, setShowPicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(false);
 
   const activeTasks = useMemo(() => {
     return tasks.filter(t => !linkedTaskIds.includes(t.id));
@@ -40,24 +36,17 @@ export const LinkTaskPicker: React.FC<LinkTaskPickerProps> = ({
     ).slice(0, 10);
   }, [activeTasks, searchQuery]);
 
-  const handleLink = async (taskId: string) => {
-    setLoading(true);
-    try {
-      await linkTaskNote(taskId, noteId);
-      onLinkAdded();
-      setSearchQuery('');
-      setShowPicker(false);
-    } catch (err) {
-      console.error('Failed to link task:', err);
-    } finally {
-      setLoading(false);
-    }
+  const handleLink = (taskId: string) => {
+    onSelect(taskId);
+    setSearchQuery('');
+    setShowPicker(false);
   };
 
   return (
     <div className="space-y-4" dir="rtl">
       {!showPicker ? (
         <button
+          type="button"
           onClick={() => setShowPicker(true)}
           className="flex items-center gap-1.5 text-xs text-sky-400 hover:text-sky-350 font-bold bg-sky-500/10 hover:bg-sky-500/15 border border-sky-500/20 px-3 py-1.5 rounded-xl transition-all"
         >
@@ -69,6 +58,7 @@ export const LinkTaskPicker: React.FC<LinkTaskPickerProps> = ({
           <div className="flex justify-between items-center pb-2 border-b border-white/5">
             <span className="text-xs font-bold text-zinc-400">اتصال کار وجود دارد</span>
             <button
+              type="button"
               onClick={() => setShowPicker(false)}
               className="text-xs text-zinc-500 hover:text-white transition-colors"
             >
@@ -83,9 +73,9 @@ export const LinkTaskPicker: React.FC<LinkTaskPickerProps> = ({
               <div className="grid grid-cols-1 gap-1.5">
                 {suggestions.map(task => (
                   <button
+                    type="button"
                     key={task.id}
                     onClick={() => handleLink(task.id)}
-                    disabled={loading}
                     className="flex items-center gap-2 p-2 bg-zinc-900/60 hover:bg-sky-950/20 border border-white/5 hover:border-sky-500/20 text-right rounded-lg text-xs text-zinc-350 group transition-all"
                   >
                     <ListChecksIcon className="w-3.5 h-3.5 text-sky-400" />
@@ -104,7 +94,7 @@ export const LinkTaskPicker: React.FC<LinkTaskPickerProps> = ({
               placeholder="جستجوی کار بر اساس عنوان..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 placeholder-zinc-600 rounded-xl py-2.5 pr-9 pl-3 outline-none focus:border-sky-500/50 transition-all font-medium"
+              className="w-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 placeholder-zinc-600 rounded-xl py-2.5 pr-9 pl-3 outline-none focus:border-sky-500/50 transition-all font-medium text-right"
             />
           </div>
 
@@ -114,9 +104,9 @@ export const LinkTaskPicker: React.FC<LinkTaskPickerProps> = ({
               {filteredTasks.length > 0 ? (
                 filteredTasks.map(task => (
                   <button
+                    type="button"
                     key={task.id}
                     onClick={() => handleLink(task.id)}
-                    disabled={loading}
                     className="w-full flex items-center gap-2 p-2 bg-zinc-900/40 hover:bg-sky-950/20 rounded-lg text-right text-xs text-zinc-300 hover:text-sky-350 transition-all border border-transparent hover:border-sky-500/10"
                   >
                     <ListChecksIcon className="w-3.5 h-3.5 text-zinc-500" />

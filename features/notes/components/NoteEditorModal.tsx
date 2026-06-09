@@ -5,7 +5,7 @@ import {
   HashIcon, LightbulbIcon, ClockIcon, FileTextIcon, 
   PlusIcon, CheckIcon, ListChecksIcon 
 } from '../../../components/icons';
-import { getLinkedTasks, unlinkTaskNote } from '../../../services/linkService';
+import { getLinkedTasks, unlinkTaskNote, linkTaskNote } from '../../../services/linkService';
 import { LinkTaskPicker } from './LinkTaskPicker';
 import { useData } from '../../../contexts/DataContext';
 
@@ -13,7 +13,7 @@ interface NoteEditorModalProps {
   note: Note | Partial<Note>;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (note: Note | Partial<Note>) => void;
+  onSave: (note: Note | Partial<Note>) => Promise<Note> | any;
   onDelete: (id: string) => void;
   projects: Project[];
   tasks: Task[];
@@ -34,6 +34,7 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
   const [isVisible, setIsVisible] = useState(false);
   const [tagInput, setTagInput] = useState('');
   const [linkedTasks, setLinkedTasks] = useState<Task[]>([]);
+  const [pendingLinkIds, setPendingLinkIds] = useState<string[]>([]);
   
   const isNew = !('id' in note);
 
@@ -62,6 +63,7 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
       setFormState(note);
       setIsVisible(true);
       loadLinks();
+      setPendingLinkIds([]);
     } else {
       setIsVisible(false);
     }
@@ -76,9 +78,18 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
     onClose();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (formState.title?.trim() || formState.content?.trim()) {
-      onSave(formState);
+      try {
+        const savedNote = await onSave(formState);
+        if (isNew && savedNote && savedNote.id && pendingLinkIds.length > 0) {
+          for (const taskId of pendingLinkIds) {
+            await linkTaskNote(taskId, savedNote.id);
+          }
+        }
+      } catch (err) {
+        console.error('Error saving note and committing links:', err);
+      }
     }
     onClose();
   };
@@ -118,16 +129,41 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
     }
   };
 
-  const handleUnlink = async (taskId: string) => {
-    if (note.id) {
+  const handleAddLink = async (taskId: string) => {
+    if (isNew) {
+      setPendingLinkIds(prev => {
+        if (prev.includes(taskId)) return prev;
+        return [...prev, taskId];
+      });
+    } else if (formState.id) {
       try {
-        await unlinkTaskNote(taskId, note.id);
+        await linkTaskNote(taskId, formState.id);
         loadLinks();
       } catch (err) {
-        console.error('Error deleting task link:', err);
+        console.error('Error adding link:', err);
       }
     }
   };
+
+  const handleRemoveLink = async (taskId: string) => {
+    if (isNew) {
+      setPendingLinkIds(prev => prev.filter(id => id !== taskId));
+    } else if (formState.id) {
+      try {
+        await unlinkTaskNote(taskId, formState.id);
+        loadLinks();
+      } catch (err) {
+        console.error('Error unlinking task:', err);
+      }
+    }
+  };
+
+  const displayedTasks = React.useMemo(() => {
+    if (isNew) {
+      return tasks.filter(t => pendingLinkIds.includes(t.id));
+    }
+    return linkedTasks;
+  }, [isNew, tasks, pendingLinkIds, linkedTasks]);
 
   if (!isOpen) return null;
 
@@ -186,23 +222,37 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
               autoFocus
             />
 
-            {/* TWO-WAY TASKS LINKING SECTION */}
-            <div className="py-4 border-y border-white/5 space-y-3">
+            <textarea
+              value={formState.content || ''}
+              onChange={e => setFormState(s => ({ ...s, content: e.target.value }))}
+              placeholder="شروع به نوشتن کنید..."
+              className="w-full h-[45vh] sm:h-[50vh] bg-transparent border-none p-0 text-sm sm:text-base text-zinc-300 placeholder-zinc-800 focus:ring-0 focus:outline-none resize-none leading-relaxed font-light text-right"
+            />
+          </div>
+        </div>
+
+        {/* 3. Metadata Footer: The Control Center */}
+        <div className="shrink-0 bg-zinc-900/80 backdrop-blur-2xl border-t border-white/5 p-4 sm:p-6 pb-20 sm:pb-6" dir="rtl">
+          <div className="max-w-2xl mx-auto space-y-4 max-h-[35vh] overflow-y-auto pr-1">
+            
+            {/* TWO-WAY BIDIRECTIONAL TASKS LINKING SECTION */}
+            <div className="p-4 bg-zinc-950/25 border border-white/5 rounded-2xl space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">کارهای لینک‌شده</span>
-                <span className="text-[10px] font-mono text-zinc-600">{linkedTasks.length} لینک شده</span>
+                <span className="text-xs font-bold text-zinc-400">کارهای مرتبط</span>
+                <span className="text-[10px] font-mono text-zinc-650">{displayedTasks.length} لینک شده</span>
               </div>
 
-              {linkedTasks.length > 0 ? (
+              {displayedTasks.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {linkedTasks.map(t => (
+                  {displayedTasks.map(t => (
                     <div key={t.id} className="flex items-center justify-between p-2.5 bg-zinc-900/60 rounded-xl border border-white/5 text-right">
                       <div className="flex items-center gap-2 min-w-0">
                         <ListChecksIcon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
                         <span className="text-xs text-zinc-300 font-medium truncate">{t.title || 'کار بدون عنوان'}</span>
                       </div>
                       <button
-                        onClick={() => handleUnlink(t.id)}
+                        type="button"
+                        onClick={() => handleRemoveLink(t.id)}
                         className="p-1 hover:text-red-400 hover:bg-red-500/10 rounded text-zinc-600 transition-colors"
                         title="حذف پیوند"
                       >
@@ -212,38 +262,19 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
                   ))}
                 </div>
               ) : (
-                <span className="text-xs text-zinc-600 block text-right">هیچ کاری به این یادداشت لینک نشده است.</span>
+                <span className="text-[11px] text-zinc-600 block text-right">هیچ کاری به این یادداشت لینک نشده است.</span>
               )}
 
-              <div className="pt-1">
-                {!isNew && note.id ? (
-                  <LinkTaskPicker 
-                    noteId={note.id}
-                    tasks={tasks}
-                    noteCreatedAt={formState.created_at}
-                    onLinkAdded={loadLinks}
-                    linkedTaskIds={linkedTasks.map(l => l.id)}
-                  />
-                ) : (
-                  <div className="text-[11px] text-zinc-500 bg-zinc-950/40 p-2.5 rounded-xl border border-white/5 text-right font-medium">
-                    پس از ثبت یادداشت، امکان متصل کردن کار مرتبط فعال خواهد شد.
-                  </div>
-                )}
+              <div className="pt-2">
+                <LinkTaskPicker 
+                  tasks={tasks}
+                  noteCreatedAt={formState.created_at}
+                  onSelect={handleAddLink}
+                  linkedTaskIds={displayedTasks.map(l => l.id)}
+                />
               </div>
             </div>
-            <textarea
-              value={formState.content || ''}
-              onChange={e => setFormState(s => ({ ...s, content: e.target.value }))}
-              placeholder="شروع به نوشتن کنید..."
-              className="w-full h-[35vh] sm:h-[40vh] bg-transparent border-none p-0 text-sm sm:text-base text-zinc-300 placeholder-zinc-800 focus:ring-0 focus:outline-none resize-none leading-relaxed font-light text-right"
-            />
-          </div>
-        </div>
 
-        {/* 3. Metadata Footer: The Control Center */}
-        <div className="shrink-0 bg-zinc-900/80 backdrop-blur-2xl border-t border-white/5 p-4 sm:p-6 pb-20 sm:pb-6" dir="rtl">
-          <div className="max-w-2xl mx-auto space-y-4">
-            
             {/* Tags Section */}
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-bold uppercase tracking-wider">
@@ -252,11 +283,11 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
               </div>
 
               {/* Active Tags & Input */}
-              <div className="flex flex-wrap items-center gap-2 bg-zinc-950/70 p-2 rounded-xl border border-white/5 focus-within:border-purple-500/30 transition-all">
+              <div className="flex flex-wrap items-center gap-2 bg-zinc-950/70 p-2 rounded-xl border border-white/5 focus-within:border-purple-500/30 transition-all font-sans">
                 {formState.tags?.map(tag => (
                   <span key={tag} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-purple-500/10 text-purple-300 border border-purple-500/15 text-xs font-semibold">
                     {tag}
-                    <button onClick={() => removeTag(tag)} className="hover:text-white text-purple-400 transition-colors">
+                    <button type="button" onClick={() => removeTag(tag)} className="hover:text-white text-purple-400 transition-colors">
                       <XIcon className="w-3 h-3" />
                     </button>
                   </span>
@@ -266,7 +297,7 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
                   value={tagInput}
                   onChange={e => setTagInput(e.target.value)}
                   onKeyDown={handleTagInputKeyDown}
-                  placeholder={formState.tags?.length ? "..." : "تگ جدید بنویسید (اینتر بزنید)..."}
+                  placeholder={formState.tags?.length ? "..." : "تگ جدید (اینتر)..."}
                   className="flex-1 bg-transparent min-w-[120px] px-2 py-1 text-xs text-white placeholder-zinc-700 focus:outline-none text-right font-medium"
                 />
               </div>
@@ -277,6 +308,7 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
                   const isActive = (formState.tags || []).includes(preset.label);
                   return (
                     <button
+                      type="button"
                       key={preset.label}
                       onClick={() => togglePresetTag(preset.label)}
                       className={`
@@ -304,7 +336,7 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
                 <select 
                   value={formState.project_id || ''} 
                   onChange={e => setFormState(s => ({...s, project_id: e.target.value || undefined}))} 
-                  className="w-full bg-zinc-950 text-zinc-300 text-xs rounded-xl py-2 px-10 border border-zinc-800 outline-none focus:border-purple-500/50 appearance-none cursor-pointer transition-all hover:border-zinc-700 text-right font-bold"
+                  className="w-full bg-zinc-950 text-zinc-300 text-xs rounded-xl py-2 px-10 border border-zinc-800 outline-none focus:border-purple-500/50 appearance-none cursor-pointer transition-all hover:border-zinc-700 text-right font-bold focus:ring-1 focus:ring-purple-500/40"
                 >
                   <option value="" className="bg-zinc-950 text-zinc-500">اتصال به پروژه (اختیاری)</option>
                   {projects.map(p => <option key={p.id} value={p.id} className="bg-zinc-950">{p.title}</option>)}

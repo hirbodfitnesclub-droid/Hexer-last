@@ -1,27 +1,23 @@
 import React, { useState, useMemo } from 'react';
 import { Note } from '../../../types';
-import { linkTaskNote } from '../../../services/linkService';
 import { SearchIcon, PlusIcon, NotebookIcon } from '../../../components/icons';
 import { isSameTehranDay } from '../../../utils/dateUtils';
 
 interface LinkNotePickerProps {
-  taskId: string;
   notes: Note[];
   taskDueDate?: string | null;
-  onLinkAdded: () => void;
+  onSelect: (noteId: string) => void;
   linkedNoteIds: string[];
 }
 
 export const LinkNotePicker: React.FC<LinkNotePickerProps> = ({
-  taskId,
   notes,
   taskDueDate,
-  onLinkAdded,
+  onSelect,
   linkedNoteIds
 }) => {
   const [showPicker, setShowPicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(false);
 
   const activeNotes = useMemo(() => {
     return notes.filter(n => !linkedNoteIds.includes(n.id));
@@ -40,24 +36,17 @@ export const LinkNotePicker: React.FC<LinkNotePickerProps> = ({
     ).slice(0, 10);
   }, [activeNotes, searchQuery]);
 
-  const handleLink = async (noteId: string) => {
-    setLoading(true);
-    try {
-      await linkTaskNote(taskId, noteId);
-      onLinkAdded();
-      setSearchQuery('');
-      setShowPicker(false);
-    } catch (err) {
-      console.error('Failed to link note:', err);
-    } finally {
-      setLoading(false);
-    }
+  const handleLink = (noteId: string) => {
+    onSelect(noteId);
+    setSearchQuery('');
+    setShowPicker(false);
   };
 
   return (
     <div className="space-y-4" dir="rtl">
       {!showPicker ? (
         <button
+          type="button"
           onClick={() => setShowPicker(true)}
           className="flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 font-bold bg-purple-500/10 hover:bg-purple-500/15 border border-purple-500/20 px-3 py-1.5 rounded-xl transition-all"
         >
@@ -69,6 +58,7 @@ export const LinkNotePicker: React.FC<LinkNotePickerProps> = ({
           <div className="flex justify-between items-center pb-2 border-b border-white/5">
             <span className="text-xs font-bold text-zinc-400">اتصال یادداشت وجود دارد</span>
             <button
+              type="button"
               onClick={() => setShowPicker(false)}
               className="text-xs text-zinc-500 hover:text-white transition-colors"
             >
@@ -83,9 +73,9 @@ export const LinkNotePicker: React.FC<LinkNotePickerProps> = ({
               <div className="grid grid-cols-1 gap-1.5">
                 {suggestions.map(note => (
                   <button
+                    type="button"
                     key={note.id}
                     onClick={() => handleLink(note.id)}
-                    disabled={loading}
                     className="flex items-center gap-2 p-2 bg-zinc-900/60 hover:bg-purple-950/20 border border-white/5 hover:border-purple-500/20 text-right rounded-lg text-xs text-zinc-300 group transition-all"
                   >
                     <NotebookIcon className="w-3.5 h-3.5 text-purple-400" />
@@ -104,7 +94,7 @@ export const LinkNotePicker: React.FC<LinkNotePickerProps> = ({
               placeholder="جستجوی یادداشت بر اساس عنوان..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 placeholder-zinc-600 rounded-xl py-2.5 pr-9 pl-3 outline-none focus:border-purple-500/50 transition-all font-medium"
+              className="w-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 placeholder-zinc-600 rounded-xl py-2.5 pr-9 pl-3 outline-none focus:border-purple-500/50 transition-all font-medium text-right"
             />
           </div>
 
@@ -114,9 +104,9 @@ export const LinkNotePicker: React.FC<LinkNotePickerProps> = ({
               {filteredNotes.length > 0 ? (
                 filteredNotes.map(note => (
                   <button
+                    type="button"
                     key={note.id}
                     onClick={() => handleLink(note.id)}
-                    disabled={loading}
                     className="w-full flex items-center gap-2 p-2 bg-zinc-900/40 hover:bg-purple-950/20 rounded-lg text-right text-xs text-zinc-300 hover:text-purple-300 transition-all border border-transparent hover:border-purple-500/10"
                   >
                     <NotebookIcon className="w-3.5 h-3.5 text-zinc-500" />

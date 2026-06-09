@@ -9,7 +9,7 @@ import PersianDatePicker from '../../../components/PersianDatePicker';
 import TimePicker from '../../../components/TimePicker';
 import { formatPersianDate } from '../../../utils/dateUtils';
 import { useData } from '../../../contexts/DataContext';
-import { getLinkedNotes, unlinkTaskNote } from '../../../services/linkService';
+import { getLinkedNotes, unlinkTaskNote, linkTaskNote } from '../../../services/linkService';
 import { LinkNotePicker } from './LinkNotePicker';
 
 interface TaskEditorModalProps {
@@ -18,7 +18,7 @@ interface TaskEditorModalProps {
   projects: Project[];
   notes: Note[];
   onClose: () => void;
-  onSave: (task: Task | Partial<Task>) => void;
+  onSave: (task: Task | Partial<Task>) => Promise<Task> | any;
   onDelete: (id: string) => void;
 }
 
@@ -47,6 +47,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
   const [selectedTime, setSelectedTime] = useState<string>('12:00');
   const [newItemText, setNewItemText] = useState('');
   const [linkedNotes, setLinkedNotes] = useState<Note[]>([]);
+  const [pendingLinkIds, setPendingLinkIds] = useState<string[]>([]);
   
   const isNew = !('id' in task);
 
@@ -71,6 +72,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
       setIsVisible(true);
       setNewItemText('');
       loadLinks();
+      setPendingLinkIds([]);
       
       // Analyze existing due_date
       if (task.due_date) {
@@ -127,7 +129,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
     onClose();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formState.title?.trim()) return;
 
     let finalDueDate: string | null = null;
@@ -145,7 +147,16 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
       finalDueDate = dateObj.toISOString();
     }
 
-    onSave({ ...formState, due_date: finalDueDate });
+    try {
+      const savedTask = await onSave({ ...formState, due_date: finalDueDate });
+      if (isNew && savedTask && savedTask.id && pendingLinkIds.length > 0) {
+        for (const noteId of pendingLinkIds) {
+          await linkTaskNote(savedTask.id, noteId);
+        }
+      }
+    } catch (err) {
+      console.error('Error saving task and committing links:', err);
+    }
     onClose();
   };
 
@@ -225,16 +236,41 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
     setHasTime(false);
   };
 
-  const handleUnlink = async (noteId: string) => {
-    if (task.id) {
+  const handleAddLink = async (noteId: string) => {
+    if (isNew) {
+      setPendingLinkIds(prev => {
+        if (prev.includes(noteId)) return prev;
+        return [...prev, noteId];
+      });
+    } else if (formState.id) {
       try {
-        await unlinkTaskNote(task.id, noteId);
+        await linkTaskNote(formState.id, noteId);
         loadLinks();
       } catch (err) {
-        console.error('Error deleting note link:', err);
+        console.error('Error adding link:', err);
       }
     }
   };
+
+  const handleRemoveLink = async (noteId: string) => {
+    if (isNew) {
+      setPendingLinkIds(prev => prev.filter(id => id !== noteId));
+    } else if (formState.id) {
+      try {
+        await unlinkTaskNote(formState.id, noteId);
+        loadLinks();
+      } catch (err) {
+        console.error('Error unlinking note:', err);
+      }
+    }
+  };
+
+  const displayedNotes = React.useMemo(() => {
+    if (isNew) {
+      return notes.filter(n => pendingLinkIds.includes(n.id));
+    }
+    return linkedNotes;
+  }, [isNew, notes, pendingLinkIds, linkedNotes]);
 
   const PropertyRow: React.FC<{ icon: React.ReactNode; label: string; children: React.ReactNode; className?: string }> = ({ icon, label, children, className }) => (
     <div className={`flex items-center p-2 rounded-lg transition-colors min-h-[44px] ${className}`}>
@@ -551,19 +587,20 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
               <div className="p-4 bg-zinc-950/25 border border-white/5 rounded-2xl space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-zinc-400">یادداشت‌های مرتبط</span>
-                  <span className="text-[10px] font-mono text-zinc-600">{linkedNotes.length} لینک شده</span>
+                  <span className="text-[10px] font-mono text-zinc-600">{displayedNotes.length} لینک شده</span>
                 </div>
 
-                {linkedNotes.length > 0 ? (
+                {displayedNotes.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {linkedNotes.map(n => (
+                    {displayedNotes.map(n => (
                       <div key={n.id} className="flex items-center justify-between p-2.5 bg-zinc-900/60 rounded-xl border border-white/5 text-right">
                         <div className="flex items-center gap-2 min-w-0">
                           <NotebookIcon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
                           <span className="text-xs text-zinc-300 font-medium truncate">{n.title || 'یادداشت بدون عنوان'}</span>
                         </div>
                         <button
-                          onClick={() => handleUnlink(n.id)}
+                          type="button"
+                          onClick={() => handleRemoveLink(n.id)}
                           className="p-1 hover:text-red-400 hover:bg-red-500/10 rounded text-zinc-600 transition-colors"
                           title="حذف پیوند"
                         >
@@ -577,19 +614,12 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
                 )}
 
                 <div className="pt-2">
-                  {!isNew && formState.id ? (
-                    <LinkNotePicker 
-                      taskId={formState.id}
-                      notes={notes}
-                      taskDueDate={formState.due_date}
-                      onLinkAdded={loadLinks}
-                      linkedNoteIds={linkedNotes.map(l => l.id)}
-                    />
-                  ) : (
-                    <div className="text-xs text-zinc-500 bg-zinc-900/50 p-2.5 rounded-xl border border-white/5 text-right font-medium">
-                      پس از ذخیره اولیه کار، امکان متصل کردن یادداشت فعال خواهد شد.
-                    </div>
-                  )}
+                  <LinkNotePicker 
+                    notes={notes}
+                    taskDueDate={formState.due_date}
+                    onSelect={handleAddLink}
+                    linkedNoteIds={displayedNotes.map(l => l.id)}
+                  />
                 </div>
               </div>
             </div>

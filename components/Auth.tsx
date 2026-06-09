@@ -239,7 +239,7 @@ const AuthComponent: React.FC = () => {
         {/* Title Block */}
         <div className="text-center space-y-2">
           <SparklesIcon className="w-10 h-10 mx-auto text-sky-400" />
-          <h1 className="text-xl font-bold text-white tracking-tight">دستیار هوشمند کدیار</h1>
+          <h1 className="text-xl font-bold text-white tracking-tight">به Hexer خوش اومدی</h1>
           <p className="text-xs text-gray-400">
             {mode === 'login' && 'وارد حساب کاربری خود شوید'}
             {mode === 'signup' && step === 'input' && 'یک حساب کاربری جدید ایجاد کنید'}

@@ -48,15 +48,13 @@ export const ProjectsView: React.FC = () => {
   };
 
   const handleUpdateTask = (task: Task | Partial<Task>) => { 
-    updateTask(task); 
-    setEditingTask(null); 
+    return updateTask(task); 
   };
   
   const handleSaveNote = (note: Note | Partial<Note>) => {
     if ('id' in note) {
-      updateNote(note as Note);
+      return updateNote(note as Note);
     }
-    setEditingNote(null);
   };
 
   return (
