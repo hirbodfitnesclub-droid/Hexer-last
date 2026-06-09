@@ -23,6 +23,9 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
 
     if (!isOpen) return null;
 
+    const displayName = (profile?.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || '').trim();
+    const avatarLetter = displayName ? displayName.charAt(0).toUpperCase() : null;
+
     const handleExport = async () => {
         setStatus({ type: 'loading', message: 'در حال تهیه فایل پشتیبان لوکس شما... ✨' });
         try {
@@ -83,11 +86,11 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                     <div className="w-20 h-20 mx-auto bg-neutral-950 rounded-full flex items-center justify-center border-4 border-neutral-900 shadow-xl mb-3 relative group overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-tr from-[#00d2ff] via-fuchsia-500 to-indigo-600 rounded-full opacity-15 group-hover:opacity-30 transition-opacity duration-300"></div>
                         <span className="text-2xl font-black text-white relative z-10 font-mono tracking-wider">
-                            {user?.email?.[0].toUpperCase() || <UserIcon className="w-8 h-8"/>}
+                            {avatarLetter || <UserIcon className="w-8 h-8"/>}
                         </span>
                     </div>
 
-                    <h3 className="text-white font-black text-base truncate px-4 font-mono">{user?.email}</h3>
+                    <h3 className="text-white font-black text-base truncate px-4 font-mono">{user?.email || user?.phone || 'کاربر مهمان'}</h3>
                     
                     {/* Badge upgraded to premium glass pill */}
                     <button 

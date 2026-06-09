@@ -12,7 +12,7 @@
 > **قانون:** هیچ‌گونه رابط کاربری یا لاجیک مربوط به ادمین (مانند ساخت کد تخفیف، بلاک کردن کاربر یا مشاهده همه پرداخت‌ها) نباید در کلاینت اصلی (Hexer AI) پیاده‌سازی شود.
 
 ## ۲. پشته‌ی تثبیت‌شده (تغییرناپذیر در این ریفکتور)
-React 19 + TypeScript · Vite 6 (alias `@`) · Tailwind (CDN، RTL، فونت `Vazirmatn`، تم تیره) · Supabase (Postgres + Auth + Storage + Edge + Realtime) · pgvector امبدینگ ۷۶۸ بُعدی (`text-embedding-004`) · Google Gemini (مدل بر اساس پلن) · زیبال.
+React 19 + TypeScript · Vite 6 (alias `@`) · Tailwind (CDN، RTL، فونت `Vazirmatn`، تم تیره) · Supabase (Postgres + احراز هویت شماره همراه با کاوه‌نگار + Storage + Edge + Realtime) · pgvector امبدینگ ۷۶۸ بُعدی (`text-embedding-004`) · Google Gemini (مدل بر اساس پلن) · زیبال.
 
 > **قانون اجرای بک‌اند:** همه‌ی کد بک‌اند فقط **فایل خام و ماژولار** است؛ SQL در `supabase/sql/` (شماره‌دار و Idempotent) و توابع لبه در `supabase/functions/<name>/index.ts`. کاربر آن‌ها را **دستی** در پنل Supabase اجرا/آپلود می‌کند. **هیچ تسکی نباید به `supabase` CLI متکی باشد.**
 

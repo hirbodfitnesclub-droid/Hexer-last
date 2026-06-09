@@ -559,3 +559,28 @@ select:-webkit-autofill:focus {
 | 🟠 | `features/tasks/components/TaskEditorModal.tsx` | دکمه‌ی لینک یادداشت فقط در view-mode/آیتم موجود | انتقال به فرم اصلی |
 | 🟡 | `features/notes/NotesView.tsx`, `features/projects/ProjectsView.tsx` | کات سخت لبه‌های اسکرول | fade با mask/gradient |
 | 🟡 | `features/tasks/components/LinkNotePicker.tsx` | کلاس نامعتبر `text-zinc-350` | `text-zinc-300` |
+
+### ۹.۱۱. مهاجرت به شماره همراه و رمز عبور (Phone Number + Password)
+
+در راستای سهولت ورود کاربران و استفاده از شماره موبایل به عنوان شناسه هویتی اصلی، سیستم احراز هویت از ایمیل محور به ساختار شماره همراه و رمز عبور با پلتفرم پیامکی کاوه‌نگار مهاجرت کرد:
+
+۱. **جریان ثبت‌نام (Sign Up):**
+   - دریافت شماره همراه و رمز عبور در کلاینت.
+   - ارسال کد تأیید (OTP) از طریق Edge Function هوشمند به آدرس `supabase/functions/sms-hook/index.ts` با یک وب‌هوک متصل به‌وسیله‌ی قالب احراز هویت کاوه‌نگار (`hexer-verify`).
+   - تایید ثبت‌نام با اکشن `supabase.auth.verifyOtp` و نوع تایید `sms`.
+
+۲. **جریان ورود (Login):**
+   - ورود مستقیم صرفاً بر اساس شماره موبایل و رمز عبور تعیین شده در ثبت‌نام (عدم نیاز به OTP جدید).
+
+۳. **جریان فراموشی رمز عبور (Reset Password):**
+   - ارسال OTP بازیابی رمزعبور به شماره موبایل کاربر و امکان ریست کردن رمز عبور.
+
+۴. **توسعه‌پذیری نمایش مشخصات کاربر در کلاینت:**
+   - با توجه به اینکه برخی کاربران ممکن است فیلد `email` نداشته باشند و شناسه هویتی اصلی آن‌ها `phone` باشد، در تمامی بخش‌های فرانت‌اند که از مشخصات کاربر برای UI (هدر، آواتار و مودال پروفایل) استفاده می‌شد، تمهیدات لازم جهت استفاده از `user?.phone` به عنوان جایگزین در صورت عدم وجود `user?.email` پیش‌بینی و پیاده‌سازی شده است:
+     - **آیکون آواتار هدر (`DashboardHeader.tsx`):**
+       `{user?.email?.[0]?.toUpperCase() || user?.phone?.[0] || <UserIcon className="w-5 h-5"/>}`
+     - **پرتره و آواتار بزرگ مودال پروفایل (`ProfileModal.tsx`):**
+       `{user?.email?.[0]?.toUpperCase() || user?.phone?.[0] || <UserIcon className="w-8 h-8"/>}`
+     - **نمایش آی‌دی کاربری یا آدرس مخاطب (`ProfileModal.tsx`):**
+       `{user?.email || user?.phone || 'کاربر مهمان'}`
+
