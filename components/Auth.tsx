@@ -75,6 +75,11 @@ const AuthComponent: React.FC = () => {
       return;
     }
 
+    if (mode !== 'forgot' && password.length < 8) {
+      setError('رمز عبور باید حداقل ۸ کاراکتر باشد.');
+      return;
+    }
+
     setLoading(true);
     try {
       const e164 = formatPhoneToE164(cleanedPhone);
@@ -157,8 +162,8 @@ const AuthComponent: React.FC = () => {
     setError(null);
     setMessage(null);
 
-    if (password.length < 6) {
-      setError('رمز عبور باید حداقل ۶ کاراکتر باشد.');
+    if (password.length < 8) {
+      setError('رمز عبور باید حداقل ۸ کاراکتر باشد.');
       return;
     }
 
@@ -291,9 +296,9 @@ const AuthComponent: React.FC = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={loading}
-                  minLength={6}
+                  minLength={8}
                   className="w-full bg-gray-800/70 border border-gray-700/60 rounded-xl px-4 py-2.5 text-center text-white text-sm font-mono placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500/80 transition-all"
-                  placeholder="••••••••"
+                  placeholder="رمز عبور (حداقل ۸ کاراکتر)"
                 />
               </div>
             )}
@@ -398,9 +403,9 @@ const AuthComponent: React.FC = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
-                minLength={6}
+                minLength={8}
                 className="w-full bg-gray-800/70 border border-gray-700/60 rounded-xl px-4 py-2.5 text-center text-white text-sm font-mono placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500/80 transition-all"
-                placeholder="••••••••"
+                placeholder="رمز عبور (حداقل ۸ کاراکتر)"
               />
             </div>
 
@@ -413,9 +418,9 @@ const AuthComponent: React.FC = () => {
                 onChange={(e) => setNewPassword(e.target.value)}
                 required
                 disabled={loading}
-                minLength={6}
+                minLength={8}
                 className="w-full bg-gray-800/70 border border-gray-700/60 rounded-xl px-4 py-2.5 text-center text-white text-sm font-mono placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500/80 transition-all"
-                placeholder="••••••••"
+                placeholder="رمز عبور (حداقل ۸ کاراکتر)"
               />
             </div>
 
