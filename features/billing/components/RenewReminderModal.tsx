@@ -83,7 +83,7 @@ export const RenewReminderModal: React.FC = () => {
         {/* Message body */}
         <p className="text-xs text-zinc-400 leading-relaxed font-semibold">
           {isExpired ? (
-            'اعتبار پنل طلایی هوش مصنوعی شما به اتمام رسیده است و دسترسی شما به پروژه‌ها، برنامه‌ریزی دستیار و ماژول‌ها محدود شده است. لطفاً نسبت به تمدید آن اقدام فرمایید.'
+            'اعتبار اشتراک هکسر شما تموم شده و دسترسی شما به پروژه‌ها، برنامه‌ریزی و بخش‌های مختلف محدود شده؛ لطفاً نسبت به تمدیدش اقدام کنی.'
           ) : (
             `تنها ${daysRemaining} روز تا پایان اعتبار طرح فعلی فضا و خدمات هوش مصنوعی کدیار شما باقی‌مانده است. با تمدید به موقع، از ادامه‌ی خدمات لذت ببرید.`
           )}
@@ -101,7 +101,7 @@ export const RenewReminderModal: React.FC = () => {
             }}
             className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-xl text-xs transition-colors text-center"
           >
-            تمدید آنی مأموریت
+            تمدید اشتراک 🚀
           </button>
           
           <button 

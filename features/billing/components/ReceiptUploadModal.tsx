@@ -98,7 +98,7 @@ export const ReceiptUploadModal: React.FC<ReceiptUploadModalProps> = ({ isOpen, 
         selectedFile
       );
 
-      addNotification("رسید بانکی شما با موفقیت ثبت و ارسال شد. ادمین هکسر در اسرع وقت اقدام خواهد کرد.", "success");
+      addNotification("رسید بانکی شما با موفقیت ثبت و ارسال شد. ادمین پشتیبانی در اسرع وقت اقدام خواهد کرد.", "success");
       
       // Refresh user subscription local states
       const refreshedSub = await billingService.getSubscription();
@@ -107,7 +107,7 @@ export const ReceiptUploadModal: React.FC<ReceiptUploadModalProps> = ({ isOpen, 
       onSuccess();
     } catch (err: any) {
       console.error(err);
-      setErrorMessage(err.message || "خطا در بارگذاری رسید یا تایید دیتابیس هکسر.");
+      setErrorMessage(err.message || "خطا در بارگذاری رسید یا تایید دیتابیس سرور.");
     } finally {
       setSubmitting(false);
     }
@@ -218,7 +218,7 @@ export const ReceiptUploadModal: React.FC<ReceiptUploadModalProps> = ({ isOpen, 
                 
                 <UploadIcon className="w-7 h-7 mx-auto text-neutral-500 mb-2.5" />
                 <p className="text-xs text-zinc-300 font-bold">راست‌کلیک، رهاسازی یا کشیدن تصویر رسید</p>
-                <p className="text-[10px] text-neutral-500 mt-1">حداکثر حجم مجاز ۲ مگابایت (فشرده‌سازی خودکار لوکال)</p>
+                <p className="text-[10px] text-neutral-500 mt-1">حداکثر حجم مجاز: ۲ مگابایت</p>
               </div>
             )}
           </div>

@@ -246,7 +246,7 @@ const AuthComponent: React.FC = () => {
             {mode === 'signup' && step === 'verify' && 'کد تایید فرستاده شده را وارد کنید'}
             {mode === 'forgot' && step === 'input' && 'شماره موبایل خود را وارد کنید'}
             {mode === 'forgot' && step === 'verify' && 'کد تایید فرستاده شده را وارد کنید'}
-            {mode === 'forgot' && step === 'new_password' && 'رمز عبور متبوع خود را ثبت کنید'}
+            {mode === 'forgot' && step === 'new_password' && 'رمز عبور جدیدت رو وارد کن'}
           </p>
         </div>
 
@@ -313,7 +313,7 @@ const AuthComponent: React.FC = () => {
                 <div className="animate-spin rounded-full h-4.5 w-4.5 border-t-2 border-b-2 border-white"></div>
               ) : (
                 <>
-                  {mode === 'login' && 'ورود ایمن'}
+                  {mode === 'login' && 'ورود به حساب'}
                   {mode === 'signup' && 'ارسال پیامک تایید'}
                   {mode === 'forgot' && 'ارسال کد بازیابی'}
                 </>
@@ -385,7 +385,7 @@ const AuthComponent: React.FC = () => {
               {loading ? (
                 <div className="animate-spin rounded-full h-4.5 w-4.5 border-t-2 border-b-2 border-white"></div>
               ) : (
-                'تایید کد امنیتی'
+                'تایید کد'
               )}
             </button>
           </form>
@@ -433,7 +433,7 @@ const AuthComponent: React.FC = () => {
               {loading ? (
                 <div className="animate-spin rounded-full h-4.5 w-4.5 border-t-2 border-b-2 border-white"></div>
               ) : (
-                'ذخیره و ورود نهایی'
+                'ذخیره و ورود'
               )}
             </button>
           </form>

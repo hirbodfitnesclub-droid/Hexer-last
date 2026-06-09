@@ -27,7 +27,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
     const avatarLetter = displayName ? displayName.charAt(0).toUpperCase() : null;
 
     const handleExport = async () => {
-        setStatus({ type: 'loading', message: 'در حال تهیه فایل پشتیبان لوکس شما... ✨' });
+        setStatus({ type: 'loading', message: 'در حال بکاپگیری از اطلاعاتت... ⏳' });
         try {
             await exportUserData();
             setStatus({ type: 'success', message: 'پشتیبان‌گیری رمزنگاری‌شده شما کامل شد.' });
@@ -124,7 +124,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                             <input 
                                 disabled 
                                 type="text" 
-                                value={profile?.full_name || "کاربر خوش‌سلیقه هکسر"} 
+                                value={profile?.full_name || "کاربر عزیز هکسر ✌️"} 
                                 className="w-full bg-neutral-900/60 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-xs text-neutral-400 cursor-not-allowed font-medium" 
                             />
                         </div>
@@ -159,7 +159,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                                 <div className="p-2 bg-sky-500/10 rounded-lg text-sky-400">
                                     <MoonIcon className="w-4 h-4" />
                                 </div>
-                                <span className="text-xs text-neutral-300 font-bold">ویژوال و تم لوکس سیاه</span>
+                                <span className="text-xs text-neutral-300 font-bold">تم دارک 🌙</span>
                             </div>
                         </button>
                     </div>
@@ -199,7 +199,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                         className="w-full flex items-center justify-center gap-2 p-3 mt-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 hover:bg-red-500/25 transition-all font-black text-xs uppercase"
                     >
                         <LogOutIcon className="w-3.5 h-3.5" />
-                        <span>خروج لوکس از حساب کاربری</span>
+                        <span>خروج از حساب</span>
                     </button>
                     
                 </div>

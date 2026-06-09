@@ -37,7 +37,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userId, onComplete }) =>
   const handleNextStep = () => {
     if (step === 1) {
       if (!fullName.trim()) {
-        setError('لطفا اسم باحالت رو برامون بنویس! ✨');
+        setError('نام و نام خانوادگیت رو برامون بنویس ✨');
         return;
       }
       setError(null);
@@ -95,7 +95,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userId, onComplete }) =>
                 <SparklesIcon className="w-4 h-4 text-sky-400" />
               </div>
             </div>
-            <span className="text-xs uppercase tracking-wider text-neutral-400 font-bold">هکسر // خوش‌آمدگویی ✨</span>
+            <span className="text-xs uppercase tracking-wider text-neutral-400 font-bold">به هکسر خوش اومدی ✌️</span>
           </div>
           <span className="text-xs font-mono text-neutral-500">{step} / ۳</span>
         </div>
@@ -122,7 +122,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userId, onComplete }) =>
         {step === 1 && (
           <div className="space-y-6 animate-fade-in" dir="rtl">
             <div className="space-y-2">
-              <span className="text-xs font-bold text-sky-450 bg-sky-500/10 px-2.5 py-1 rounded-full uppercase tracking-wider">شروع ماجراجویی 🚀</span>
+              <span className="text-xs font-bold text-sky-450 bg-sky-500/10 px-2.5 py-1 rounded-full uppercase tracking-wider">بزن بریم 🚀</span>
               <h1 className="text-3xl font-black text-white leading-tight">
                 ورود به دنیای <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-400">هکسر</span>
               </h1>
@@ -150,9 +150,9 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userId, onComplete }) =>
         {step === 2 && (
           <div className="space-y-6 animate-fade-in" dir="rtl">
             <div className="space-y-2">
-              <span className="text-xs font-bold text-indigo-455 bg-indigo-500/10 px-2.5 py-1 rounded-full uppercase tracking-wider">شخصی‌سازی فضا 🛸</span>
+              <span className="text-xs font-bold text-indigo-455 bg-indigo-500/10 px-2.5 py-1 rounded-full uppercase tracking-wider">فضای کارتو بساز 🎨</span>
               <h1 className="text-3xl font-black text-white leading-tight">
-                تخصص یا <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-rose-450">وایب کاریت</span> چیه؟
+                تخصص یا <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-rose-450">حوزه کاریت</span> چیه؟ 🎯
               </h1>
               <p className="text-sm text-neutral-400 font-medium">این بخش به هکسر کمک می‌کنه تا دستیار شخصی‌تری برات بسازه.</p>
             </div>
@@ -162,7 +162,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userId, onComplete }) =>
               <div className="relative group">
                 <input
                   type="text"
-                  placeholder="مثلا: دیزاینر خفن، جادوگر فرانت‌اند..."
+                  placeholder="مثلاً: طراح رابط کاربری، فرانت‌اند دولوپر..."
                   value={specialty}
                   onChange={(e) => setSpecialty(e.target.value)}
                   className="w-full bg-neutral-900/60 border border-neutral-800 focus:border-indigo-400 rounded-2xl px-5 py-4 text-white placeholder-neutral-600 focus:outline-none transition-all duration-300 backdrop-blur-md shadow-inner text-base font-medium"
@@ -177,7 +177,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userId, onComplete }) =>
         {step === 3 && (
           <div className="space-y-6 animate-fade-in" dir="rtl">
             <div className="space-y-2">
-              <span className="text-xs font-bold text-pink-450 bg-pink-500/10 px-2.5 py-1 rounded-full uppercase tracking-wider">هم‌راستایی فرکانس 🪐</span>
+              <span className="text-xs font-bold text-pink-450 bg-pink-500/10 px-2.5 py-1 rounded-full uppercase tracking-wider">اهداف اصلیت 🎯</span>
               <h1 className="text-3xl font-black text-white leading-tight">
                 حوزه‌های <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-amber-400">تمرکز اصلیت</span>؟
               </h1>

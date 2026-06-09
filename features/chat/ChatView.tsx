@@ -545,7 +545,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
               <BotIcon className="w-10 h-10 text-sky-400" />
             </div>
             <h3 className="text-xl font-bold text-white mb-2">امروز چطور می‌تونم کمکت کنم؟</h3>
-            <p className="text-gray-400 text-sm mb-8 text-center max-w-xs">من زنده هستم و کارهای واقعی تو رو مدیریت می‌کنم. صحبت کن یا متن بنویس:</p>
+            <p className="text-gray-400 text-sm mb-8 text-center max-w-xs">آماده‌ام بهت کمک کنم! متنت رو تایپ کن یا صدات رو بفرست 🎤</p>
             
             <div className="grid grid-cols-1 gap-3 w-full max-w-sm">
               {suggestions.map((s, i) => (

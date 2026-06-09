@@ -107,7 +107,7 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({ isOpen, 
         <div className="relative bg-gradient-to-br from-indigo-950/40 via-neutral-950 to-neutral-950 p-5 shrink-0 border-b border-neutral-900 flex items-center justify-between">
           <div>
             <h3 className="text-white font-extrabold text-xs">تعیین شیوه پرداخت و فاکتور</h3>
-            <p className="text-[10px] text-neutral-500 font-bold mt-0.5">صداقت در هزینه و تضمین امنیت شتاب</p>
+            <p className="text-[10px] text-neutral-500 font-bold mt-0.5">فاکتور و شیوه پرداخت</p>
           </div>
           <button 
             onClick={onClose} 
@@ -208,7 +208,7 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({ isOpen, 
               
               <div className="relative flex py-1 items-center">
                 <div className="flex-grow border-t border-neutral-900"></div>
-                <span className="flex-shrink mx-3 text-[10px] text-neutral-600 font-bold">یا پرداخت سنتی دستی</span>
+                <span className="flex-shrink mx-3 text-[10px] text-neutral-600 font-bold">کارت به کارت</span>
                 <div className="flex-grow border-t border-neutral-900"></div>
               </div>
 
@@ -216,7 +216,7 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({ isOpen, 
                 onClick={() => setShowReceipt(true)}
                 className="w-full flex items-center justify-center gap-2.5 py-3 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-xl text-neutral-300 font-black text-xs active:scale-95 transition-all"
               >
-                <span>کارت به کارت آفلاین (بارگذاری آنلاین رسید) 🧾</span>
+                <span>آپلود رسید کارت به کارت 🧾</span>
               </button>
             </div>
           )}

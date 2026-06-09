@@ -40,7 +40,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
       model: 'Gemini 3.1 Lite',
       features: [
         'دسترسی رایگان ۳ روزه تستی',
-        '۳۰ درخواست اولیه خلاقانه',
+        '۳۰ درخواست اولیه',
         'موتور هوش مصنوعی Gemini 3.1',
         'بدون محدودیت روزانه درخواست'
       ],
@@ -100,7 +100,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
       ],
       popular: false,
       color: 'border-fuchsia-500/30 bg-neutral-900/50 text-white ring-1 ring-fuchsia-500/10 shadow-[0_0_40px_rgba(217,70,239,0.05)]',
-      tag: 'کاربر سنترال 👑',
+      tag: 'کاربر پرو (Pro) 👑',
       tagColor: 'bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white font-black'
     }
   ];
@@ -136,7 +136,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
             بررسی <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00d2ff] via-indigo-400 to-fuchsia-500">طرح‌های پریمیوم</span> هکسر
           </h2>
           <p className="text-xs text-neutral-400 mt-2 font-medium">
-            سهمیه هوش مصنوعی خود را شارژ کن تا بدون وقفه و در اوج سرعت، کارهایت را مدیریت کنی و زمان را جلو بندازی.
+            سهمیه هوش مصنوعی خود را شارژ کن تا بدون وقفه و در اوج سرعت، کارهات رو به بهینه‌ترین شکل مدیریت کنی.
           </p>
           
           {message && (
@@ -227,7 +227,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
                   ) : p.code === 'free' ? (
                     'طرح آغازین بدون ارتقا'
                   ) : (
-                    'خرید آنی و ارتقای کوئتا 🚀'
+                    'خرید و افزایش سهمیه 🚀'
                   )}
                 </button>
               </div>

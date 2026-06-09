@@ -128,7 +128,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
             <h2 className="text-lg font-black bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-150 to-sky-200">
               ارتقا بستر کاربری و اشتراک
             </h2>
-            <p className="text-[10px] text-neutral-500 font-bold mt-0.5">مدیریت پکیج‌های هوشمند و تراکنش‌های هکسر</p>
+            <p className="text-[10px] text-neutral-500 font-bold mt-0.5">مدیریت اشتراک و تراکنش‌های هکسر</p>
           </div>
           
           <button 
@@ -145,7 +145,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 space-y-3">
               <div className="animate-spin rounded-full h-10 w-10 border-2 border-indigo-500 border-t-transparent"></div>
-              <p className="text-xs text-neutral-400 font-bold">در حال بازیابی وضعیت مالی شما...</p>
+              <p className="text-xs text-neutral-400 font-bold">در حال دریافت اطلاعات اشتراک... ⏳</p>
             </div>
           ) : isPending ? (
             /* --- STATE 1: PENDING MANUAL STATUS (LOCKED) --- */
@@ -160,7 +160,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
               <div className="space-y-3 max-w-md">
                 <h3 className="text-base font-black text-amber-400">در انتظار تایید رسید</h3>
                 <p className="text-xs text-zinc-300 font-medium leading-relaxed">
-                  رسید پرداخت شما در انتظار تایید ادمین هکسر است. لطفاً چند دقیقه دیگر بازگردید...
+                  رسید پرداخت شما در انتظار تایید ادمین پشتیبانی است. لطفاً چند دقیقه دیگر بازگردید...
                 </p>
                 <div className="pt-2">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-300">

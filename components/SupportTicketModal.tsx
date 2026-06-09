@@ -71,7 +71,7 @@ const SupportTicketModal: React.FC<SupportTicketModalProps> = ({ isOpen, onClose
                         <XIcon className="w-4 h-4" />
                     </button>
 
-                    <h3 className="text-white font-black text-base font-sans mt-2">مرکز پشتیبانی هکسر</h3>
+                    <h3 className="text-white font-black text-base font-sans mt-2">پشتیبانی هکسر</h3>
                     <p className="text-[11px] text-neutral-400 mt-1 font-sans">پیام شما به صورت آنی به تیم پشتیبانی تلگرام ارسال می‌شود.</p>
                 </div>
 
