@@ -106,10 +106,9 @@ const MainApp: React.FC = () => {
 
     const setupPushManager = async () => {
       try {
-        const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-        if (!vapidKey) {
-          console.warn('[Push] VITE_VAPID_PUBLIC_KEY environment variable is not defined.');
-          return;
+        const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || 'BFgEnQ8yaJp58UZY8YVQ7NdOjp1Kovib68ty3jmafE7pNg_LzU8YBJJug3DfGBmpAtQ4oT-eovkH_PW5bE8wvkk';
+        if (!import.meta.env.VITE_VAPID_PUBLIC_KEY) {
+          console.log('[Push] VITE_VAPID_PUBLIC_KEY environment variable is not defined. Using dynamic fallback key.');
         }
 
         // Only ask/subscribe if the client browser supports PushManager
