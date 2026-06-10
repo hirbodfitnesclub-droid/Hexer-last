@@ -10,14 +10,21 @@ import { processActions } from './lib/action-processor.ts';
 
 declare const Deno: any;
 
-function mergeConsecutiveRoles(contents: any[]) {
-  if (!contents || contents.length === 0) return [];
+function mergeConsecutiveRoles(messages: any[]) {
+  if (!messages || messages.length === 0) return [];
   const merged: any[] = [];
-  for (const item of contents) {
+  for (const item of messages) {
     if (merged.length > 0 && merged[merged.length - 1].role === item.role) {
-      merged[merged.length - 1].parts.push(...item.parts);
+      const prev = merged[merged.length - 1];
+      if (typeof prev.content === 'string' && typeof item.content === 'string') {
+        prev.content += "\n" + item.content;
+      } else if (Array.isArray(prev.content) && Array.isArray(item.content)) {
+        prev.content.push(...item.content);
+      } else {
+        prev.content = String(prev.content) + "\n" + String(item.content);
+      }
     } else {
-      merged.push({ role: item.role, parts: [...item.parts] });
+      merged.push({ role: item.role, content: item.content });
     }
   }
   return merged;
@@ -56,7 +63,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const modelName = quota.model || 'gemini-2.5-flash-lite';
+    // مپ کردن نام مدل به شناسه استاندارد OpenRouter
+    // طبق دستورالعمل جدید، در حال حاضر تمام پلن‌ها از مدل اقتصادی و بهینه استفاده می‌کنند
+    const modelName = "google/gemini-2.5-flash-lite";
     const ai = getGoogleGenAI();
 
     // ۲. پردازش تاریخ‌های امروزی شمسی و میلادی
@@ -93,37 +102,38 @@ Deno.serve(async (req) => {
     );
 
     const userMessageParts: any[] = [];
-    if (message) userMessageParts.push({ text: message });
-
+    if (message) userMessageParts.push({ type: 'text', text: message });
+ 
     if (audioPath || imagePath) {
       const mediaParts = await downloadMediaParts(supabaseService, { audioPath, imagePath }, user.id);
       userMessageParts.push(...mediaParts);
     }
-
+ 
+    const userContent = (audioPath || imagePath) ? userMessageParts : (message || '');
+ 
     // ۵. فرمت‌بندی تاریخچه تعاملی کاربر
     const modelHistoryRaw = history ? history.slice(-5).map((h: any) => ({
-      role: h.sender === 'user' ? 'user' : 'model',
-      parts: [{ text: h.text }]
+      role: h.sender === 'user' ? 'user' : 'assistant',
+      content: h.text || ''
     })) : [];
-
+ 
     const modelHistory = mergeConsecutiveRoles(modelHistoryRaw);
-
-    // ۶. استعلام پاسخ از مدل هوشمند جمینی
-    const response = await ai.models.generateContent({
+ 
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...modelHistory,
+      { role: 'user', content: userContent }
+    ];
+ 
+    // ۶. استعلام پاسخ از مدل هوشمند با استاندارد OpenAI / OpenRouter
+    const response = await ai.chat.completions.create({
       model: modelName,
-      contents: [
-        ...modelHistory,
-        { role: 'user', parts: userMessageParts }
-      ],
-      config: {
-        responseMimeType: 'application/json',
-        systemInstruction: systemPrompt,
-        temperature: 0.0,
-        maxOutputTokens: 8192
-      }
+      messages: messages,
+      response_format: { type: "json_object" },
+      temperature: 0.0,
     });
-
-    const rawText = response.text;
+ 
+    const rawText = response.choices[0].message.content;
     let aiResult;
     try {
       const cleanText = rawText?.replace(/```json\n?|\n?```/g, '').trim() || "{}";

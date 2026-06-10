@@ -69,9 +69,9 @@ export async function downloadMediaParts(
       const base64Data = encodeBase64(new Uint8Array(arrayBuffer));
 
       mediaParts.push({
-        inlineData: {
-          mimeType: mimeType,
-          data: base64Data
+        type: "image_url",
+        image_url: {
+          url: `data:${mimeType};base64,${base64Data}`
         }
       });
     }
@@ -94,9 +94,9 @@ export async function downloadMediaParts(
       const base64Data = encodeBase64(new Uint8Array(arrayBuffer));
 
       mediaParts.push({
-        inlineData: {
-          mimeType: mimeType,
-          data: base64Data
+        type: "image_url",
+        image_url: {
+          url: `data:${mimeType};base64,${base64Data}`
         }
       });
     }
