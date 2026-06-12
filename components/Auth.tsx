@@ -19,6 +19,53 @@ const AuthComponent: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  // Marketing attribution state
+  const [attribution, setAttribution] = useState<{
+    anonymous_id?: string;
+    utm_source?: string;
+    utm_medium?: string;
+    utm_campaign?: string;
+    utm_content?: string;
+    utm_term?: string;
+  }>({});
+
+  useEffect(() => {
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const anonId = searchParams.get('anon_id') || searchParams.get('anonymous_id');
+      const utmSource = searchParams.get('utm_source');
+      const utmMedium = searchParams.get('utm_medium');
+      const utmCampaign = searchParams.get('utm_campaign');
+      const utmContent = searchParams.get('utm_content');
+      const utmTerm = searchParams.get('utm_term');
+
+      if (anonId) localStorage.setItem('marketing_anonymous_id', anonId);
+      if (utmSource) localStorage.setItem('marketing_utm_source', utmSource);
+      if (utmMedium) localStorage.setItem('marketing_utm_medium', utmMedium);
+      if (utmCampaign) localStorage.setItem('marketing_utm_campaign', utmCampaign);
+      if (utmContent) localStorage.setItem('marketing_utm_content', utmContent);
+      if (utmTerm) localStorage.setItem('marketing_utm_term', utmTerm);
+
+      const finalAnonId = anonId || localStorage.getItem('marketing_anonymous_id') || '';
+      const finalUtmSource = utmSource || localStorage.getItem('marketing_utm_source') || '';
+      const finalUtmMedium = utmMedium || localStorage.getItem('marketing_utm_medium') || '';
+      const finalUtmCampaign = utmCampaign || localStorage.getItem('marketing_utm_campaign') || '';
+      const finalUtmContent = utmContent || localStorage.getItem('marketing_utm_content') || '';
+      const finalUtmTerm = utmTerm || localStorage.getItem('marketing_utm_term') || '';
+
+      setAttribution({
+        anonymous_id: finalAnonId || undefined,
+        utm_source: finalUtmSource || undefined,
+        utm_medium: finalUtmMedium || undefined,
+        utm_campaign: finalUtmCampaign || undefined,
+        utm_content: finalUtmContent || undefined,
+        utm_term: finalUtmTerm || undefined,
+      });
+    } catch (e) {
+      console.error('[Attribution] Failed to parse URL or read localStorage', e);
+    }
+  }, []);
+
   // Countdown timer for SMS Resend logic
   useEffect(() => {
     if (timer > 0) {
@@ -93,6 +140,16 @@ const AuthComponent: React.FC = () => {
         const { error: err } = await supabase.auth.signUp({
           phone: e164,
           password,
+          options: {
+            data: {
+              anonymous_id: attribution.anonymous_id || null,
+              utm_source: attribution.utm_source || null,
+              utm_medium: attribution.utm_medium || null,
+              utm_campaign: attribution.utm_campaign || null,
+              utm_content: attribution.utm_content || null,
+              utm_term: attribution.utm_term || null,
+            }
+          }
         });
         if (err) throw err;
         setStep('verify');
@@ -201,6 +258,16 @@ const AuthComponent: React.FC = () => {
         const { error: err } = await supabase.auth.signUp({
           phone: e164,
           password,
+          options: {
+            data: {
+              anonymous_id: attribution.anonymous_id || null,
+              utm_source: attribution.utm_source || null,
+              utm_medium: attribution.utm_medium || null,
+              utm_campaign: attribution.utm_campaign || null,
+              utm_content: attribution.utm_content || null,
+              utm_term: attribution.utm_term || null,
+            }
+          }
         });
         if (err) throw err;
         setMessage('کد تایید جدید برای شما پیامک شد.');
