@@ -1,121 +1,98 @@
+# tasks.md — بازطراحی کامل آنبوردینگ آموزشی (Educational Walkthrough)
+
+> هدف: حذف کاملِ آنبوردینگِ فعلی (نام/وایب/هدف) و جایگزینی با یک Wizard آموزشی که فقط «نام و نام خانوادگی» را می‌گیرد، سپس کاربر بین «رد شدن» و دیدن ۵ اسلاید آموزشی انتخاب می‌کند.
+>
+> **بدون مایگریشن DB:** ستون‌های `full_name` و `onboarding_completed` از قبل در `profiles` موجودند. منبع حقیقتِ «دیده‌شدن آنبوردینگ» = `profiles.onboarding_completed`. **LocalStorage ممنوع (Anti-Pattern §۸).**
+
+## محدودیت‌های سراسری (روی همه‌ی تسک‌ها اعمال می‌شود)
+- **Tailwind:** فقط پله‌های رنگی معتبر `50,100,...,900,950`. کلاس‌هایی مثل `*-450`/`*-850`/`neutral-850` ممنوع (Anti §۲۰/§۲۲). آنبوردینگ قدیمی این باگ‌ها را داشت — تکرار نشود.
+- **آیکون:** فقط از `components/icons.tsx`. **استفاده از اموجی به‌عنوان آیکون ممنوع (Anti §۲۱).**
+- **انیمیشن:** فقط با `motion` (نصب‌شده). import: `import { motion, AnimatePresence } from 'motion/react'`. به CSSِ `animate-fade-in`/`animate-shake` تکیه نشود (در `index.css` تعریف نشده‌اند).
+- **Mobile-only:** صفحه full-screen با `fixed inset-0`. از گریدهای Desktop (`md:`/`lg:`) برای چیدمان اصلی پرهیز شود (Anti §۲۶). رعایت Safe-Area (متغیرهای موجود در `index.css`).
+- **RTL:** `dir="rtl"`. جهت آیکون «بازگشت» به سمت راست/شروع باشد؛ `ChevronRightIcon` برای بازگشت (Anti §۳۶). بدون Horizontal overflow: `max-w-full` + `min-w-0` (Anti §۳۵).
+- **خطاها:** هر خطای شبکه/Supabase با پیام فارسی و افت تدریجی مدیریت شود؛ دکمه‌ی نهایی حالت loading داشته باشد (Anti §۲۱).
+- **معماری:** هر فایل یک مسئولیت (Anti §۱۱). بیزینس‌لاجیک نوشتن DB در سرویس، نه در کامپوننت (Anti §۱۳).
 
 ---
 
-# tasks.md — نقشه‌ی راه فاز G (Hexer AI)
-
-> فاز G = ۵ قابلیت UX/Feature. هر تسک خرد، متوالی و دارای آرایه‌ی `CONTEXT_FILES` با مسیرهای واقعیِ موجود است. تسک‌هایی که فایل مشترک (به‌ویژه `App.tsx`) را Read/Write می‌کنند **هرگز موازی نمی‌شوند**. جزئیات معماری در `ARCHITECTURE.md §۱۰`.
-
-## خلاصه‌ی نگاشت درخواست‌ها به تسک‌ها
-- تسک ۱ (نوتیفیکیشن) ⇒ G1.1 … G1.5
-- تسک ۲ (آکاردئون پروژه‌ها) ⇒ G2
-- تسک ۳ (مودال‌های موقت) ⇒ G3
-- تسک ۴ (لینک تسک↔یادداشت) ⇒ G4.1 … G4.3
-- تسک ۵ (داشبورد عادات) ⇒ G5.1 … G5.3
-
----
-
-## G1 — سیستم نوتیفیکیشن هوشمند تسک‌ها
-
-### تسک G1.1 — هندلرهای Push در Service Worker
-- **راهنمای پیاده‌سازی:** در `public/sw.js` افزودن `self.addEventListener('push', e => { const d = e.data?.json(); self.registration.showNotification(d.title, { body: d.body, dir: 'rtl', tag: d.tag, data: d.data }) })` و `notificationclick` (بستنِ notification، `clients.matchAll` برای focus، در نبودِ کلاینت `clients.openWindow('/')`). بامپ `CACHE_VERSION`.
-- **محدودیت‌ها:** فقط افزودن دو هندلر؛ استراتژی‌های cache/fetch موجود دست‌نخورده. هیچ pushِ واقعی اینجا ساخته نمی‌شود.
-- `CONTEXT_FILES: ["public/sw.js", "public/manifest.webmanifest"]`
-
-### تسک G1.2 — اسکیمای Push Subscriptions + RPC (SQL)
-- **راهنمای پیاده‌سازی:** ساخت `supabase/sql/34_push_subscriptions.sql` طبق `ARCHITECTURE.md §۱۰.۱` (جدول `push_subscriptions` + index + RLS بر `auth.uid()=user_id` + RPC `upsert_push_subscription` با `security definer`). فایل کاملاً Idempotent و آماده‌ی اجرای دستی در پنل Supabase.
-- **محدودیت‌ها:** بدون اتکا به CLI. `notify pgrst, 'reload schema'` در انتها. هیچ policy خواندنِ public.
-- `CONTEXT_FILES: ["supabase/sql/05_reminders.sql", "supabase/sql/30_telegram_notifications.sql"]`
-
-### تسک G1.3 — زمان‌بند سررسید + Edge `push-dispatch`
-- **راهنمای پیاده‌سازی:** ساخت `supabase/sql/35_reminder_dispatch.sql` (تابع/ویوِ یافتن تسک‌های زمان‌دارِ سررسیده‌ی پنجره‌ی جاری + دِدوپ با `reminders.is_sent` + زمان‌بندِ `pg_cron` که هر دقیقه با `net.http_post` تابع لبه را صدا می‌زند). ساخت `supabase/functions/push-dispatch/index.ts` که با `service_role` و VAPID از `Deno.env`، Web Push به subscriptionها می‌فرستد و `is_sent` را ست می‌کند؛ تلنگر روزانه را هم پوشش دهد.
-- **محدودیت‌ها:** کلید خصوصی VAPID فقط `Deno.env`. ارسال push فقط اینجا. هم‌سبکِ تریگر تلگرامِ موجود.
-- **وابستگی:** پس از G1.2.
-- `CONTEXT_FILES: ["supabase/sql/34_push_subscriptions.sql", "supabase/sql/30_telegram_notifications.sql", "supabase/sql/05_reminders.sql", "services/reminderService.ts"]`
-
-### تسک G1.4 — لایه‌ی سرویس کلاینت + متن تلنگر
-- **راهنمای پیاده‌سازی:** ویرایش `services/reminderService.ts`: افزودن `subscribeToPush(vapidPublicKey)` (استفاده از `serviceWorker.ready.pushManager.subscribe`)، `saveSubscription()` (صدا زدن RPC `upsert_push_subscription`)، و `showViaSW(title, body)`. ساخت `utils/notificationCopy.ts` (توابع خالص، آرایه‌ی کوچک کپی صمیمیِ نسل‌Z، چرخش بدون رباتیک‌بودن).
-- **محدودیت‌ها:** کلید عمومی VAPID از `import.meta.env.VITE_*`. خطا silent نه — مدیریت با پیام فارسی. متن‌ها فقط از util.
-- **وابستگی:** پس از G1.2 (RPC).
-- `CONTEXT_FILES: ["services/reminderService.ts", "services/supabaseClient.ts", "utils/dateUtils.ts", "vite.config.ts"]`
-
-### تسک G1.5 — هوک زمان‌بندِ Foreground + اتصال در App
-- **راهنمای پیاده‌سازی:** ساخت `hooks/useReminderScheduler.ts` (لایه A: `setTimeout` برای تسک‌های زمان‌دارِ امروز + تلنگر روزانه با ضدِ تکرارِ `localStorage` به‌وقت Tehran؛ پاکسازی timeoutها در cleanup؛ واکنش به `visibilitychange`/`online`). اتصال هوک در `App.tsx` و درخواست permission در لحظه‌ی طبیعی؛ ثبت subscription با `reminderService` اگر مرورگر پشتیبانی می‌کند.
-- **محدودیت‌ها:** هیچ نوتیفیکیشن دوتایی؛ تلنگر حداکثر ۱/روزِ Tehran؛ افت تدریجی اگر Push پشتیبانی نشد (فقط لایه A).
-- **وابستگی:** پس از G1.1 و G1.4. **روی `App.tsx` با G3/G4.1/G5 سریال است.**
-- `CONTEXT_FILES: ["App.tsx", "hooks/useReminderScheduler.ts", "services/reminderService.ts", "utils/notificationCopy.ts", "utils/dateUtils.ts", "contexts/DataContext.tsx", "hooks/useDataManager.ts"]`
+## تسک ۱ — ماژول داده‌ی اسلایدها
+**فایل جدید:** `features/onboarding/data/slides.tsx`
+**راهنمای پیاده‌سازی:**
+- یک type به نام `OnboardingSlide` تعریف کن: `{ id, Icon, title, body, highlight? }` که `Icon` کامپوننت آیکون از `components/icons.tsx` است.
+- آرایه‌ی `ONBOARDING_SLIDES` با دقیقاً ۵ اسلاید بساز (متن فارسی، بدون اموجی):
+  1. **معرفی و داشبورد** — آیکون `LayoutGridIcon`. خوش‌آمد + مرور سریع امکانات داشبورد.
+  2. **مدیریت کارها** — آیکون `ListChecksIcon`. ساخت تسک، تعیین تاریخ/ساعت برای نوتیفیکیشن، اتصال به پروژه/یادداشت، زیرتسک‌ها (Subtasks)، فیلتر بر اساس اولویت و پروژه.
+  3. **جادوی هوش مصنوعی** — آیکون `SparklesIcon` (و `MicrophoneIcon` به‌عنوان شاهد بصری). `highlight: true`. ارسال ویس برای ساخت خودکار تسک‌ها + Semantic Search با مثال ملموس: «اون روش برای بالا بردن سرعت سایت چی بود؟».
+  4. **یادداشت‌ها** — آیکون `NotebookIcon`. ساخت یادداشت، لینک به پروژه/تسک، تگ‌ها.
+  5. **پروژه‌ها** — آیکون `BriefcaseIcon`. ساخت پروژه، نمای یکپارچه‌ی تسک‌ها/یادداشت‌های متصل، درصد پیشرفت بر اساس تسک‌های انجام‌شده.
+**محدودیت‌های تسک:** فقط داده و type؛ هیچ stateای، هیچ صدا زدن DOM/Supabase. متن‌ها ثابت و فارسی.
+CONTEXT_FILES: ["components/icons.tsx", "types.ts"]
 
 ---
 
-## G2 — آکاردئون لیست پروژه‌ها در نمای کارها
-
-### تسک G2 — پیاده‌سازی ساختار آکاردئونی لایه‌ی نمایش تسک‌ها در TasksView
-- **راهنمای پیاده‌سازی:** بازآرایی فایل `features/tasks/TasksView.tsx` برای پیاده‌سازی آکاردئون بر روی گروه‌بندی پروژه‌ها (زمانی که `viewMode === 'project'` است). هدر هر گروه پروژه باید به یک باتن کلیک‌پذیر با ابعاد دسترسی مناسب (Tap Target ≥ 44px) تبدیل شود که شامل نام پروژه، تعداد کارهای فعال/کل، و یک آیکون متحرک `ChevronDownIcon` (با جابجایی زاویه چرخش در حالت‌های باز و بسته) باشد. استیت باز یا بسته بودن هر آکاردئون باید بر اساس ساختار داده‌ایِ `Record<string, boolean>` (کلید پروژه‌ها به مقدار Boolean) در `TasksView.tsx` مدیریت شود تا با تضمین Immutable بودن تغییرات، از باگ‌های رندری رفرنس ساید ریکت جلوگیری شود. مقدار پیش‌فرض آکاردئون‌ها در بارگذاری اولیه بسته (`false` یا غایب در دیکشنری) است، اما وضعیت توسعه‌یافتگی آکاردئون‌ها (Expanded State) به صورت زنده متناسب با ساختار فوق در `localStorage` ذخیره و بازیابی (Persist) شود. همچنین در صورت عدم وجود پروژه، گروه «بدون پروژه» در انتها رندر می‌شود.
-- **محدودیت‌ها و راهکار تله‌ی UX (بسیار مهم):** به دلیل رفتارهای سنکرون Optimistic UI کلاینت، اگر پیش‌فرض تمام آکاردئون‌ها «بسته» باشد، با ثبت تسک جدید توسط کاربر، کار جدید در دیتابیس محلی ساخته می‌شود اما از منظر کاربر ناپدید خواهد ماند، چون آکاردئون پروژه مربوطه بسته است و احساس باگ به کاربر القا می‌شود. **الزاماً** باید مکانیزمی با استفاده از `useEffect` پیاده‌سازی شود که با گوش دادن مستمر به تغییرات آرایه `tasks` (اضافه شدن تسک جدید با مقایسه شناسه با رفرنس حالت قبل)، به محض ساخته شدن تسک جدید در یک پروژه، آیدیِ آن پروژه را در استیت آکاردئون به حالت `true` (باز) درآورد تا کاربر بلافاصله تسک جدیدش را ببیند و آکاردئون خودکار Expand شود. استفاده از `Set<string>` به عنوان استیت بازآرایی به علت لزوم به تغییرات ایمیوتبل مطلقاً ممنوع است.
-- `CONTEXT_FILES: ["features/tasks/TasksView.tsx", "utils/taskGrouping.ts", "features/tasks/components/TaskCard.tsx", "features/tasks/components/TaskEditorModal.tsx", "components/icons.tsx", "contexts/DataContext.tsx", "types.ts"]`
-
----
-
-## G3 — سیستم مودال‌های موقت (Announcements)
-
-### تسک G3.1 — اسکلت پوشه، تایپ، config و storage
-- **راهنمای پیاده‌سازی:** ساخت `features/announcements/types.ts` (`AnnouncementMeta`), `features/announcements/config.ts` (۳ بازه‌ی Asia/Tehran + `MAX_PER_DAY=3`), `features/announcements/storage.ts` (هلپرهای `localStorage` کلیدخورده با `getTehranDateString`: impression هر بازه + `dismissedIds`+version), و `features/announcements/TemporaryModals/_Example.tsx` (الگوی `export default` + `export const meta`), و `features/announcements/TemporaryModals/archive/.gitkeep`.
-- **محدودیت‌ها:** مرز روز فقط با `utils/dateUtils.ts`. `localStorage` فقط برای ردگیری نمایش (مجاز). الگوی نمونه باید با `components/Modal.tsx` بسازد.
-- `CONTEXT_FILES: ["components/Modal.tsx", "utils/dateUtils.ts", "components/icons.tsx"]`
-
-### تسک G3.2 — کنترلر AnnouncementManager + اتصال در App
-- **راهنمای پیاده‌سازی:** ساخت `features/announcements/AnnouncementManager.tsx` با کشف خودکار `import.meta.glob('./TemporaryModals/*.tsx', { eager: true })` (آرشیو خودکار مستثنا)؛ اعمال سیاست ۳/روز در ۳ بازه؛ انتخاب بر اساس `priority`/`version`؛ رندر مودال منتخب و ثبت impression. اتصال `<AnnouncementManager />` در `App.tsx` (هم‌تراز مودال‌های سراسری).
-- **محدودیت‌ها:** بدون رجیستری دستی. مودال‌های `archive/` هرگز نمایش داده نشوند. سقف ۳/روز نشکند. **روی `App.tsx` با G1.5/G4.1/G5 سریال است.**
-- **وابستگی:** پس از G3.1.
-- `CONTEXT_FILES: ["App.tsx", "features/announcements/config.ts", "features/announcements/storage.ts", "features/announcements/types.ts", "components/Modal.tsx", "utils/dateUtils.ts"]`
+## تسک ۲ — سرویس پروفایل
+**فایل جدید:** `services/profileService.ts`
+**راهنمای پیاده‌سازی:**
+- دقیقاً الگوی سرویس‌های موجود (`taskService.ts`, `noteService.ts`) را دنبال کن: import از `services/supabaseClient.ts`.
+- تابع `completeOnboarding(fullName: string): Promise<void>` که روی جدول `profiles` این آپدیت را می‌زند: `{ full_name: fullName.trim(), onboarding_completed: true }` با `.eq('id', userId)`؛ `userId` را از `supabase.auth.getUser()` بگیر (یا به‌عنوان آرگومان بپذیر، هماهنگ با الگوی سرویس‌های دیگر). در صورت `error` آن را `throw` کن.
+- منطق دقیقِ آپدیت را از آنبوردینگ قدیمی (`components/Onboarding.tsx > handleSubmit`) عیناً تکرار کن (همان دو ستون).
+**محدودیت‌های تسک:** فقط لایه‌ی سرویس؛ بدون JSX. هیچ ستون اضافه‌ای آپدیت نشود (specialty/interests لازم نیستند چون از فلو حذف شده‌اند).
+CONTEXT_FILES: ["services/supabaseClient.ts", "services/taskService.ts", "services/noteService.ts", "components/Onboarding.tsx"]
 
 ---
 
-## G4 — بازطراحی فلوی لینک تسک↔یادداشت
-
-### تسک G4.1 — لایه‌ی داده: بازگشتِ موجودیت ساخته‌شده با حفظ Optimistic UI
-- **راهنمای پیاده‌سازی:** ویرایش `hooks/useDataManager.ts`: منطق سنکرون Optimistic UI (یعنی استفاده از tempId و نمایش آنی در لیست) باید کاملاً حفظ شود. اما توابع `addTask` و `addNote` باید علاوه بر به‌روزرسانی محلی آنی، به‌صورت نامتقارن پس از اتمام ریکوئست سرور، آبجکت نهایی دیتابیس (با آیدی واقعی) را در قالب `Promise<Task>` و `Promise<Note>` برگردانند (return کنند). ویرایش هندلرهای save در `App.tsx` (`handleSaveModalTask`/`handleSaveModalNote`) و `features/projects/ProjectsView.tsx` تا موجودیتِ ذخیره‌شده را `return`/`await` کنند (قرارداد `onSave: => Promise<Task|Note>`) تا در فلو ایجاد همزمان، از آیدی واقعی استفاده شود.
-- **محدودیت‌ها:** منطق سنکرون و آنی Optimistic UI (استفاده از `tempId` و نمایش فوری در لیست کلاینت) نباید بشکند یا آسیب ببیند. پروپاگیت مناسب مقدار برگشتی بدون هیچ رگرسیون در optimistic UI الزامی است. **هاتْ‌اسپات `App.tsx` — با G1.5/G3.2/G5 سریال.**
-- `CONTEXT_FILES: ["hooks/useDataManager.ts", "App.tsx", "features/projects/ProjectsView.tsx", "services/taskService.ts", "services/noteService.ts", "types.ts"]`
-
-### تسک G4.2 — لینک در حالت ایجاد + refactor LinkNotePicker (مودال تسک)
-- **راهنمای پیاده‌سازی:** ویرایش `features/tasks/components/LinkNotePicker.tsx` به الگوی انتخاب‌گر فقط با callbackِ `onSelect` (تاکید بر عدم فراخوانی مستقیم و مستقل `linkService` در زمان ایجاد/Draft تسک جدید). ویرایش `features/tasks/components/TaskEditorModal.tsx`: state `pendingLinkIds`؛ در حالت new انتخاب‌ها در pending جمع و به‌صورت چیپ نمایش؛ هنگام Save پس از دریافت `saved.id` (آیدی واقعی سرور) لینک‌ها کامیت (`commit`) شوند؛ حالت ویرایش بدون تغییرِ منطق فعلی.
-- **محدودیت‌ها:** در زمان ایجاد (Draft) تسک جدید، Picker نباید کلاینت را به صدا زدن مستقیم `linkService.linkTaskNote` وادار کند؛ ایجاد و ثبت نهایی لینک‌ها منوط و مشروط به ثبت موفقیت‌آمیز تسک در دیتابیس و دریافت شناسه واقعی آن از سرور است (commit لینک فقط پس از insert موفق تسک). استفاده از RPC `link_task_note` اتمیک. بدون رگرسیون UI ویرایش.
-- **وابستگی:** پس از G4.1. (با G4.3 فایل مشترک ندارد ⇒ قابل‌موازی.)
-- `CONTEXT_FILES: ["features/tasks/components/TaskEditorModal.tsx", "features/tasks/components/LinkNotePicker.tsx", "services/linkService.ts", "utils/dateUtils.ts", "types.ts"]`
-
-### تسک G4.3 — لینک در ایجاد + جابه‌جایی UI + refactor LinkTaskPicker (مودال یادداشت)
-- **راهنمای پیاده‌سازی:** ویرایش `features/notes/components/LinkTaskPicker.tsx` به الگوی `onSelect` (تاکید بر عدم فراخوانی مستقیم و مستقل `linkService` در زمان ایجاد/Draft یادداشت جدید). ویرایش `features/notes/components/NoteEditorModal.tsx`: (الف) `pendingLinkIds` و commit پس از دریافت `saved.id` (آیدی واقعی سرور) مشابه G4.2؛ (ب) **انتقال** بلوک «کارهای لینک‌شده + picker» از میان عنوان/بدنه به ناحیه‌ی متادیتای پایین (کنار تگ‌ها/پروژه)، هم‌ساختار با `TaskEditorModal`.
-- **محدودیت‌ها:** بخش لینک نباید در ناحیه‌ی نوشتنِ متن باشد (ناحیه‌ی نوشتن = فقط عنوان + بدنه). در زمان ایجاد (Draft) یادداشت جدید، Picker نباید کلاینت را به صدا زدن مستقیم `linkService.linkTaskNote` وادار کند؛ ایجاد و ثبت نهایی لینک‌ها منوط و مشروط به ثبت موفقیت‌آمیز یادداشت در دیتابیس و دریافت شناسه واقعی آن از سرور است (commit لینک فقط پس از insert موفق یادداشت).
-- **وابستگی:** پس از G4.1. (با G4.2 قابل‌موازی.)
-- `CONTEXT_FILES: ["features/notes/components/NoteEditorModal.tsx", "features/notes/components/LinkTaskPicker.tsx", "features/tasks/components/TaskEditorModal.tsx", "services/linkService.ts", "utils/dateUtils.ts", "types.ts"]`
+## تسک ۳ — کامپوننت ارائه‌ی یک اسلاید
+**فایل جدید:** `features/onboarding/components/SlideCard.tsx`
+**راهنمای پیاده‌سازی:**
+- یک کامپوننت presentational بدون state که یک `OnboardingSlide` را می‌گیرد و نمایش می‌دهد: آیکون بزرگ داخل یک badge گرادینتیِ ملایم، تیتر `text-2xl/3xl font-black`، و متن `text-neutral-400`. اگر `highlight` بود، قاب/گلوی متمایز (مثلاً border با رنگ معتبر مثل `border-sky-500/40`).
+- کاملاً responsive و mobile-first؛ `max-w-md mx-auto`.
+**محدودیت‌های تسک:** بدون منطق ناوبری/state؛ فقط props → UI.
+CONTEXT_FILES: ["features/onboarding/data/slides.tsx", "components/icons.tsx"]
 
 ---
 
-## G5 — داشبورد و مدیریت جامع عادات
-
-### تسک G5.1 — توابع خالص آماری عادت
-- **راهنمای پیاده‌سازی:** ساخت `utils/habitStats.ts`: `computeStreaks`, `weekdayBreakdown`, `monthlyTrend`, `weeklyHeatmap` — ورودی `completedDates: string[]` (YYYY-MM-DD)، همه Tehran-aware با `utils/dateUtils.ts`.
-- **محدودیت‌ها:** توابع کاملاً خالص و بدون side-effect؛ هیچ I/O؛ مرز روز/ماه با منطقه‌ی Tehran.
-- `CONTEXT_FILES: ["utils/dateUtils.ts", "services/habitService.ts", "types.ts"]`
-
-### تسک G5.2 — نمای آماری + فرم مشترک عادت
-- **راهنمای پیاده‌سازی:** ساخت `features/habits/components/HabitStatsView.tsx` (heatmap هفتگی، میله‌های ماهانه، نوار روزهای هفته، streak — همه با **SVG/CSS سبک**). استخراج فرم ویرایش به `features/habits/components/HabitForm.tsx` از روی `features/habits/components/HabitEditorModal.tsx`.
-- **محدودیت‌ها:** بدون کتابخانه‌ی چارت. کلاس‌های Tailwind معتبر، single-column. منطق آماری فقط از `utils/habitStats.ts`.
-- **وابستگی:** پس از G5.1.
-- `CONTEXT_FILES: ["utils/habitStats.ts", "features/habits/components/HabitEditorModal.tsx", "components/icons.tsx", "types.ts"]`
-
-### تسک G5.3 — مودال مدیر عادت + سوییچ در App
-- **راهنمای پیاده‌سازی:** ساخت `features/habits/components/HabitManagerModal.tsx` (new ⇒ فقط `HabitForm`؛ موجود ⇒ تب «آمار» با `HabitStatsView` و تب «مدیریت» با `HabitForm` + حذف کامل با تأیید؛ استفاده از `habitService`). ویرایش `App.tsx`: سوییچ مودال `editingHabit` از `HabitEditorModal` به `HabitManagerModal` (همان state `editingHabit`/`setEditingHabit`).
-- **محدودیت‌ها:** حذف با تأیید. بدون supabase مستقیم در کامپوننت. **هاتْ‌اسپات `App.tsx` — با G1.5/G3.2/G4.1 سریال.**
-- **وابستگی:** پس از G5.2.
-- `CONTEXT_FILES: ["App.tsx", "features/habits/components/HabitManagerModal.tsx", "features/habits/components/HabitStatsView.tsx", "features/habits/components/HabitForm.tsx", "services/habitService.ts", "contexts/DataContext.tsx", "features/dashboard/components/HabitTracker.tsx", "types.ts"]`
+## تسک ۴ — اسلایدر با انیمیشن (SlideViewer)
+**فایل جدید:** `features/onboarding/components/SlideViewer.tsx`
+**راهنمای پیاده‌سازی:**
+- props: `{ onFinish: () => void; onSkip: () => void }`. اسلایدها را از `ONBOARDING_SLIDES` بخوان.
+- index داخلی با `useState`. از `AnimatePresence` + `motion.div` برای ترانزیشن slide+fade استفاده کن (در RTL: ورود از سمت شروع، با `mode="wait"`).
+- نوار پیشرفت (progress dots/bar)، دکمه‌های «بعدی»/«قبلی»، و یک لینک «رد شدن» همیشه‌حاضر در هدر. در آخرین اسلاید دکمه‌ی اصلی = «بزن بریم تو کارش» که `onFinish` را صدا می‌زند؛ «رد شدن» → `onSkip`.
+- جهت آیکون‌ها مطابق RTL (Anti §۳۶).
+**محدودیت‌های تسک:** نوشتن در DB ممنوع (آن کارِ کانتینر است). فقط ناوبریِ بین اسلایدها + فراخوانی callback.
+CONTEXT_FILES: ["features/onboarding/data/slides.tsx", "features/onboarding/components/SlideCard.tsx", "components/icons.tsx", "package.json"]
 
 ---
 
-## ترتیب اجرای پیشنهادی (سریال‌سازیِ هاتْ‌اسپات `App.tsx`)
-1) G1.1 → G1.2 → G1.3 → G1.4 → G1.5
-2) G4.1 → (G4.2 ∥ G4.3)
-3) G3.1 → G3.2
-4) G5.1 → G5.2 → G5.3
-5) G2 (مستقل، هر زمان پس از آزاد بودن منابع)
-> همه‌ی تسک‌هایی که `App.tsx` را ویرایش می‌کنند (G1.5, G3.2, G4.1, G5.3) باید نسبت به هم **متوالی** اجرا شوند.
+## تسک ۵ — مرحله‌ی نام و صفحه‌ی انتخاب
+**فایل‌های جدید:**
+- `features/onboarding/components/NameStep.tsx`
+- `features/onboarding/components/WelcomeChoice.tsx`
+**راهنمای پیاده‌سازی:**
+- `NameStep`: دو input «نام» و «نام خانوادگی»، props: `{ onSubmit: (fullName: string) => void }`. اعتبارسنجی: هر دو غیرخالی؛ مقدار نهایی = `\`${first} ${last}\`.trim()` (در ستون موجود `full_name` ذخیره می‌شود؛ بدون مایگریشن). دکمه‌ی «ادامه» تا معتبر شدن disabled. خطای فارسی با `motion` نمایش داده شود.
+- `WelcomeChoice`: props: `{ name: string; onSeeWalkthrough: () => void; onSkip: () => void }`. پیام «سلام {name}! دوست داری ببینی چطور می‌تونی بهتر با برنامه کار کنی؟» + دو دکمه: «آره، نشونم بده» و «رد کن و برو به برنامه».
+**محدودیت‌های تسک:** بدون صدا زدن Supabase؛ فقط UI + callback. کلاس‌های Tailwind معتبر.
+CONTEXT_FILES: ["components/icons.tsx"]
+
+---
+
+## تسک ۶ — کانتینر / ماشین‌حالت آنبوردینگ
+**فایل جدید:** `features/onboarding/Onboarding.tsx`
+**راهنمای پیاده‌سازی:**
+- props دقیقاً مثل قبل: `{ userId: string; onComplete: () => void }` و `export const Onboarding` + `export default`.
+- state فاز: `'name' | 'choice' | 'slides'`. نام در state نگه داشته شود.
+- `finishOnboarding()` مشترک برای هر دو مسیر (Skip بعد از نام، و اتمام اسلایدها): `setLoading(true)` → `await profileService.completeOnboarding(fullName)` → در موفقیت `onComplete()`؛ در خطا پیام فارسی + بازماندن در همان فاز.
+- ترانزیشن بین فازها با `AnimatePresence`. کانتینر `fixed inset-0` با تم تیره و رعایت Safe-Area.
+- چون Skip و اتمام اسلایدها هر دو `onboarding_completed=true` را ست می‌کنند، آنبوردینگ دیگر تکرار نمی‌شود.
+**محدودیت‌های تسک:** کل نوشتن DB فقط از `profileService` (Anti §۱۳). این فایل ارکستریتور است؛ UIِ جزئیات در تسک‌های ۳/۴/۵ ساخته شده.
+CONTEXT_FILES: ["features/onboarding/components/NameStep.tsx", "features/onboarding/components/WelcomeChoice.tsx", "features/onboarding/components/SlideViewer.tsx", "services/profileService.ts", "components/icons.tsx"]
+
+---
+
+## تسک ۷ — اتصال به App و حذف آنبوردینگ قدیمی
+**فایل‌های هدف:** `App.tsx` (ویرایش)، `components/Onboarding.tsx` (حذف)
+**راهنمای پیاده‌سازی:**
+- در `App.tsx` فقط خط import را عوض کن: `import { Onboarding } from './components/Onboarding'` → `import { Onboarding } from './features/onboarding/Onboarding'`. بلوک استفاده (`if (isOnboarding && user) return <Onboarding userId={user.id} onComplete={...} />`) بدون تغییر می‌ماند.
+- فایل `components/Onboarding.tsx` را حذف کن.
+- مطمئن شو هیچ import دیگری به `components/Onboarding` در پروژه نمانده باشد (جستجوی سراسری).
+**محدودیت‌های تسک:** منطق گیت (`isOnboarding` از `useDataManager`) دست‌نخورده بماند. `App.tsx` نباید متورم شود (Anti §۱۱).
+CONTEXT_FILES: ["App.tsx", "features/onboarding/Onboarding.tsx", "components/Onboarding.tsx"]

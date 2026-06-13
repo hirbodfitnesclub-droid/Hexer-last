@@ -165,8 +165,19 @@ const AuthComponent: React.FC = () => {
         setMessage('کد یکبار مصرف بازیابی رمز عبور پیامک شد.');
       }
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || 'خطایی در پردازش اطلاعات رخ داد.');
+      console.error("Auth Error:", err);
+      let friendlyError = err.message || 'خطایی در پردازش اطلاعات رخ داد.';
+      
+      const errMsg = err.message?.toLowerCase() || '';
+      if (errMsg.includes('invalid login credentials') || errMsg.includes('invalid_grant')) {
+        friendlyError = 'شماره موبایل یا رمز عبور نادرست است. اگر هنوز ثبت‌نام نکرده‌اید، ابتدا گزینه‌ی «ثبت‌نام کنید» را بزنید.';
+      } else if (errMsg.includes('user not found')) {
+        friendlyError = 'حساب کاربری با این شماره یافت نشد. لطفاً ابتدا ثبت‌نام کنید.';
+      } else if (errMsg.includes('user already registered')) {
+        friendlyError = 'این شماره موبایل قبلاً ثبت‌نام شده است. لطفاً وارد شوید.';
+      }
+      
+      setError(friendlyError);
     } finally {
       setLoading(false);
     }
@@ -305,7 +316,7 @@ const AuthComponent: React.FC = () => {
         
         {/* Title Block */}
         <div className="text-center space-y-2">
-          <SparklesIcon className="w-10 h-10 mx-auto text-sky-400" />
+          <img src="/icon-192.png" alt="Hexer App Logo" className="w-16 h-16 mx-auto rounded-2xl object-cover shadow-lg border border-white/5" referrerPolicy="no-referrer" />
           <h1 className="text-xl font-bold text-white tracking-tight">به Hexer خوش اومدی</h1>
           <p className="text-xs text-gray-400">
             {mode === 'login' && 'وارد حساب کاربری خود شوید'}

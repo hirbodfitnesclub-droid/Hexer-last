@@ -23,12 +23,12 @@
 ## ۲. افزوده‌های اسکیما (Schema Δ)
 > فایل جدید `supabase/sql/20_refactor_schema.sql` (Idempotent). همه‌ی جداول جدید: `user_id` + RLS پایه `auth.uid() = user_id`.
 
-### ۲.۱. اصلاح `profiles` (رفع باگ Onboarding)
-دو ستونِ گم‌شده که فرم Onboarding جمع می‌کند ولی جایی برای ذخیره ندارد:
-| ستون | نوع | توضیح |
-|------|-----|------|
-| specialty | text null | تخصص کاربر (مرحله‌ی ۲ Onboarding) |
-| interests | text[] default '{}' | علایق (مرحله‌ی ۳ Onboarding) |
+### ۲.۱. ~~اصلاح `profiles` (افزودن specialty/interests)~~ — Deprecated (لغو شد)
+> **وضعیت: منسوخ.** در بازطراحی آنبوردینگ (Educational Walkthrough)، سؤالات «تخصص» و «علایق/وایب» از فلو حذف شدند. بنابراین افزودن ستونهای `specialty` و `interests` **لازم نیست و انجام نمیشود**.
+>
+> آنبوردینگ جدید فقط «نام و نام خانوادگی» را میگیرد و آن را در ستونِ **از قبل موجودِ** `profiles.full_name` ذخیره میکند. وضعیت دیدهشدن آنبوردینگ هم با ستونِ از قبل موجودِ `profiles.onboarding_completed` کنترل میشود.
+>
+> **هیچ مایگریشن دیتابیسی برای آنبوردینگ لازم نیست.**
 
 ### ۲.۲. لینک دوطرفه — `task_note_links`
 جدول واسط که از هر دو سمت کوئری می‌شود.
@@ -218,6 +218,21 @@ Request
 ├── services/        (geminiService به‌عنوان تنها لایه‌ی AI؛ حذف triggerVectorization از task/noteService)
 └── utils/           (dateUtils.ts, imageUtils.ts[جدید], taskGrouping.ts[جدید])
 ```
+
+### آنبوردینگ (Educational Walkthrough) — منطق مسیردهی
+
+- **محل ماژول:** `features/onboarding/` (همراستا با ساختار feature-based پروژه).
+  - `features/onboarding/Onboarding.tsx` — کانتینر/ماشینحالت (`name → choice → slides`). قرارداد props: `{ userId: string; onComplete: () => void }` و خروجی `Onboarding` (named) + `default`.
+  - `features/onboarding/components/NameStep.tsx` — گرفتن نام و نام خانوادگی (ترکیب در `full_name`).
+  - `features/onboarding/components/WelcomeChoice.tsx` — صفحهی انتخاب «نشونم بده» / «رد شدن».
+  - `features/onboarding/components/SlideViewer.tsx` — اسلایدر با `motion` (`AnimatePresence`)، نوار پیشرفت، ناوبری.
+  - `features/onboarding/components/SlideCard.tsx` — ارائهی یک اسلاید (presentational).
+  - `features/onboarding/data/slides.tsx` — دادهی ۵ اسلاید (آیکونها از `components/icons.tsx`، بدون اموجی).
+- **لایهی سرویس:** نوشتن در DB فقط از `services/profileService.ts` انجام میشود؛
+  `completeOnboarding(fullName)` ستونهای `{ full_name, onboarding_completed: true }` را روی ردیفِ `profiles` کاربر آپدیت میکند (الگوی `taskService`/`noteService`). کامپوننتها هرگز مستقیم `supabase.from('profiles').update(...)` صدا نمیزنند.
+- **گیت آنبوردینگ (بدون تغییر):** `hooks/useDataManager.ts > loadInitial` مقدار `profiles.onboarding_completed` را میخواند؛ اگر `=== false` بود `setIsOnboarding(true)`. در `App.tsx > MainApp` خطِ `if (isOnboarding && user) return <Onboarding .../>` بهعنوان full-screen takeover **قبل از** لِیاوت اصلی (NetworkBanner / viewport / BottomNav / Modalها) رندر میشود؛ پس روی روتینگ و BottomNav اثری ندارد.
+- **منبع حقیقت State:** فقط `profiles.onboarding_completed` در Supabase. استفاده از `localStorage` برای این پرچم ممنوع است (Anti-Pattern §۸).
+- **حذفشده:** `components/Onboarding.tsx` (آنبوردینگ پروفایلمحور قدیمی) حذف شد؛ تنها مرجع import آن در `App.tsx` به مسیر جدید تغییر کرد.
 
 ---
 

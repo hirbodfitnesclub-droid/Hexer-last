@@ -22,7 +22,7 @@ import TaskEditorModal from './features/tasks/components/TaskEditorModal';
 import NoteEditorModal from './features/notes/components/NoteEditorModal';
 import { HabitManagerModal } from './features/habits/components/HabitManagerModal';
 import { PaywallModal } from './components/PaywallModal';
-import { Onboarding } from './components/Onboarding';
+import { Onboarding } from './features/onboarding/Onboarding';
 import { NetworkBanner } from './components/NetworkBanner';
 import { ToastNotifications } from './components/ui/ToastNotifications';
 import * as billingService from './services/billingService';

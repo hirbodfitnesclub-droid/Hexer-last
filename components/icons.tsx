@@ -44,14 +44,12 @@ export const NotebookIcon: React.FC<IconProps> = ({ className }) => (
 );
 
 export const SparklesIcon: React.FC<IconProps> = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
-        <path d="M18 10h.01"></path>
-        <path d="M12 18h.01"></path>
-        <path d="M20 14h.01"></path>
-        <path d="M6 10h.01"></path>
-        <path d="M10 6h.01"></path>
-    </svg>
+  <img 
+    src="/ai-stars.png" 
+    alt="AI Stars" 
+    className={`${className || ''} object-contain inline-block scale-[1.35] origin-center`} 
+    referrerPolicy="no-referrer" 
+  />
 );
 
 export const SendIcon: React.FC<IconProps> = ({ className }) => (
