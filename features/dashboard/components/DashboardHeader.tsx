@@ -19,6 +19,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   
   const displayName = (profile?.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || '').trim();
   const avatarLetter = displayName ? displayName.charAt(0).toUpperCase() : null;
+  const firstName = displayName ? displayName.split(/\s+/)[0] : 'رفیق';
   
   const size = 44; 
   const strokeWidth = 3; 
@@ -90,7 +91,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           </button>
           
           <div className="flex flex-col justify-center">
-            <span className="text-white font-bold text-sm sm:text-base leading-none">سلام رفیق</span>
+            <span className="text-white font-bold text-sm sm:text-base leading-none">سلام {firstName}</span>
             <span className="text-gray-400 text-[10px] font-medium mt-1 leading-none">
               {hasTasksToday 
                 ? (isComplete ? 'همه کارها تموم شد! 🎉' : `${todayProgress}% کارهای انجام‌شده`) 
