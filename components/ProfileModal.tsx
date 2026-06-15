@@ -2,6 +2,8 @@ import React, { useState, useRef } from 'react';
 import { User } from '@supabase/supabase-js';
 import { UserIcon, XIcon, ShieldIcon, BellIcon, MoonIcon, LogOutIcon, DownloadIcon, UploadIcon, CheckIcon, BotIcon } from './icons';
 import { exportUserData, importUserData } from '../services/backupService';
+import { requestNotificationPermission, subscribeToPush, saveSubscription } from '../services/reminderService';
+import { motion, AnimatePresence } from 'motion/react';
 import SubscriptionModal from '../features/billing/components/SubscriptionModal';
 import SupportTicketModal from './SupportTicketModal';
 
@@ -20,6 +22,70 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
     const [status, setStatus] = useState<{ type: 'success' | 'error' | 'loading' | null; message: string }>({ type: null, message: '' });
     const [isSubModalOpen, setIsSubModalOpen] = useState(false);
     const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
+
+    // --- Notification States for Task H11 ---
+    const [permissionState, setPermissionState] = useState<NotificationPermission>(() => 
+        typeof window !== 'undefined' && 'Notification' in window 
+            ? Notification.permission 
+            : 'default'
+    );
+    const [showIosGuide, setShowIosGuide] = useState(false);
+
+    const handleToggleNotification = async () => {
+        if (typeof window === 'undefined' || !('Notification' in window)) {
+            setStatus({ type: 'error', message: 'مرورگر شما از نوتیفیکیشن پشتیبانی نمی‌کند.' });
+            return;
+        }
+
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+        const isStandalone = (window.navigator as any).standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+
+        if (isIOS && !isStandalone) {
+            setShowIosGuide(prev => !prev);
+            return;
+        }
+
+        if (Notification.permission === 'granted') {
+            setStatus({ type: 'success', message: 'یادآورهای هوشمند هم‌اکنون برای شما فعال هستند.' });
+            return;
+        }
+
+        if (Notification.permission === 'denied') {
+            setStatus({ type: 'error', message: 'دسترسی در مرورگر مسدود شده است، از تنظیمات مرورگر باز کنید.' });
+            return;
+        }
+
+        setStatus({ type: 'loading', message: 'در حال درخواست مجوز نوتیفیکیشن...' });
+        try {
+            const granted = await requestNotificationPermission();
+            setPermissionState(Notification.permission);
+            
+            if (!granted) {
+                setStatus({ type: 'error', message: 'مجوز نوتیفیکیشن صادر نشد.' });
+                return;
+            }
+
+            const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+            if (!vapidKey) {
+                console.warn('[Push] VITE_VAPID_PUBLIC_KEY is not defined.');
+                setStatus({ type: 'success', message: 'مجوز صادر شد. (کلید عمومی پیکربندی نشده است)' });
+                return;
+            }
+
+            setStatus({ type: 'loading', message: 'در حال ثبت اشتراک در سرور... ⏳' });
+            const sub = await subscribeToPush(vapidKey);
+            if (sub) {
+                await saveSubscription(sub);
+                setStatus({ type: 'success', message: 'فعال‌سازی با موفقیت انجام شد!' });
+                localStorage.setItem('hexer-notification-prompt-dismissed', 'true');
+            } else {
+                setStatus({ type: 'success', message: 'مجوز صادر شد اما ثبت اشتراک در این مرورگر مقدور نیست.' });
+            }
+        } catch (error: any) {
+            console.error('[Notification Setup Error]', error);
+            setStatus({ type: 'error', message: error.message || 'خطا در فعال‌سازی نوتیفیکیشن' });
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -146,14 +212,81 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                                 <span className="text-xs text-neutral-300 font-bold">پشتیبانی و ارسال تیکت</span>
                             </div>
                         </button>
-                        <button disabled className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-neutral-900/50 transition-all group cursor-not-allowed opacity-50">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-amber-500/10 rounded-lg text-amber-400">
-                                    <BellIcon className="w-4 h-4" />
+                        {/* مدیریت نوتیفیکیشن‌ها - تسک H11 */}
+                        <div className="space-y-2">
+                            <button 
+                                type="button"
+                                onClick={handleToggleNotification}
+                                disabled={permissionState === 'denied'}
+                                className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all group active:scale-[0.98] ${
+                                    permissionState === 'denied' 
+                                        ? 'bg-neutral-900/30 opacity-50 cursor-not-allowed' 
+                                        : 'hover:bg-neutral-900/50 cursor-pointer'
+                                }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded-lg ${
+                                        permissionState === 'granted' 
+                                            ? 'bg-emerald-500/10 text-emerald-400' 
+                                            : permissionState === 'denied'
+                                            ? 'bg-red-500/10 text-red-500'
+                                            : 'bg-amber-500/10 text-amber-400'
+                                    }`}>
+                                        <BellIcon className="w-4 h-4" />
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-xs text-neutral-300 font-semibold">
+                                            {permissionState === 'granted' ? 'یادآورهای فعال' : 'روشن کردن یادآورها'}
+                                        </div>
+                                        <div className="text-[10px] text-neutral-500 font-medium">
+                                            {permissionState === 'granted' 
+                                                ? 'نوتیفیکیشن هوشمند فعال است' 
+                                                : permissionState === 'denied'
+                                                ? 'دسترسی در مرورگر مسدود شده است'
+                                                : 'دریافت یادآورهای هوشمند کارها'}
+                                        </div>
+                                    </div>
                                 </div>
-                                <span className="text-xs text-neutral-300 font-bold">مدیریت هشدارهای هوشمند</span>
-                            </div>
-                        </button>
+                                {permissionState === 'granted' && (
+                                    <span className="text-[9px] bg-emerald-500/10 text-emerald-400 px-2.5 py-0.5 rounded-full font-bold">فعال</span>
+                                )}
+                                {permissionState === 'denied' && (
+                                    <span className="text-[9px] bg-red-500/10 text-red-500 px-2.5 py-0.5 rounded-full font-bold">مسدود</span>
+                                )}
+                            </button>
+
+                            {/* iOS installation walkthrough guide */}
+                            <AnimatePresence>
+                                {showIosGuide && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        transition={{ duration: 0.25 }}
+                                        className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 space-y-2.5 overflow-hidden text-right"
+                                    >
+                                        <div className="text-xs font-black text-sky-400 flex items-center gap-2">
+                                            <BellIcon className="w-3.5 h-3.5 inline" />
+                                            <span>پیش‌نیاز نوتیفیکیشن در آیفون (iOS)</span>
+                                        </div>
+                                        <p className="text-[10px] leading-relaxed text-neutral-400">
+                                            به دلیل تمایز سیستم‌عامل iOS، لطفاً جهت دریافت هشدارها ابتدا برنامه را به صفحه اصلی خود اضافه کنید:
+                                        </p>
+                                        <ol className="list-decimal list-inside text-[10px] text-neutral-300 space-y-1.5 pr-1 font-medium leading-relaxed">
+                                            <li>
+                                                دکمه‌ی اشتراک‌گذاری پایین سافاری (<span className="text-sky-400 font-semibold">Share</span>) را کلیک کنید.
+                                            </li>
+                                            <li>
+                                                اسکرول کنید و گزینه‌ی <span className="text-sky-400 font-semibold">«افزودن به صفحه اصلی (Add to Home Screen)»</span> را لمس کنید.
+                                            </li>
+                                            <li>
+                                                اپلیکیشن را از روی صفحه اصلی جدید باز کرده و مجدداً برای فعال‌سازی در این بخش تلاش کنید.
+                                            </li>
+                                        </ol>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
                         <button disabled className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-neutral-900/50 transition-all group cursor-not-allowed opacity-50">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-sky-500/10 rounded-lg text-sky-400">

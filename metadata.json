@@ -1,6 +1,6 @@
 {
-  "name": "hexer 1.83",
-  "description": "ادامه دیباگ و بهبود",
+  "name": "hexer 1.865",
+  "description": "شروع ریفکتور جدید",
   "requestFramePermissions": [
     "microphone",
     "camera"

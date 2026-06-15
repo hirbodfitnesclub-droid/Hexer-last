@@ -1,13 +1,23 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Page, Task, Note, Project, Habit, ActionResult } from './types';
 import BottomNav from './components/BottomNav';
 import Dashboard from './features/dashboard/Dashboard';
 import TasksView from './features/tasks/TasksView';
 import NotesView from './features/notes/NotesView';
-import ChatView from './features/chat/ChatView';
-import ProjectsView from './features/projects/ProjectsView';
-import { SubscriptionPage } from './features/billing/pages/SubscriptionPage';
+
+
+// Lazy loaded heavy views
+const ChatView = lazy(() => import('./features/chat/ChatView'));
+const ProjectsView = lazy(() => import('./features/projects/ProjectsView'));
+const SubscriptionPage = lazy(() => import('./features/billing/pages/SubscriptionPage').then(module => ({ default: module.SubscriptionPage })));
+
+const LoadingSpinner: React.FC = () => (
+  <div className="flex items-center justify-center h-full min-h-[200px]" id="suspense-loader">
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-sky-500"></div>
+  </div>
+);
+
 import { RenewReminderModal } from './features/billing/components/RenewReminderModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AuthComponent from './components/Auth';
@@ -27,6 +37,7 @@ import { NetworkBanner } from './components/NetworkBanner';
 import { ToastNotifications } from './components/ui/ToastNotifications';
 import * as billingService from './services/billingService';
 import { AnnouncementManager } from './features/announcements/AnnouncementManager';
+import { useOfflineSync } from './hooks/useOfflineSync';
 
 const MainApp: React.FC = () => {
   const { user } = useAuth();
@@ -108,24 +119,19 @@ const MainApp: React.FC = () => {
 
     const setupPushManager = async () => {
       try {
-        const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || 'BFgEnQ8yaJp58UZY8YVQ7NdOjp1Kovib68ty3jmafE7pNg_LzU8YBJJug3DfGBmpAtQ4oT-eovkH_PW5bE8wvkk';
-        if (!import.meta.env.VITE_VAPID_PUBLIC_KEY) {
-          console.log('[Push] VITE_VAPID_PUBLIC_KEY environment variable is not defined. Using dynamic fallback key.');
-        }
+        const { pruneShown } = await import('./services/reminderService');
+        // Clean cached notification IDs older than 48 hours is done in background
+        pruneShown().catch(err => console.warn('[DB] Failed to prune shown alerts:', err));
 
-        // Only ask/subscribe if the client browser supports PushManager
-        if ('serviceWorker' in navigator && 'PushManager' in window) {
-          const isGranted = await requestNotificationPermission();
-          if (isGranted) {
-            const subscription = await subscribeToPush(vapidKey);
-            if (subscription) {
-              await saveSubscription(subscription);
-              console.log('[Push] User registration stored & sync completed successfully.');
-            }
-          }
+        const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+        if (!vapidKey) {
+          console.warn('[Push] VITE_VAPID_PUBLIC_KEY is not defined. Bypassing background push setup.');
+          return;
         }
+        // به هیچ وجه در اینجا requestNotificationPermission یا subscribeToPush را صدا نزن.
+        // این کار بعداً با کلیک صریح کاربر (در تسک H11) انجام خواهد شد.
       } catch (err) {
-        console.warn('[Push] Setup degraded gracefully with fallback to foreground:', err);
+        console.warn('[Push] Setup degraded gracefully:', err);
       }
     };
 
@@ -247,19 +253,25 @@ const MainApp: React.FC = () => {
         );
       case Page.Projects:
         return (
-          <ProjectsView />
+          <Suspense fallback={<LoadingSpinner />}>
+            <ProjectsView />
+          </Suspense>
         );
       case Page.Subscription:
         return (
-          <SubscriptionPage />
+          <Suspense fallback={<LoadingSpinner />}>
+            <SubscriptionPage />
+          </Suspense>
         );
       case Page.Chat:
         return (
-          <ChatView 
-            onEditTask={handleEditTask} 
-            onEditNote={handleEditNote} 
-            onEditProject={handleEditProject} 
-          />
+          <Suspense fallback={<LoadingSpinner />}>
+            <ChatView 
+              onEditTask={handleEditTask} 
+              onEditNote={handleEditNote} 
+              onEditProject={handleEditProject} 
+            />
+          </Suspense>
         );
       default:
         return (
