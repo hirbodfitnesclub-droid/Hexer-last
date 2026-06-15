@@ -2,14 +2,14 @@
 import { useEffect, useRef } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
-import { showViaSW } from '../services/reminderService';
+import { showViaSW, checkIfShownAndRegister } from '../services/reminderService';
 import { getRandomDailyNudge } from '../utils/notificationCopy';
 import { getTehranDateString, isSameTehranDay } from '../utils/dateUtils';
 
 /**
  * React hook to schedule foreground (Layer A) reminders:
- * 1. Timed tasks due today: setTimeout scheduling with deduplication support via useRef.
- * 2. Daily nudge: Trigger if Tehran hour >= 9 and not yet sent today.
+ * 1. Timed tasks due today: setInterval periodic polling with exact margin setup and catch-up.
+ * 2. Daily nudge: Check hourly daylight threshold on Tehran time.
  */
 export function useReminderScheduler() {
   const { user } = useAuth();
@@ -27,114 +27,110 @@ export function useReminderScheduler() {
       timeoutsRef.current = [];
     };
 
-    clearScheduledReminders();
-
-    const todayStr = getTehranDateString();
-    const nowMs = Date.now();
-
-    // ------------------------------------------
-    // A. Schedule Timed Task Reminders for Today
-    // ------------------------------------------
-    const todayTasks = tasks.filter(
-      (task) =>
-        !task.completed &&
-        task.due_date &&
-        isSameTehranDay(task.due_date, new Date())
-    );
-
-    todayTasks.forEach((task) => {
-      if (!task.due_date) return;
-      const dueMs = new Date(task.due_date).getTime();
-      
-      // If task has a specific hour/time parts (due date is in the future today)
-      if (dueMs > nowMs && !notifiedTaskIdsRef.current.has(task.id)) {
-        const delay = dueMs - nowMs;
-        
-        console.log(`[Scheduler] Scheduling reminder for task: "${task.title}" in ${Math.round(delay / 1000)}s`);
-
-        const tId = window.setTimeout(async () => {
-          if (notifiedTaskIdsRef.current.has(task.id)) return;
-          notifiedTaskIdsRef.current.add(task.id);
-          
-          await showViaSW(task.title, task.description || 'زمان انجام این کار فرا رسیده است.', {
-            tag: `task-${task.id}`,
-            data: { taskId: task.id }
-          });
-        }, delay);
-
-        timeoutsRef.current.push(tId);
-      }
-    });
-
-    // ------------------------------------------
-    // B. Calculate and Trigger Tehran-aware Daily Nudge
-    // ------------------------------------------
-    const triggerDailyNudgeText = async () => {
+    const evaluate = async () => {
       try {
-        const lastNudgeDate = localStorage.getItem('hexer_last_daily_nudge_date');
-        if (lastNudgeDate === todayStr) {
-          return; // Already nudged today
+        const nowMs = Date.now();
+        const todayStr = getTehranDateString();
+
+        // ------------------------------------------
+        // A. Filter and evaluate tasks due today
+        // ------------------------------------------
+        const todayTasks = tasks.filter(
+          (task) =>
+            !task.completed &&
+            task.due_date &&
+            isSameTehranDay(task.due_date, new Date())
+        );
+
+        for (const task of todayTasks) {
+          if (!task.due_date) continue;
+          const dueMs = new Date(task.due_date).getTime();
+          const taskMessageId = `task-${task.id}-${dueMs}`;
+
+          // CASE 1: Task is already overdue (Catch-up / Recovery)
+          if (dueMs <= nowMs) {
+            if (!notifiedTaskIdsRef.current.has(taskMessageId)) {
+              notifiedTaskIdsRef.current.add(taskMessageId);
+              const isShown = await checkIfShownAndRegister(taskMessageId);
+              if (!isShown) {
+                console.log(`[Scheduler] Firing overdue catch-up task: "${task.title}"`);
+                await showViaSW(task.title, task.description || 'زمان انجام این کار فرا رسیده است.', {
+                  tag: `task-${task.id}`,
+                  messageId: taskMessageId,
+                  data: { taskId: task.id }
+                });
+              }
+            }
+          }
+          // CASE 2: Task is upcoming within the next 60 seconds (Dynamic exact margin Reservation)
+          else if (dueMs > nowMs && dueMs <= nowMs + 60000) {
+            if (!notifiedTaskIdsRef.current.has(taskMessageId)) {
+              notifiedTaskIdsRef.current.add(taskMessageId);
+              const delay = dueMs - nowMs;
+              console.log(`[Scheduler] Reserving task "${task.title}" to fire exactly in ${Math.round(delay / 1000)}s`);
+
+              const tId = window.setTimeout(async () => {
+                const isShown = await checkIfShownAndRegister(taskMessageId);
+                if (!isShown) {
+                  await showViaSW(task.title, task.description || 'زمان انجام این کار فرا رسیده است.', {
+                    tag: `task-${task.id}`,
+                    messageId: taskMessageId,
+                    data: { taskId: task.id }
+                  });
+                }
+              }, delay);
+
+              timeoutsRef.current.push(tId);
+            }
+          }
         }
 
-        // Get current Tehran hour
-        const nowTehranString = new Intl.DateTimeFormat('en-US', {
-          timeZone: 'Asia/Tehran',
-          hour: 'numeric',
-          hour12: false
-        }).format(new Date());
-        
-        const tehranHour = parseInt(nowTehranString, 10) || 0;
-
-        if (tehranHour >= 9) {
-          // If daylight hour is met, showcase instantly
-          const nudgeCopy = getRandomDailyNudge();
-          await showViaSW("👋 یادآوری روزانه", nudgeCopy, {
-            tag: `daily-nudge-${user.id}`,
-            data: { type: 'daily_nudge' }
-          });
-          localStorage.setItem('hexer_last_daily_nudge_date', todayStr);
-          console.log('[Scheduler] Direct Daily nudge triggered successfully.');
-        } else {
-          // Calculate delay until 9:00 AM Tehran today
-          const nowInTehran = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Tehran' }));
-          const targetInTehran = new Date(nowInTehran);
-          targetInTehran.setHours(9, 0, 0, 0);
+        // ------------------------------------------
+        // B. Evaluate and Trigger Tehran-aware Daily Nudge
+        // ------------------------------------------
+        const lastNudgeDate = localStorage.getItem('hexer_last_daily_nudge_date');
+        if (lastNudgeDate !== todayStr) {
+          // Get current Tehran hour
+          const nowTehranString = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'Asia/Tehran',
+            hour: 'numeric',
+            hour12: false
+          }).format(new Date());
           
-          const targetDelay = targetInTehran.getTime() - nowInTehran.getTime();
-          if (targetDelay > 0) {
-            console.log(`[Scheduler] Nudge scheduled for later today (Tehran 9:00 AM) in ${Math.round(targetDelay / 1000)}s`);
-            
-            const nudgeTId = window.setTimeout(async () => {
-              const currentTodayStr = getTehranDateString();
-              const doubleCheckLastNudge = localStorage.getItem('hexer_last_daily_nudge_date');
-              if (doubleCheckLastNudge === currentTodayStr) return;
+          const tehranHour = parseInt(nowTehranString, 10) || 0;
 
-              const nudgeCopy = getRandomDailyNudge();
-              await showViaSW("👋 یادآوری روزانه", nudgeCopy, {
-                tag: `daily-nudge-${user.id}`,
-                data: { type: 'daily_nudge' }
-              });
-              localStorage.setItem('hexer_last_daily_nudge_date', currentTodayStr);
-              console.log('[Scheduler] Timeout Daily nudge triggered.');
-            }, targetDelay);
-
-            timeoutsRef.current.push(nudgeTId);
+          if (tehranHour >= 9) {
+            const nudgeMessageId = `nudge-${user.id}-${todayStr}`;
+            if (!notifiedTaskIdsRef.current.has(nudgeMessageId)) {
+              notifiedTaskIdsRef.current.add(nudgeMessageId);
+              const isShown = await checkIfShownAndRegister(nudgeMessageId);
+              if (!isShown) {
+                const nudgeCopy = getRandomDailyNudge();
+                console.log('[Scheduler] Dispatching daily nudge.');
+                await showViaSW("👋 یادآوری روزانه", nudgeCopy, {
+                  tag: `daily-nudge-${user.id}`,
+                  messageId: nudgeMessageId,
+                  data: { type: 'daily_nudge' }
+                });
+              }
+              localStorage.setItem('hexer_last_daily_nudge_date', todayStr);
+            }
           }
         }
       } catch (err) {
-        console.warn('Error scheduling/triggering daily nudge:', err);
+        console.warn('[Scheduler] Evaluation error cycle bypassed:', err);
       }
     };
 
-    triggerDailyNudgeText();
+    // Run evaluation immediately upon startup
+    evaluate();
 
-    // ------------------------------------------
-    // C. Re-sync listeners on screen visibility / internet offline recovery
-    // ------------------------------------------
+    const intervalId = window.setInterval(evaluate, 60000);
+
+    // Re-sync listeners on screen visibility / internet offline recovery
     const handleSyncReset = () => {
-      console.log('[Scheduler] System sync trigger (online/visible) - re-evaluating reminders.');
-      // Re-triggering useEffect closure
-      clearScheduledReminders();
+      console.log('[Scheduler] System sync trigger (online/visible) - evaluating reminders.');
+      evaluate();
     };
 
     window.addEventListener('visibilitychange', handleSyncReset);
@@ -142,6 +138,7 @@ export function useReminderScheduler() {
 
     return () => {
       clearScheduledReminders();
+      window.clearInterval(intervalId);
       window.removeEventListener('visibilitychange', handleSyncReset);
       window.removeEventListener('online', handleSyncReset);
     };

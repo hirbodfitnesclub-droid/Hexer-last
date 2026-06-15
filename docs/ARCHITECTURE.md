@@ -744,3 +744,193 @@ notify pgrst, 'reload schema';
 - **`App.tsx`** توسط G1.5، G3، G4.1 و G5 لمس می‌شود ⇒ این تسک‌ها روی `App.tsx` **سریال** اجرا شوند (هرگز موازی).
 - G2 (پروژه‌ها)، G3 (announcements به‌جز mount در App)، و G5 (به‌جز App) عمدتاً فایل‌های مجزا دارند و پس از آزاد شدنِ `App.tsx` می‌توانند مستقل پیش بروند.
 - G4.2 و G4.3 پس از G4.1 فایل‌های مجزا دارند (مودال/پیکر مختص خود) و می‌توانند موازی شوند.
+
+
+---
+
+# ۱۱. فاز H — نقشهٔ مهندسی (نوتیفیکیشنِ پایدار، آفلاین/PWA، پرفورمنسِ لود)
+
+> پروژه از قبل موجود است؛ کلِ درختِ فایل دوباره ترسیم نمی‌شود. فقط منطقِ مسیردهی و مسیرِ دقیقِ فایل‌های جدید/ویرایش‌شده ذکر می‌شود. جزئیات قابلِ پیاده‌سازی در `tasks.md` (H1–H12).
+
+## ۱۱.۰. وضعیت موجودِ مرتبط (Snapshot — برای زمینه، نه تغییر)
+- **نوتیفیکیشن:** `hooks/useReminderScheduler.ts` (Foreground/setTimeout + nudge) · `services/reminderService.ts` (permission, subscribe, `showViaSW`, `saveSubscription`) · `public/sw.js` (push + showNotification) · `supabase/functions/push-dispatch/index.ts` (دیسپچِ سرور) · `supabase/sql/34_push_subscriptions.sql` · `supabase/sql/35_reminder_dispatch.sql` + `35.5` (view/cron). اتصالِ Push در `App.tsx` (با تأخیرِ ۳ ثانیه). لیسنرِ `reminders` در `hooks/useRealtimeSync.ts`.
+- **آفلاین:** `hooks/useNetworkStatus.ts` + `components/NetworkBanner.tsx` (فقط نشانگر، بدون منطق) · `services/supabaseClient.ts` · لایهٔ CRUDِ خوش‌بینانه در `hooks/useDataManager.ts`.
+- **پرفورمنس:** `loadInitial` در `hooks/useDataManager.ts` (Promise.all ۷تایی، بدون limit) · `services/{task,note,project,habit}Service.ts` (`select('*')`) · `index.html` (importmap + Tailwind CDN) · `vite.config.ts` (بدون Tailwind/code-split).
+- **اسکیما:** `tasks(embedding vector(768))`, `notes(embedding ...)`, ایندکس‌های `idx_*_user_id`؛ بدونِ ایندکسِ ترکیبیِ `(user_id, created_at)` یا `(user_id, due_date)`.
+
+---
+
+## ۱۱.الف. بازطراحیِ نوتیفیکیشن — معماری دو-لایهٔ «بدون شکاف»
+
+**اصلِ طراحی:** جدولِ `reminders` = **دفترِ کلِ یکتا (Outbox/Ledger)**. هر دو لایه با همین دفتر dedup می‌شوند. سرور موتورِ قطعیِ «اپ‌بسته» است؛ Foreground بهبودِ «اپ‌باز» است. هیچ نوتیفیکیشنی دوبار شلیک نمی‌شود.
+
+### ۱۱.الف.۱. لایهٔ سرور (وقتی اپ بسته است) — تثبیتِ خطِ دیسپچ
+فایلِ جدید (Idempotent): **`supabase/sql/41_fix_push_dispatch_transport.sql`**
+- `create extension if not exists pg_net;` و `create extension if not exists pg_cron;`.
+- ذخیرهٔ امنِ آدرس و سرویس‌کی در **Supabase Vault** (`vault.create_secret(...)` برای `project_url` و `service_role_key`) و خواندنِ آن‌ها داخلِ بدنهٔ کرانه از `vault.decrypted_secrets` — جایگزینِ `current_setting('app.settings.*')` که روی میزبان ست نیست.
+- `cron.unschedule('push-dispatch-cron')` در بلاک ایمن، سپس `cron.schedule('push-dispatch-cron','* * * * *', ...)` که با `net.http_post` و هدرِ `Authorization: Bearer <service_role_key از Vault>` فانکشن را صدا می‌زند.
+- جدولِ مشاهده‌پذیری: `create table if not exists public.push_dispatch_log(id, ran_at, sent_count, failed_count, cleaned_count, notes)` با RLS بسته (فقط service_role). `push-dispatch` در پایانِ هر اجرا یک ردیف لاگ می‌نویسد.
+- ایندکسِ کمکیِ view: `create index if not exists idx_tasks_due_pending on public.tasks(due_date) where completed_at is null;`.
+- **تذکرِ اجرا (در همان فایل کامنت):** کاربر باید در داشبوردِ Supabase اکستنشن‌های `pg_cron` و `pg_net` را فعال کند و سکرت‌های Vault را یک‌بار ست کند. این فایل دستی و idempotent اجرا می‌شود (طبق قانونِ §۲ بک‌اند).
+
+ویرایشِ **`supabase/functions/push-dispatch/index.ts`:** بدون تغییرِ منطقِ اصلی، افزودنِ نوشتنِ `push_dispatch_log` و شمارشِ دقیقِ `sent/failed/cleaned`. منطقِ پاک‌سازیِ ۴۱۰/۴۰۴ و dedup با جدولِ `reminders` حفظ می‌شود.
+
+### ۱۱.الف.۲. کلید VAPID — منبعِ واحد (رفعِ ریشهٔ «شانسی»)
+ویرایشِ **`App.tsx`** و **`services/reminderService.ts`:**
+- حذفِ کاملِ کلیدِ عمومیِ هاردکدِ fallback. کلید فقط از `import.meta.env.VITE_VAPID_PUBLIC_KEY`.
+- اگر env تعریف نشده باشد → `setupPushManager` بدونِ subscribe برمی‌گردد و فقط لاگِ هشدار می‌زند (افتِ تدریجی به Foreground).
+- **قانونِ مستندِ استقرار (کامنت در کد + `tasks.md`):** `VITE_VAPID_PUBLIC_KEY` (کلاینت) و `VAPID_PRIVATE_KEY` (Edge) باید یک **جفتِ کلیدِ واحد** باشند (با `web-push generate-vapid-keys` ساخته شوند). اگر این جفت ناهماهنگ شود، تمامِ Push با ۴۰۳ رد می‌شود.
+
+### ۱۱.الف.۳. زمانِ درخواستِ مجوز (رفعِ خطاهای خاموشِ iOS)
+- حذفِ `requestNotificationPermission()` از `loadInitial` در `useDataManager.ts` (درخواستِ تکراریِ بدونِ gesture).
+- درخواستِ مجوز فقط با **gestureِ صریحِ کاربر** (یک کارتِ یک‌بارهٔ «روشن‌کردنِ یادآوری‌ها»). تشخیصِ iOSِ نصب‌نشده (`navigator.standalone === false`) → نمایشِ راهنمای «افزودن به صفحهٔ اصلی» به‌جای تلاشِ شکست‌خورده.
+
+### ۱۱.الف.۴. بازنویسیِ لایهٔ Foreground (قطعی هنگام بازبودنِ اپ)
+بازنویسیِ **`hooks/useReminderScheduler.ts`:**
+- جایگزینیِ منطقِ شکستهٔ `handleSyncReset` (که فقط clear می‌کرد): تابعِ واحدِ `evaluate()` که (الف) برای تسک‌های زمان‌دارِ امروز که در آیندهٔ نزدیک‌اند `setTimeout` می‌گذارد، و (ب) یک **`setInterval` هر ۶۰ ثانیه** که «catch-up» می‌کند: هر تسکِ سررسیدگذشتهٔ امروزِ بدونِ نوتیفِ قبلی → همین حالا شلیک. این، اتکا به تایمرهای بلندِ غیرقابل‌اعتماد را حذف می‌کند.
+- بایندِ صحیح: `document.addEventListener('visibilitychange', ...)`, `window`-`online`/`focus` → فراخوانیِ `evaluate()` (clear + reschedule + catch-up) به‌جای صرفِ clear.
+- dedup با `localStorage` کلیدِ روزانهٔ Tehran برای nudge و یک `Set` از taskIdهای نوتیف‌شدهٔ امروز (transient/UI، مجاز). همهٔ متن‌ها از `utils/notificationCopy.ts`.
+
+### ۱۱.الف.۵. مسیرِ واحدِ نمایش + dedup بین لایه‌ها
+ویرایشِ **`hooks/useRealtimeSync.ts`:** لیسنرِ `reminders` INSERT:
+- اگر `document.visibilityState === 'visible'` → فقط `addNotification` (Toast). **حذفِ `sendBrowserNotification`** در حالتِ visible (نوتیفِ OS هنگام بازبودن، اضافی و عاملِ تکرار است).
+- اگر hidden → کاری نکن (لایهٔ Push/SW مسئول است). `tag` یکتا برای coalesce.
+
+**جریانِ دادهٔ نهاییِ نوتیفیکیشن:**
+```
+تسکِ زمان‌دار ──┬─ اپ باز/visible ─→ useReminderScheduler.evaluate() ─→ showViaSW(tag) [+Toast از Realtime]
+               └─ اپ بسته/hidden ─→ pg_cron(۱دقیقه) ─→ push-dispatch ─→ webpush ─→ sw.js 'push' ─→ showNotification(tag)
+                                                          └─ insert reminders (Ledger/dedup) ─→ Realtime (Toast فقط اگر visible)
+```
+
+---
+
+## ۱۱.ب. آفلاین/PWA — صفِ خروجی + اسنپ‌شاتِ خواندنی
+
+**منطقِ مسیردهی:** کلِ منطقِ آفلاین در پوشهٔ جدیدِ **`services/offline/`** کپسوله می‌شود؛ هیچ کامپوننتی مستقیم با IndexedDB حرف نمی‌زند. سیاستِ تعارض: **Last-Write-Wins بر اساس `updated_at`** (هم‌راستا با `useRealtimeSync`). بدونِ کتابخانهٔ خارجی — یک wrapperِ سبکِ دست‌نویس روی IndexedDB.
+
+### ۱۱.ب.۱. فایل‌های جدید
+- **`services/offline/idb.ts`** — wrapperِ مینیمالِ IndexedDB: `openDB()`, `get/getAll/put/delete/clear(store, ...)`. دو object store: `snapshot` (کلید: `${userId}:${entity}`) و `outbox` (کلید: `opId`).
+- **`services/offline/snapshot.ts`** — `saveSnapshot(userId, entity, rows)` / `loadSnapshot(userId, entity)` برای `tasks|notes|projects|projects|habits|entityLinks`.
+- **`services/offline/outbox.ts`** — مدلِ mutation: `{ opId, op:'create'|'update'|'delete', entity, payload, tempId?, baseUpdatedAt?, createdAt, retries }`؛ توابعِ `enqueue`, `listPending`, `remove`, `bumpRetry`, و `remapTempId(tempId, realId)` (برای آپدیتِ opهای وابسته به یک temp).
+- **`hooks/useOfflineSync.ts`** — موتورِ flush: روی `online` و در بوت، صف را **به‌ترتیبِ زمانی** پردازش می‌کند؛ برای هر op سرویسِ متناظر را صدا می‌زند؛ پس از create، `tempId → realId` را در state و در opهای بعدیِ صف remap می‌کند؛ خطاهای موقتی retry (با backoff)، خطاهای دائمی (۴xxِ معنادار) drop + Toast.
+
+### ۱۱.ب.۲. ویرایش‌ها (اتصال)
+- **`hooks/useDataManager.ts`:**
+  - **بوتِ Stale-While-Revalidate:** `loadInitial` ابتدا از `snapshot` هیدریت می‌کند (نمایشِ فوری، `loadingData=false` سریع)، سپس در پس‌زمینه از شبکه رِواِلیدِیت و اسنپ‌شات را به‌روز می‌کند. (این بند هم‌زمان بخشِ پرفورمنسِ ۱۱.ج را پوشش می‌دهد.)
+  - **CRUDِ مقاومِ آفلاین:** در `catch`ِ هر عملیات، اگر `!navigator.onLine` یا خطای شبکه بود → به‌جای rollback، mutation در `outbox` صف می‌شود و state محلی (و اسنپ‌شات) حفظ می‌ماند. در موفقیتِ آنلاین، اسنپ‌شات به‌روز می‌شود.
+  - عملیاتِ سرورمحور (AI/مدیا/پرداخت) از این مسیر **مستثنا**اند و در آفلاین پیامِ مناسب می‌دهند.
+- **`App.tsx`:** mountِ `useOfflineSync()`؛ پاس‌دادنِ تعدادِ pendingِ صف به `NetworkBanner`.
+- **`components/NetworkBanner.tsx`:** نمایشِ وضعیتِ واقعی («N تغییرِ ذخیره‌شده، در انتظارِ سینک» / «در حالِ سینک…»).
+- **`services/supabaseClient.ts`:** صریح‌کردنِ `auth: { persistSession: true, autoRefreshToken: true }` تا session در کلدـاستارتِ آفلاین از localStorage بازخوانی شود (بدونِ نیاز به شبکه برای ورود به shell).
+
+### ۱۱.ب.۳. مرزها (صریح)
+- فقط CRUDِ `tasks|notes|projects|habits|habit_completions|task_note_links` صف می‌شوند.
+- `embedding`/RAG/AI/پرداخت/ادمین آنلاین‌محور. iOS = best-effort (ITP eviction + Push فقط در حالتِ نصب‌شده).
+
+---
+
+## ۱۱.ج. پرفورمنسِ لودِ اولیه — مقیاس‌پذیر و سریع
+
+### ۱۱.ج.۱. لاغرسازیِ کوئری‌ها (بزرگ‌ترین بردِ دیتا)
+ویرایشِ **`services/{task,note,project,habit}Service.ts`:**
+- جایگزینیِ `select('*')` با **لیستِ ستونِ صریح بدونِ `embedding`** (طبق Anti-Pattern §۵۶).
+- افزودنِ `.order('created_at',{ascending:false}).range(0, limit-1)` و سیم‌کشیِ `tasksLimit/notesLimit`ِ موجود (که اکنون dead-code‌اند) از `useDataManager` به سرویس‌ها؛ `loadMoreTasks/loadMoreNotes` واقعی شوند.
+- `getHabits`: به‌جای کشیدنِ کلِ `habit_completions`، یا پنجرهٔ محدود (مثلاً ۹۰ روزِ اخیر با فیلترِ `completion_date >=`) یا RPCِ تجمیعی (پایین).
+
+### ۱۱.ج.۲. اسکیما/RPC (Idempotent)
+فایلِ جدید: **`supabase/sql/42_list_query_optimization.sql`**
+- ایندکس‌های ترکیبی: `idx_tasks_user_created on tasks(user_id, created_at desc)`, `idx_notes_user_created on notes(user_id, created_at desc)`, `idx_tasks_user_due on tasks(user_id, due_date)`, `idx_habit_completions_habit_date on habit_completions(habit_id, completion_date)`.
+- (اختیاری) RPCِ `get_habits_with_recent_completions(p_days int)` که عادت‌ها + تکمیل‌های پنجرهٔ اخیر را در یک رفت‌وبرگشت برمی‌گرداند (حذفِ کوئریِ دومِ سنگین).
+
+### ۱۱.ج.۳. بوتِ Progressive (پایانِ گیتِ تمام‌صفحه)
+- اسپینرِ سراسری حذف؛ بوت از اسنپ‌شات (۱۱.ب.۲) + اولویتِ مسیرِ بحرانی: ابتدا `profile + subscription + تسک‌های امروز/اخیر` برای رنگ‌آمیزیِ Dashboard، سپس بقیه به‌صورت تنبل. هر بخش loading مستقل دارد؛ هیچ کوئریِ کندی کلِ UI را قفل نمی‌کند.
+
+### ۱۱.ج.۴. پایپ‌لاینِ Build (تطبیقِ §H.۴ — بزرگ‌ترین بردِ first-paint)
+ویرایشِ **`index.html`, `vite.config.ts`, `package.json`, `index.css` + فایل‌های جدیدِ Tailwind:**
+- **حذفِ `importmap`** از `index.html`؛ سپردنِ React/react-dom/supabase-js به باندلِ Vite.
+- **Tailwind از CDN → build-time (مسیرِ اصلی = `tailwindcss@3.4` با PostCSS، بدونِ تغییرِ معناییِ کلاس):** بردِ پرفورمنس از کامپایلِ build-time میآید نه از نسخهٔ v4؛ چون CDN فعلی v3-محور است، پینکردنِ `tailwindcss@3.4`+`postcss`+`autoprefixer`+`tailwind.config.js` (با `content`، تمِ تیره، فونتِ Vazirmatn) و دایرکتیوهای `@tailwind base/components/utilities` در `index.css` هیچ تغییرِ معناییِ کلاس ایجاد نمیکند و قانونِ «بدون رگرسیون» را رعایت میکند. حذفِ `<script src="cdn.tailwindcss.com">`. safelist با آرایهٔ `safelist` در `tailwind.config.js`.
+- حفظِ عینیِ Vazirmatn (با `display=swap`، preloadِ فقط وزن‌های مصرفی)، Safe-Area Insets، Autofill Override.
+- **Code-Splitting:** `React.lazy` + `Suspense` برای `Chat`, `Projects`, `Subscription` و مودال‌های سنگین در `App.tsx`؛ `Dashboard` eager.
+
+> **هشدارِ رگرسیون:** پس از این تغییر، چون Tailwind دیگر همهٔ کلاس‌ها را runtime نمی‌سازد، کلاس‌هایی که به‌صورت رشتهٔ پویا ساخته می‌شوند ممکن است purge شوند؛ باید `safelist` یا کلاس‌های کامل استفاده شوند. این هم‌راستا با Anti-Patternهای §۲۲/§۲۶ است (کلاس‌های نامعتبر/پویا قبلاً هم ممنوع بوده‌اند).
+
+## ۱۱.د. نقشهٔ تداخلِ فایل‌ها (Conflict Map — برای موازی‌نکردن)
+- `useDataManager.ts` در H6 (سرویس‌خوانی)، H9 (بوت/هیدریت) و H10 (صف) لمس می‌شود → **سریِ اکید**.
+- `reminderService.ts` در H1 و H4 → سری.
+- `App.tsx` در H1 (Push gesture)، H7b (lazy) و H10 (mountِ sync) → سری.
+- `index.css` در H7a → فقط همان‌جا.
+- فایل‌های SQLِ جدید (41/42) و پوشهٔ `services/offline/*` مستقل‌اند و می‌توانند موازی با کارِ UI پیش بروند، اما تستِ یکپارچهٔ آن‌ها به ویرایش‌های `useDataManager` وابسته است.
+
+
+---
+
+## ۱۱.هـ. اصلاحیهٔ مهندسی (Revision H.2) — گاردریل‌های اجرا
+
+### ۱۱.هـ.۱. لیستِ دقیقِ ستون‌های `select` (ضدِ تلهٔ فیلدِ جاافتاده — Anti-Pattern §۶۴)
+مرجعِ کپی‌برداری از `supabase/sql/03_core.sql` (بدونِ `embedding`):
+```ts
+// taskService.getTasks
+.select('id, user_id, project_id, title, description, status, priority, due_date, completed_at, tags, checklist, created_at, updated_at')
+// noteService.getNotes
+.select('id, user_id, project_id, title, content, tags, created_at, updated_at')
+// projectService.getProjects
+.select('id, user_id, title, description, status, priority, color, created_at, updated_at')
+// habitService: habits
+.select('id, user_id, name, description, frequency, target_count, created_at, updated_at')
+// habitService: habit_completions (پنجرهٔ محدود)
+.select('habit_id, completion_date').gte('completion_date', <Tehran today - 90d>)
+```
+> اگر در آینده ستونی به جدول اضافه شد، این لیست‌ها باید هم‌زمان به‌روز شوند؛ `embedding` هرگز اضافه نشود (Anti-Pattern §۵۶).
+
+### ۱۱.هـ.۲. safelistِ کلاس‌های داینامیکِ Tailwind (الزامی — Anti-Pattern §۶۵)
+**کلاس‌های درون‌یابی‌شدهٔ اثبات‌شده در کد:** `bg-${project.color}-500` (`Dashboard`, `TasksView`)، `via-${project.color}-500` (`NotesView`, `NoteCard`)، `border-${priorityColor}-500` و `bg-${priorityColor}-500` و `bg-${priorityColor}-500/50` (`TaskCard`/`TasksView`)، و opacityِ افزوده به `solidBg` مثل `${colors.solidBg}/80`.
+**مجموعهٔ رنگ‌ها:** پروژه‌ها `{sky, red, green, yellow, purple, zinc, gray}` · اولویت `{red, yellow, sky}`.
+در `index.css` (Tailwind v4):
+```css
+@import "tailwindcss";
+@source inline("{bg,border,via,from}-{sky,red,green,yellow,purple,zinc,gray}-500");
+@source inline("{bg,border}-{sky,red,green,yellow,purple,zinc,gray}-500/{50,80}");
+@source inline("text-{sky,red,green,yellow,purple,zinc,gray}-300");
+```
+> بهترین‌راهکارِ بلندمدت (توصیهٔ معمار، نه اجبارِ این فاز): حذفِ درون‌یابی و نگاشتِ `color`/`priority` به **رشته‌های کاملِ ثابت** (مثل الگوی `colorClasses` که هم‌اکنون امن است). تا زمانِ آن، safelist بالا اجباری است وگرنه اپ بی‌استایل بالا می‌آید.
+
+### ۱۱.هـ.۳. dedupِ نوتیفیکیشن با `messageId` (افزوده به §۱۱.الف.۵ — Anti-Pattern §۶۳)
+- هر شلیک یک `messageId` قطعی دارد: تسک = `task-<id>-<dueEpoch>`، ناج = `nudge-<uid>-<tehranDate>`.
+- یک object storeِ سومِ سبک `shown` در IndexedDB (کلید = `messageId`، مقدار = timestamp، TTL ~۲۴ساعت) نگهداری می‌شود.
+- منطقِ هر سه مسیر (Foreground scheduler، لیسنرِ Realtime، `sw.js push`): **پیش از نمایش**، اگر `messageId` در `shown` بود → نمایش نده؛ در غیرِ این صورت نمایش بده و ثبت کن. این، شلیکِ هم‌زمانِ کلد-استارت و replayِ کهنهٔ Realtime را خنثی می‌کند. (`sw.js` به IndexedDB دسترسی دارد؛ خواندن/نوشتنِ `shown` در worker مجاز است.)
+- `tag` همچنان برای coalescingِ بصریِ OS حفظ می‌شود، اما **منبعِ حقیقتِ dedup**، دفترِ `shown` است.
+
+### ۱۱.هـ.۴. گاردِ سشن پیش از سینک (افزوده به §۱۱.ب — Anti-Pattern §۶۲)
+جریانِ موتورِ سینک در `hooks/useOfflineSync.ts` هنگامِ `online`/بوت:
+```
+online ─→ ensureValidSession() ─→ flushOutbox()
+ensureValidSession():
+  const { data:{ session } } = await supabase.auth.getSession()
+  if (!session || نزدیکِ انقضا) await supabase.auth.refreshSession()  // shared single-flight promise
+  اگر رفرش شکست خورد (SIGNED_OUT): flush نکن، Outbox را نگه‌دار، پیامِ «برای سینک دوباره وارد شوید»
+flushOutbox(): برای هر op:
+  try → سرویس متناظر
+  catch 401/403 → retryable (سشن را دوباره رفرش کن، op را در صف نگه‌دار)   // هرگز drop
+  catch 4xxِ معنادار (مثل 409/422) → drop + Toast (دادهٔ نامعتبر)
+  catch شبکه → retryable با backoff
+```
+- روی `supabase.auth.onAuthStateChange`، رویدادِ `TOKEN_REFRESHED` می‌تواند یک flushِ مجدد را تریگر کند؛ `SIGNED_OUT` صف را دست‌نخورده نگه می‌دارد. (سند: supabase-js issue #1732 — توکن پس از آفلاین auto-refresh نمی‌شود و reconnect با توکنِ منقضی 401 می‌دهد.)
+- realtime channelها نیز پس از رفرش باید دوباره join شوند (الگوی shared refreshPromise).
+
+### ۱۱.هـ.۵. لایهٔ IndexedDB روی `idb` (به‌روزرسانیِ §۱۱.ب.۱ — Anti-Pattern §۶۶)
+- وابستگیِ جدید: `idb` (~۱.۲KB، promise-based) در `dependencies`؛ از طریقِ باندلِ Vite (importmap حذف شده).
+- `services/offline/idb.ts` فقط یک `openDB(name, version, { upgrade })` با سه store: `snapshot`، `outbox`، `shown`؛ بقیهٔ ماژول‌ها (`snapshot.ts`/`outbox.ts`) فقط از این لایه استفاده می‌کنند. بدونِ callbackِ خام.
+
+## ۱۱.هـ.۶. اصلاحیهٔ مهندسی (Revision H.3)
+### الف. سشن: getSession-first، بدونِ forceِ دستی
+فقط `getSession()`؛ اگر منقضی باشد خودِ کتابخانه رفرش میکند. forceِ دستیِ `refreshSession` در فاز H انجام نشود.
+### ب. dead-letter store برای شکستِ دائمی
+ساخت store چهارم `failed`. خطای دائمیِ غیرauth (۴۰۰/۴۰۹/۴۲۲) به اینجا منتقل شود (هرگز delete نشود). قانون Cascade روی `tempId`ها رعایت شود.
+### ج. هرسِ دفترِ `shown`
+`shown` با TTL ~۴۸ ساعت؛ تابعِ `pruneShown()` در بوتِ اپ و پس از هر `put` رکوردهای کهنه را پاک میکند.
+### د. نوشتنِ `shown` از داخلِ Service Worker (نکته حیاتی ضد تله VersionError)
+لایهٔ اپ مالک schema است و با `idb` کار میکند. اما SW (فایل sw.js) دیتابیس را **بدونِ شمارهٔ version** باز میکند (`indexedDB.open(name)` بدون آرگومان دوم). اگر store `shown` نبود، SW بیصدا از نوشتن میگذرد تا تداخل نسخه پیش نیاید. فقط در SW از هلپر مینیمال raw-IndexedDB استفاده شود.
+### هـ. ترتیبِ اجراییِ Tailwind
+H7a اولین تسک، ایزوله، روی کامیت مجزا. در صورت شکست، rollback فوری.
+

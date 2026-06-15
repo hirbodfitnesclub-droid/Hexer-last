@@ -6,7 +6,9 @@ import * as taskService from '../services/taskService';
 import * as noteService from '../services/noteService';
 import * as habitService from '../services/habitService';
 import * as billingService from '../services/billingService';
-import { requestNotificationPermission } from '../services/reminderService';
+import { loadSnapshot, saveSnapshot } from '../services/offline/snapshot';
+import { enqueue } from '../services/offline/outbox';
+import { useOfflineSync } from './useOfflineSync';
 
 export interface AppNotification {
   id: number;
@@ -95,41 +97,107 @@ export const useDataManager = (user: any) => {
     if (!dataExistsRef.current) {
       setLoadingData(true);
     }
+    
+    // 1. Hydrate from local snapshots immediately for rapid visual boot (SWR)
     try {
-      const [projectsData, tasksData, notesData, habitsData, profileResult, subData, linksResult] = await Promise.all([
-        projectService.getProjects(),
-        taskService.getTasks(),
-        noteService.getNotes(),
-        habitService.getHabits(),
-        supabase.from('profiles').select('*').maybeSingle(),
-        billingService.getSubscription(),
-        supabase.from('task_note_links').select('*')
+      const [
+        cachedProjects,
+        cachedTasks,
+        cachedNotes,
+        cachedHabits,
+        cachedProfile,
+        cachedSub,
+        cachedLinks
+      ] = await Promise.all([
+        loadSnapshot(userId, 'projects'),
+        loadSnapshot(userId, 'tasks'),
+        loadSnapshot(userId, 'notes'),
+        loadSnapshot(userId, 'habits'),
+        loadSnapshot(userId, 'profile'),
+        loadSnapshot(userId, 'subscription'),
+        loadSnapshot(userId, 'entityLinks')
       ]);
-      setProjects(projectsData);
-      setTasks(tasksData);
-      setNotes(notesData);
-      setHabits(habitsData);
-      setSubscription(subData);
-      setEntityLinks(linksResult.data || []);
+
+      if (cachedProjects && cachedProjects.length > 0) setProjects(cachedProjects);
+      if (cachedTasks && cachedTasks.length > 0) setTasks(cachedTasks);
+      if (cachedNotes && cachedNotes.length > 0) setNotes(cachedNotes);
+      if (cachedHabits && cachedHabits.length > 0) setHabits(cachedHabits);
       
+      if (cachedProfile && cachedProfile.length > 0) {
+        const prof = cachedProfile[0];
+        setProfile(prof);
+        if (prof.onboarding_completed === false) {
+          setIsOnboarding(true);
+        }
+      }
+      if (cachedSub && cachedSub.length > 0) {
+        setSubscription(cachedSub[0]);
+      }
+      if (cachedLinks && cachedLinks.length > 0) setEntityLinks(cachedLinks);
+
+      // Successfully hydrated local state. Turn off loader so user sees UI instantly
+      if (cachedProjects?.length > 0 || cachedTasks?.length > 0 || cachedNotes?.length > 0) {
+        setLoadingData(false);
+      }
+    } catch (e) {
+      console.warn('[SWR] Local hydration failed, falling back to direct fetch:', e);
+    }
+
+    // 2. Background Revalidation (Network Fetch)
+    try {
+      // Fetch high priority critical paths first
+      const profileResult = await supabase.from('profiles').select('*').maybeSingle();
       if (profileResult.data) {
         setProfile(profileResult.data);
         if (profileResult.data.onboarding_completed === false) {
           setIsOnboarding(true);
         }
+        await saveSnapshot(userId, 'profile', [profileResult.data]);
       }
-      
-      // Get notification permissions
-      requestNotificationPermission();
+
+      const subData = await billingService.getSubscription();
+      if (subData) {
+        setSubscription(subData);
+        await saveSnapshot(userId, 'subscription', [subData]);
+      }
+
+      // Fetch other data in background
+      const [projectsData, tasksData, notesData, habitsData, linksResult] = await Promise.all([
+        projectService.getProjects(),
+        taskService.getTasks(tasksLimit),
+        noteService.getNotes(notesLimit),
+        habitService.getHabits(),
+        supabase.from('task_note_links').select('*')
+      ]);
+
+      setProjects(projectsData);
+      setTasks(tasksData);
+      setNotes(notesData);
+      setHabits(habitsData);
+      setEntityLinks(linksResult.data || []);
+
+      // Overwrite local snapshots with fresh server data
+      await Promise.all([
+        saveSnapshot(userId, 'projects', projectsData),
+        saveSnapshot(userId, 'tasks', tasksData),
+        saveSnapshot(userId, 'notes', notesData),
+        saveSnapshot(userId, 'habits', habitsData),
+        saveSnapshot(userId, 'entityLinks', linksResult.data || [])
+      ]);
+
+      dataExistsRef.current = true;
     } catch (error) {
-      console.error("Error loading index data:", error);
-      addNotification("خطا در بارگذاری اطلاعات اولیه یا وضعیت اشتراک شما.", "error");
+      console.warn("[SWR Background Revalidation] Gracefully handled Network revalidation error:", error);
+      // Only show error if we have no loaded data at all
+      if (!dataExistsRef.current && projects.length === 0 && tasks.length === 0) {
+        addNotification("مشکلی در همگام‌سازی با شبکه وجود دارد. کارهای شما کماکان آفلاین در دسترس هستند.", "error");
+      }
     } finally {
       setLoadingData(false);
     }
-  }, [userId, addNotification]);
+  }, [userId, addNotification, tasksLimit, notesLimit]);
 
-  // Projects CRUD - Optimistic UI
+  // Projects CRUD - Optimistic UI & Offline Queue support
   const addProject = useCallback(async (project: Omit<Project, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     const originalProjects = [...projects];
     const tempId = 'temp-' + Date.now();
@@ -141,46 +209,98 @@ export const useDataManager = (user: any) => {
       user_id: user?.id || ''
     };
 
-    setProjects(prev => [tempProj, ...prev]);
+    const nextProjects = [tempProj, ...projects];
+    setProjects(nextProjects);
+    await saveSnapshot(userId, 'projects', nextProjects);
+
+    if (!navigator.onLine) {
+      await enqueue({ id: tempId, entity: 'projects', action: 'insert', payload: project });
+      addNotification("پروژه به صورت آفلاین ذخیره شد.");
+      return;
+    }
 
     try {
       const newProj = await projectService.createProject(project);
       setProjects(prev => prev.map(p => p.id === tempId ? newProj : p));
+      const finalProjects = nextProjects.map(p => p.id === tempId ? newProj : p);
+      await saveSnapshot(userId, 'projects', finalProjects);
       addNotification("پروژه با موفقیت ساخته شد.");
     } catch (error) {
-      setProjects(originalProjects);
-      addNotification("خطا در ساخت پروژه.", "error");
+      const msg = (error as any)?.message || '';
+      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      if (isRetry) {
+        await enqueue({ id: tempId, entity: 'projects', action: 'insert', payload: project });
+        addNotification("پروژه به صورت آفلاین ثبت شد.");
+      } else {
+        setProjects(originalProjects);
+        await saveSnapshot(userId, 'projects', originalProjects);
+        addNotification("خطا در ساخت پروژه.", "error");
+      }
     }
-  }, [projects, user, addNotification]);
+  }, [projects, user, userId, addNotification]);
 
   const updateProject = useCallback(async (project: Project) => {
     const originalProjects = [...projects];
-    setProjects(prev => prev.map(p => p.id === project.id ? project : p));
+    const nextProjects = projects.map(p => p.id === project.id ? project : p);
+    setProjects(nextProjects);
+    await saveSnapshot(userId, 'projects', nextProjects);
+
+    if (!navigator.onLine) {
+      await enqueue({ id: project.id, entity: 'projects', action: 'update', payload: project });
+      addNotification("تغییرات پروژه به صورت آفلاین ثبت شد.");
+      return;
+    }
 
     try {
       const updatedProj = await projectService.updateProject(project.id, project);
       setProjects(prev => prev.map(p => p.id === project.id ? updatedProj : p));
+      const finalProjects = nextProjects.map(p => p.id === project.id ? updatedProj : p);
+      await saveSnapshot(userId, 'projects', finalProjects);
       addNotification("پروژه به‌روزرسانی شد.");
     } catch (error) {
-      setProjects(originalProjects);
-      addNotification("خطا در به‌روزرسانی پروژه.", "error");
+      const msg = (error as any)?.message || '';
+      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      if (isRetry) {
+        await enqueue({ id: project.id, entity: 'projects', action: 'update', payload: project });
+        addNotification("تغییرات پروژه به صورت آفلاین ثبت شد.");
+      } else {
+        setProjects(originalProjects);
+        await saveSnapshot(userId, 'projects', originalProjects);
+        addNotification("خطا در به‌روزرسانی پروژه.", "error");
+      }
     }
-  }, [projects, addNotification]);
+  }, [projects, userId, addNotification]);
 
   const deleteProject = useCallback(async (id: string) => {
     const originalProjects = [...projects];
-    setProjects(prev => prev.filter(p => p.id !== id));
+    const nextProjects = projects.filter(p => p.id !== id);
+    setProjects(nextProjects);
+    await saveSnapshot(userId, 'projects', nextProjects);
+
+    if (!navigator.onLine) {
+      await enqueue({ id, entity: 'projects', action: 'delete', payload: null });
+      addNotification("حذف پروژه به صورت آفلاین ثبت شد.");
+      return;
+    }
 
     try {
       await projectService.deleteProject(id);
       addNotification("پروژه حذف شد.");
     } catch (error) {
-      setProjects(originalProjects);
-      addNotification("خطا در حذف پروژه.", "error");
+      const msg = (error as any)?.message || '';
+      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      if (isRetry) {
+        await enqueue({ id, entity: 'projects', action: 'delete', payload: null });
+        addNotification("حذف پروژه به صورت آفلاین ثبت شد.");
+      } else {
+        setProjects(originalProjects);
+        await saveSnapshot(userId, 'projects', originalProjects);
+        addNotification("خطا در حذف پروژه.", "error");
+      }
     }
-  }, [projects, addNotification]);
+  }, [projects, userId, addNotification]);
 
-  // Tasks CRUD - Optimistic UI & Atomic checks
+  // Tasks CRUD - Optimistic UI & Atomic checks & Offline Queue support
   const addTask = useCallback(async (task: Omit<Task, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'status' | 'completed_at'>): Promise<Task> => {
     const originalTasks = [...tasks];
     const tempId = 'temp-' + Date.now();
@@ -194,47 +314,100 @@ export const useDataManager = (user: any) => {
       user_id: user?.id || ''
     };
 
-    setTasks(prev => [tempTask, ...prev]);
+    const nextTasks = [tempTask, ...tasks];
+    setTasks(nextTasks);
+    await saveSnapshot(userId, 'tasks', nextTasks);
+
+    if (!navigator.onLine) {
+      await enqueue({ id: tempId, entity: 'tasks', action: 'insert', payload: task });
+      addNotification("کار جدید به صورت آفلاین ذخیره شد.");
+      return tempTask;
+    }
 
     try {
       const newTask = await taskService.createTask(task);
       setTasks(prev => prev.map(t => t.id === tempId ? newTask : t));
+      const finalTasks = nextTasks.map(t => t.id === tempId ? newTask : t);
+      await saveSnapshot(userId, 'tasks', finalTasks);
       addNotification("کار با موفقیت اضافه شد.");
       return newTask;
     } catch (error) {
-      setTasks(originalTasks);
-      addNotification("خطا در افزودن کار.", "error");
-      throw error;
+      const msg = (error as any)?.message || '';
+      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      if (isRetry) {
+        await enqueue({ id: tempId, entity: 'tasks', action: 'insert', payload: task });
+        addNotification("کار جدید به صورت آفلاین ثبت شد.");
+        return tempTask;
+      } else {
+        setTasks(originalTasks);
+        await saveSnapshot(userId, 'tasks', originalTasks);
+        addNotification("خطا در افزودن کار.", "error");
+        throw error;
+      }
     }
-  }, [tasks, user, addNotification]);
+  }, [tasks, user, userId, addNotification]);
 
   const updateTask = useCallback(async (task: Task | Partial<Task>) => {
     if (!task.id) return;
     const originalTasks = [...tasks];
-    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, ...task } as Task : t));
+    const nextTasks = tasks.map(t => t.id === task.id ? { ...t, ...task } as Task : t);
+    setTasks(nextTasks);
+    await saveSnapshot(userId, 'tasks', nextTasks);
+
+    if (!navigator.onLine) {
+      await enqueue({ id: task.id, entity: 'tasks', action: 'update', payload: task });
+      addNotification("تغییرات کار به صورت آفلاین ثبت شد.");
+      return;
+    }
 
     try {
       const updatedTask = await taskService.updateTask(task.id, task);
       setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+      const finalTasks = nextTasks.map(t => t.id === updatedTask.id ? updatedTask : t);
+      await saveSnapshot(userId, 'tasks', finalTasks);
       addNotification("کار به‌روزرسانی شد.");
     } catch (error) {
-      setTasks(originalTasks);
-      addNotification("خطا در به‌روزرسانی کار.", "error");
+      const msg = (error as any)?.message || '';
+      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      if (isRetry) {
+        await enqueue({ id: task.id, entity: 'tasks', action: 'update', payload: task });
+        addNotification("تغییرات کار به صورت آفلاین ثبت شد.");
+      } else {
+        setTasks(originalTasks);
+        await saveSnapshot(userId, 'tasks', originalTasks);
+        addNotification("خطا در به‌روزرسانی کار.", "error");
+      }
     }
-  }, [tasks, addNotification]);
+  }, [tasks, userId, addNotification]);
 
   const deleteTask = useCallback(async (id: string) => {
     const originalTasks = [...tasks];
-    setTasks(prev => prev.filter(t => t.id !== id));
+    const nextTasks = tasks.filter(t => t.id !== id);
+    setTasks(nextTasks);
+    await saveSnapshot(userId, 'tasks', nextTasks);
+
+    if (!navigator.onLine) {
+      await enqueue({ id, entity: 'tasks', action: 'delete', payload: null });
+      addNotification("حذف کار به صورت آفلاین ثبت شد.");
+      return;
+    }
 
     try {
       await taskService.deleteTask(id);
       addNotification("کار حذف شد.");
     } catch (error) {
-      setTasks(originalTasks);
-      addNotification("خطا در حذف کار.", "error");
+      const msg = (error as any)?.message || '';
+      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      if (isRetry) {
+        await enqueue({ id, entity: 'tasks', action: 'delete', payload: null });
+        addNotification("حذف کار به صورت آفلاین ثبت شد.");
+      } else {
+        setTasks(originalTasks);
+        await saveSnapshot(userId, 'tasks', originalTasks);
+        addNotification("خطا در حذف کار.", "error");
+      }
     }
-  }, [tasks, addNotification]);
+  }, [tasks, userId, addNotification]);
 
   const toggleTaskCompletion = useCallback(async (id: string) => {
     const originalTasks = [...tasks];
@@ -244,18 +417,36 @@ export const useDataManager = (user: any) => {
     const newStatus = task.status === 'done' ? 'todo' : 'done';
     const completed_at = newStatus === 'done' ? new Date().toISOString() : null;
 
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: newStatus, completed_at } : t));
+    const nextTasks = tasks.map(t => t.id === id ? { ...t, status: newStatus, completed_at } : t);
+    setTasks(nextTasks);
+    await saveSnapshot(userId, 'tasks', nextTasks);
+
+    const payload = { status: newStatus, completed_at };
+
+    if (!navigator.onLine) {
+      await enqueue({ id, entity: 'tasks', action: 'update', payload });
+      return;
+    }
 
     try {
-      const updatedTask = await taskService.updateTask(id, { status: newStatus, completed_at });
+      const updatedTask = await taskService.updateTask(id, payload);
       setTasks(prev => prev.map(t => t.id === id ? updatedTask : t));
+      const finalTasks = nextTasks.map(t => t.id === id ? updatedTask : t);
+      await saveSnapshot(userId, 'tasks', finalTasks);
     } catch (error) {
-      setTasks(originalTasks);
-      addNotification("خطا در تغییر وضعیت کار.", "error");
+      const msg = (error as any)?.message || '';
+      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      if (isRetry) {
+        await enqueue({ id, entity: 'tasks', action: 'update', payload });
+      } else {
+        setTasks(originalTasks);
+        await saveSnapshot(userId, 'tasks', originalTasks);
+        addNotification("خطا در تغییر وضعیت کار.", "error");
+      }
     }
-  }, [tasks, addNotification]);
+  }, [tasks, userId, addNotification]);
 
-  // Notes CRUD - Optimistic UI
+  // Notes CRUD - Optimistic UI & Offline Queue support
   const addNote = useCallback(async (note: Omit<Note, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<Note> => {
     const originalNotes = [...notes];
     const tempId = 'temp-' + Date.now();
@@ -267,49 +458,102 @@ export const useDataManager = (user: any) => {
       user_id: user?.id || ''
     };
 
-    setNotes(prev => [tempNote, ...prev]);
+    const nextNotes = [tempNote, ...notes];
+    setNotes(nextNotes);
+    await saveSnapshot(userId, 'notes', nextNotes);
+
+    if (!navigator.onLine) {
+      await enqueue({ id: tempId, entity: 'notes', action: 'insert', payload: note });
+      addNotification("یادداشت به صورت آفلاین ذخیره شد.");
+      return tempNote;
+    }
 
     try {
       const newNote = await noteService.createNote(note);
       setNotes(prev => prev.map(n => n.id === tempId ? newNote : n));
+      const finalNotes = nextNotes.map(n => n.id === tempId ? newNote : n);
+      await saveSnapshot(userId, 'notes', finalNotes);
       addNotification("یادداشت با موفقیت اضافه شد.");
       return newNote;
     } catch (error) {
-      setNotes(originalNotes);
-      addNotification("خطا در افزودن یادداشت.", "error");
-      throw error;
+      const msg = (error as any)?.message || '';
+      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      if (isRetry) {
+        await enqueue({ id: tempId, entity: 'notes', action: 'insert', payload: note });
+        addNotification("یادداشت به صورت آفلاین ذخیره شد.");
+        return tempNote;
+      } else {
+        setNotes(originalNotes);
+        await saveSnapshot(userId, 'notes', originalNotes);
+        addNotification("خطا در افزودن یادداشت.", "error");
+        throw error;
+      }
     }
-  }, [notes, user, addNotification]);
+  }, [notes, user, userId, addNotification]);
 
   const updateNote = useCallback(async (note: Note | Partial<Note>) => {
     if (!note.id) return;
     const originalNotes = [...notes];
-    setNotes(prev => prev.map(n => n.id === note.id ? { ...n, ...note } as Note : n));
+    const nextNotes = notes.map(n => n.id === note.id ? { ...n, ...note } as Note : n);
+    setNotes(nextNotes);
+    await saveSnapshot(userId, 'notes', nextNotes);
+
+    if (!navigator.onLine) {
+      await enqueue({ id: note.id, entity: 'notes', action: 'update', payload: note });
+      addNotification("تغییرات یادداشت به صورت آفلاین ذخیره شد.");
+      return;
+    }
 
     try {
       const updatedNote = await noteService.updateNote(note.id, note);
       setNotes(prev => prev.map(n => n.id === updatedNote.id ? updatedNote : n));
+      const finalNotes = nextNotes.map(n => n.id === updatedNote.id ? updatedNote : n);
+      await saveSnapshot(userId, 'notes', finalNotes);
       addNotification("یادداشت به‌روزرسانی شد.");
     } catch (error) {
-      setNotes(originalNotes);
-      addNotification("خطا در به‌روزرسانی یادداشت.", "error");
+      const msg = (error as any)?.message || '';
+      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      if (isRetry) {
+        await enqueue({ id: note.id, entity: 'notes', action: 'update', payload: note });
+        addNotification("تغییرات یادداشت به صورت آفلاین ذخیره شد.");
+      } else {
+        setNotes(originalNotes);
+        await saveSnapshot(userId, 'notes', originalNotes);
+        addNotification("خطا در به‌روزرسانی یادداشت.", "error");
+      }
     }
-  }, [notes, addNotification]);
+  }, [notes, userId, addNotification]);
 
   const deleteNote = useCallback(async (id: string) => {
     const originalNotes = [...notes];
-    setNotes(prev => prev.filter(n => n.id !== id));
+    const nextNotes = notes.filter(n => n.id !== id);
+    setNotes(nextNotes);
+    await saveSnapshot(userId, 'notes', nextNotes);
+
+    if (!navigator.onLine) {
+      await enqueue({ id, entity: 'notes', action: 'delete', payload: null });
+      addNotification("حذف یادداشت به صورت آفلاین ثبت شد.");
+      return;
+    }
 
     try {
       await noteService.deleteNote(id);
       addNotification("یادداشت حذف شد.");
     } catch (error) {
-      setNotes(originalNotes);
-      addNotification("خطا در حذف یادداشت.", "error");
+      const msg = (error as any)?.message || '';
+      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      if (isRetry) {
+        await enqueue({ id, entity: 'notes', action: 'delete', payload: null });
+        addNotification("حذف یادداشت به صورت آفلاین ثبت شد.");
+      } else {
+        setNotes(originalNotes);
+        await saveSnapshot(userId, 'notes', originalNotes);
+        addNotification("خطا در حذف یادداشت.", "error");
+      }
     }
-  }, [notes, addNotification]);
+  }, [notes, userId, addNotification]);
 
-  // Habits CRUD - Optimistic UI
+  // Habits CRUD - Optimistic UI & Offline Queue support
   const addHabit = useCallback(async (habit: Omit<Habit, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'completedDates'>) => {
     const originalHabits = [...habits];
     const tempId = 'temp-' + Date.now();
@@ -322,50 +566,102 @@ export const useDataManager = (user: any) => {
       user_id: user?.id || ''
     };
 
-    setHabits(prev => [tempHabit, ...prev]);
+    const nextHabits = [tempHabit, ...habits];
+    setHabits(nextHabits);
+    await saveSnapshot(userId, 'habits', nextHabits);
+
+    if (!navigator.onLine) {
+      await enqueue({ id: tempId, entity: 'habits', action: 'insert', payload: habit });
+      addNotification("عادت جدید به صورت آفلاین ذخیره شد.");
+      return;
+    }
 
     try {
       const newHabit = await habitService.createHabit(habit);
       setHabits(prev => prev.map(h => h.id === tempId ? newHabit : h));
+      const finalHabits = nextHabits.map(h => h.id === tempId ? newHabit : h);
+      await saveSnapshot(userId, 'habits', finalHabits);
       addNotification("عادت با موفقیت ساخته شد.");
     } catch (error) {
-      setHabits(originalHabits);
-      addNotification("خطا در ساخت عادت.", "error");
+      const msg = (error as any)?.message || '';
+      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      if (isRetry) {
+        await enqueue({ id: tempId, entity: 'habits', action: 'insert', payload: habit });
+        addNotification("عادت جدید به صورت آفلاین ذخیره شد.");
+      } else {
+        setHabits(originalHabits);
+        await saveSnapshot(userId, 'habits', originalHabits);
+        addNotification("خطا در ساخت عادت.", "error");
+      }
     }
-  }, [habits, user, addNotification]);
+  }, [habits, user, userId, addNotification]);
 
   const updateHabit = useCallback(async (habit: Habit | Partial<Habit>) => {
     if (!habit.id) return;
     const originalHabits = [...habits];
-    setHabits(prev => prev.map(h => h.id === habit.id ? { ...h, ...habit } as Habit : h));
+    const nextHabits = habits.map(h => h.id === habit.id ? { ...h, ...habit } as Habit : h);
+    setHabits(nextHabits);
+    await saveSnapshot(userId, 'habits', nextHabits);
+
+    if (!navigator.onLine) {
+      await enqueue({ id: habit.id, entity: 'habits', action: 'update', payload: habit });
+      addNotification("تغییرات عادت به صورت آفلاین ذخیره شد.");
+      return;
+    }
 
     try {
       const updatedHabit = await habitService.updateHabit(habit.id, habit);
       setHabits(prev => prev.map(h => h.id === updatedHabit.id ? { ...updatedHabit, completedDates: h.completedDates } : h));
+      const finalHabits = nextHabits.map(h => h.id === updatedHabit.id ? { ...updatedHabit, completedDates: h.completedDates } : h);
+      await saveSnapshot(userId, 'habits', finalHabits);
       addNotification("عادت به‌روزرسانی شد.");
     } catch (error) {
-      setHabits(originalHabits);
-      addNotification("خطا در به‌روزرسانی عادت.", "error");
+      const msg = (error as any)?.message || '';
+      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      if (isRetry) {
+        await enqueue({ id: habit.id, entity: 'habits', action: 'update', payload: habit });
+        addNotification("تغییرات عادت به صورت آفلاین ذخیره شد.");
+      } else {
+        setHabits(originalHabits);
+        await saveSnapshot(userId, 'habits', originalHabits);
+        addNotification("خطا در به‌روزرسانی عادت.", "error");
+      }
     }
-  }, [habits, addNotification]);
+  }, [habits, userId, addNotification]);
 
   const deleteHabit = useCallback(async (id: string) => {
     const originalHabits = [...habits];
-    setHabits(prev => prev.filter(h => h.id !== id));
+    const nextHabits = habits.filter(h => h.id !== id);
+    setHabits(nextHabits);
+    await saveSnapshot(userId, 'habits', nextHabits);
+
+    if (!navigator.onLine) {
+      await enqueue({ id, entity: 'habits', action: 'delete', payload: null });
+      addNotification("حذف عادت به صورت آفلاین ثبت شد.");
+      return;
+    }
 
     try {
       await habitService.deleteHabit(id);
       addNotification("عادت حذف شد.");
     } catch (error) {
-      setHabits(originalHabits);
-      addNotification("خطا در حذف عادت.", "error");
+      const msg = (error as any)?.message || '';
+      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      if (isRetry) {
+        await enqueue({ id, entity: 'habits', action: 'delete', payload: null });
+        addNotification("حذف عادت به صورت آفلاین ثبت شد.");
+      } else {
+        setHabits(originalHabits);
+        await saveSnapshot(userId, 'habits', originalHabits);
+        addNotification("خطا در حذف عادت.", "error");
+      }
     }
-  }, [habits, addNotification]);
+  }, [habits, userId, addNotification]);
 
   const toggleHabitCompletion = useCallback(async (habitId: string, date: string) => {
     const originalHabits = [...habits];
 
-    setHabits(prev => prev.map(h => {
+    const nextHabits = habits.map(h => {
       if (h.id === habitId) {
         const completed = h.completedDates.includes(date);
         const newCompletedDates = completed
@@ -374,15 +670,29 @@ export const useDataManager = (user: any) => {
         return { ...h, completedDates: newCompletedDates };
       }
       return h;
-    }));
+    });
+    setHabits(nextHabits);
+    await saveSnapshot(userId, 'habits', nextHabits);
+
+    if (!navigator.onLine) {
+      await enqueue({ id: `toggle-${habitId}-${date}`, entity: 'habits', action: 'toggle', payload: { habitId, date } });
+      return;
+    }
 
     try {
       await habitService.toggleHabitCompletion(habitId, date);
     } catch (error) {
-      setHabits(originalHabits);
-      addNotification("خطا در ثبت وضعیت عادت.", "error");
+      const msg = (error as any)?.message || '';
+      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      if (isRetry) {
+        await enqueue({ id: `toggle-${habitId}-${date}`, entity: 'habits', action: 'toggle', payload: { habitId, date } });
+      } else {
+        setHabits(originalHabits);
+        await saveSnapshot(userId, 'habits', originalHabits);
+        addNotification("خطا در ثبت وضعیت عادت.", "error");
+      }
     }
-  }, [habits, addNotification]);
+  }, [habits, userId, addNotification]);
 
   // AI / Media Proposal injection handler
   const injectAIProposalResult = useCallback((result: ActionResult) => {
@@ -411,6 +721,8 @@ export const useDataManager = (user: any) => {
       });
     }
   }, []);
+
+  const { isSyncing, pendingCount, flushOutbox } = useOfflineSync(userId, addNotification, loadInitial);
 
   return {
     currentPage,
@@ -453,6 +765,9 @@ export const useDataManager = (user: any) => {
     setEditingHabit,
     editHabit: setEditingHabit,
     onTriggerUpgrade,
+    isSyncing,
+    pendingCount,
+    flushOutbox,
     // Operations
     addProject,
     updateProject,

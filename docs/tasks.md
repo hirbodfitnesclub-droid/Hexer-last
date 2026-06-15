@@ -96,3 +96,134 @@ CONTEXT_FILES: ["features/onboarding/components/NameStep.tsx", "features/onboard
 - مطمئن شو هیچ import دیگری به `components/Onboarding` در پروژه نمانده باشد (جستجوی سراسری).
 **محدودیت‌های تسک:** منطق گیت (`isOnboarding` از `useDataManager`) دست‌نخورده بماند. `App.tsx` نباید متورم شود (Anti §۱۱).
 CONTEXT_FILES: ["App.tsx", "features/onboarding/Onboarding.tsx", "components/Onboarding.tsx"]
+
+---
+
+# فاز H — نقشهٔ راهِ مرجع (نوتیفیکیشن، آفلاین/PWA، پرفورمنس)
+
+> مرجعِ کامل: `PROJECT.md §فاز H` و `ARCHITECTURE.md §۱۱`. تسک‌هایی که روی فایلِ یکسان تداخلِ خواندن/نوشتن دارند **موازی نمی‌شوند** (نقشهٔ تداخل در `ARCHITECTURE.md §۱۱.د`).
+> یادآوریِ کدنویس: مثلِ یک سنیور کد بزن، اما دقیقاً همین اسکوپ را؛ نه کمتر، نه بیشتر. تمامِ متن‌های فارسی از util موجود، آیکون فقط از `components/icons.tsx`، انیمیشن فقط با `motion`.
+
+## ترتیبِ اجرا (وابستگی‌ها)
+گروهِ نوتیفیکیشن (H1→H2→H3→H4) · گروهِ پرفورمنس‌پایه (H5→H6→H7a→H7b) · گروهِ آفلاین (H8→H9→H10) — H9/H10 به H6 وابسته‌اند. H11 (مجوز/iOS) بعد از H1. H12 تستِ یکپارچه آخر.
+
+---
+
+## تسک H1 — تثبیتِ کلید VAPID و راه‌اندازیِ Push (کلاینت)
+**راهنمای پیاده‌سازی:**
+1. در `App.tsx`، در `setupPushManager` کلیدِ عمومیِ هاردکدِ fallback (`'BFgEnQ8...'`) را کاملاً حذف کن؛ فقط `import.meta.env.VITE_VAPID_PUBLIC_KEY` خوانده شود.
+2. اگر این env خالی بود → بدونِ `subscribeToPush` با `console.warn` برگرد (افتِ تدریجی به Foreground).
+3. در `useDataManager.ts` فراخوانیِ `requestNotificationPermission()` داخلِ `loadInitial` را حذف کن (درخواستِ تکراریِ بدونِ gesture).
+**محدودیت‌های تسک:** فقط تثبیتِ کلید و حذفِ درخواستِ تکراری؛ منطقِ subscribe/save دست‌نخورده. UIِ مجوز در H11 ساخته می‌شود. کلید هرگز هاردکد نشود.
+CONTEXT_FILES: ["App.tsx", "services/reminderService.ts", "hooks/useDataManager.ts", "docs/PROJECT.md", "docs/ARCHITECTURE.md"]
+
+## تسک H2 — تثبیتِ خطِ دیسپچِ سرور (SQL + Edge مشاهده‌پذیری)
+**راهنمای پیاده‌سازی:**
+1. فایلِ جدیدِ Idempotent `supabase/sql/41_fix_push_dispatch_transport.sql`: `create extension if not exists pg_net;` و `pg_cron;`.
+2. آدرسِ پروژه و `service_role_key` را از **Supabase Vault** بخوان (`vault.decrypted_secrets`) به‌جای `current_setting('app.settings.*')`؛ کرانهٔ `push-dispatch-cron` (هر دقیقه) با `net.http_post` و `Authorization: Bearer <key>` ساخته شود (با `cron.unschedule` در بلاکِ ایمن قبلش).
+3. جدولِ `push_dispatch_log` (RLS فقط service_role) + ایندکسِ `idx_tasks_due_pending on tasks(due_date) where completed_at is null`.
+4. در `supabase/functions/push-dispatch/index.ts` فقط نوشتنِ یک ردیفِ لاگ با `sent/failed/cleaned` در پایانِ اجرا اضافه شود (منطق دست‌نخورده).
+5. در ابتدای فایلِ SQL کامنتِ دستورالعملِ استقرار: فعال‌سازیِ `pg_cron`+`pg_net` در داشبورد و ست‌کردنِ یک‌بارهٔ سکرت‌های Vault. **جفت‌بودنِ `VITE_VAPID_PUBLIC_KEY` با `VAPID_PRIVATE_KEY` را هم یادآوری کن.**
+**محدودیت‌های تسک:** فقط لایهٔ انتقال/مشاهده‌پذیری؛ ساختارِ view/dedupِ موجود تغییر نکند. SQL باید idempotent و آمادهٔ اجرای دستی باشد (بدون اتکا به CLI).
+CONTEXT_FILES: ["supabase/sql/35_reminder_dispatch.sql", "supabase/sql/35.5_fix_security_definer_view.sql", "supabase/sql/34_push_subscriptions.sql", "supabase/functions/push-dispatch/index.ts", "docs/ARCHITECTURE.md"]
+
+## تسک H3 — بازنویسیِ اسکجولرِ Foreground (قطعی هنگام بازبودنِ اپ)
+**راهنمای پیاده‌سازی:**
+1. در `hooks/useReminderScheduler.ts` یک تابعِ واحدِ `evaluate()` بساز که: (الف) برای تسک‌های زمان‌دارِ امروزِ بدونِ تکمیل که سررسیدشان در آیندهٔ نزدیک است `setTimeout` بگذارد، (ب) catch-up کند: تسک‌های سررسیدگذشتهٔ امروزِ بدونِ نوتیفِ قبلی → فوری `showViaSW`.
+2. یک `setInterval` هر ۶۰ ثانیه که `evaluate()` را صدا بزند (حذفِ اتکا به تایمرِ بلند).
+3. `handleSyncReset`ِ فعلی (که فقط clear می‌کند) را با فراخوانیِ `evaluate()` (clear + reschedule + catch-up) جایگزین کن؛ `visibilitychange` را روی `document` بایند کن و `focus`/`online` روی `window`.
+4. dedup: `Set` از taskIdهای امروز + کلیدِ روزانهٔ nudge در `localStorage` (transient/مجاز). تمام timeout/interval‌ها در cleanup پاک شوند.
+**محدودیت‌های تسک:** فقط لایهٔ Foreground؛ به Push/Edge دست نزن. متن‌ها از `utils/notificationCopy.ts`. هیچ نوتیفیکیشنِ تکراری.
+CONTEXT_FILES: ["hooks/useReminderScheduler.ts", "services/reminderService.ts", "utils/notificationCopy.ts", "utils/dateUtils.ts", "contexts/DataContext.tsx", "docs/ARCHITECTURE.md"]
+
+## تسک H4 — مسیرِ واحدِ نمایش و dedup بین لایه‌ها
+**راهنمای پیاده‌سازی:**
+1. در `hooks/useRealtimeSync.ts` لیسنرِ INSERTِ `reminders`: اگر `document.visibilityState==='visible'` فقط `addNotification` (Toast) بزن و **`sendBrowserNotification` را در این حالت حذف کن**؛ اگر hidden، نوتیفِ OS را به لایهٔ Push/SW واگذار کن.
+2. اطمینان از یکتاییِ `tag` (`task-<id>`, `daily-nudge-<uid>-<date>`) در همهٔ مسیرها برای coalesce.
+**محدودیت‌های تسک:** فقط منطقِ نمایش/dedup؛ فیلترِ `user_id=eq.<uid>` کانال‌ها حفظ شود (Anti-Pattern §۷).
+CONTEXT_FILES: ["hooks/useRealtimeSync.ts", "services/reminderService.ts", "public/sw.js", "docs/ARCHITECTURE.md"]
+
+## تسک H5 — ایندکس‌ها و RPCِ بهینهٔ لیست (SQL)
+**راهنمای پیاده‌سازی:**
+1. فایلِ جدیدِ Idempotent `supabase/sql/42_list_query_optimization.sql`: ایندکس‌های ترکیبی `tasks(user_id, created_at desc)`, `notes(user_id, created_at desc)`, `tasks(user_id, due_date)`, `habit_completions(habit_id, completion_date)`.
+2. (اختیاری ولی توصیه‌شده) RPCِ `get_habits_with_recent_completions(p_days int)` با `security definer` که عادت‌ها + تکمیل‌های پنجرهٔ اخیر را در یک رفت‌وبرگشت برمی‌گرداند.
+**محدودیت‌های تسک:** فقط ایندکس/RPC؛ بدونِ تغییرِ اسکیمای ستون‌ها. idempotent و دستی.
+CONTEXT_FILES: ["supabase/sql/03_core.sql", "supabase/sql/21_refactor_functions.sql", "docs/ARCHITECTURE.md"]
+
+## تسک H6 — لاغرسازیِ سرویس‌ها: ستون‌های صریح + صفحه‌بندی
+**راهنمای پیاده‌سازی:**
+1. در `taskService.getTasks` و `noteService.getNotes` و `projectService.getProjects`، `select('*')` را با لیستِ ستونِ صریح **بدونِ `embedding`** جایگزین کن و `.order('created_at',{ascending:false}).range(0, limit-1)` با پارامترِ `limit` بگذار.
+2. سیم‌کشیِ `tasksLimit/notesLimit` از `useDataManager` به این سرویس‌ها؛ `loadMoreTasks/loadMoreNotes` واقعی شوند.
+3. `habitService.getHabits` را به پنجرهٔ محدود یا RPCِ H5 منتقل کن (حذفِ کشیدنِ کلِ تاریخچه).
+**محدودیت‌های تسک:** فقط لایهٔ سرویس و امضای تابع؛ منطقِ CRUDِ خوش‌بینانه دست‌نخورده. ستونِ `embedding` هرگز به کلاینت نیاید (§۵۶).
+CONTEXT_FILES: ["services/taskService.ts", "services/noteService.ts", "services/projectService.ts", "services/habitService.ts", "hooks/useDataManager.ts", "types.ts", "supabase/sql/42_list_query_optimization.sql"]
+
+## تسک H7a — پایپ‌لاینِ Build: حذفِ importmap و Tailwind build-time
+**راهنمای پیادهسازی:**
+1. `<script type="importmap">` و `<script src="cdn.tailwindcss.com">` را از `index.html` حذف کن.
+2. **Tailwind build-time (مسیر اصلی):** `tailwindcss@3.4` + `postcss` + `autoprefixer` را به devDependencies اضافه کن؛ `tailwind.config.js` و `postcss.config.js` را بساز.
+3. در `index.css`: دایرکتیوهای `@tailwind base/components/utilities` را اضافه کن. Safe-Area Insets و Autofill Override و انیمیشنها حفظ شوند.
+4. **[الزامی] safelistِ کلاسهای داینامیک** طبق `ARCHITECTURE.md §۱۱.هـ` در `tailwind.config.js` اضافه شود؛ بدونِ آن اپ بیاستایل بالا میآید.
+5. حفظِ فونت Vazirmatn با `display=swap` و preload.
+**محدودیتهای تسک:** هرگز از Tailwind v4 استفاده نشود. این تسک باید ایزوله و قابل برگشت باشد.
+CONTEXT_FILES: ["index.html", "vite.config.ts", "package.json", "index.css", "docs/PROJECT.md", "docs/ARCHITECTURE.md"]
+
+## تسک H7b — Code-Splitting صفحات سنگین
+**راهنمای پیاده‌سازی:** در `App.tsx`، `Chat`, `Projects`, `Subscription` و مودال‌های سنگین را با `React.lazy` + `<Suspense fallback=...>` تنبل کن؛ `Dashboard` eager بماند.
+**محدودیت‌های تسک:** فقط lazy/Suspense؛ منطقِ روتینگ و DataContext دست‌نخورده. fallback باید همان اسپینرِ سبکِ موجود باشد، نه قفلِ تمام‌صفحه.
+CONTEXT_FILES: ["App.tsx", "features/chat/ChatView.tsx", "features/projects/ProjectsView.tsx", "features/billing/pages/SubscriptionPage.tsx", "docs/ARCHITECTURE.md"]
+
+## تسک H8 — پایهٔ آفلاین: IndexedDB + Snapshot + Outbox
+**راهنمای پیاده‌سازی:** پوشهٔ جدیدِ `services/offline/`:
+1. `idb.ts` — wrapperِ سبکِ دست‌نویس (بدونِ کتابخانه): `openDB` با دو store `snapshot` و `outbox`؛ توابعِ get/getAll/put/delete/clear.
+2. `snapshot.ts` — `saveSnapshot/loadSnapshot(userId, entity, rows)`.
+3. `outbox.ts` — مدلِ mutation و توابعِ `enqueue/listPending/remove/bumpRetry/remapTempId`.
+**محدودیت‌های تسک:** فقط ماژول‌های مستقلِ آفلاین؛ هنوز به UI وصل نشو. سیاستِ تعارض LWW بر اساس `updated_at`. فقط CRUDِ مجاز (§۵۹). بدونِ کش در SW (§۳۳).
+CONTEXT_FILES: ["services/supabaseClient.ts", "hooks/useDataManager.ts", "types.ts", "docs/ARCHITECTURE.md"]
+
+## تسک H9 — بوتِ Stale-While-Revalidate (هیدریت از اسنپ‌شات)
+**راهنمای پیاده‌سازی:**
+1. در `useDataManager.loadInitial`: ابتدا از `loadSnapshot` هیدریت کن و `loadingData=false` را سریع ست کن؛ سپس در پس‌زمینه از شبکه (سرویس‌های H6) رِواِلیدِیت و `saveSnapshot` را به‌روز کن.
+2. اولویتِ مسیرِ بحرانی: profile+subscription+تسک‌های امروز/اخیر اول؛ بقیه تنبل.
+3. در `services/supabaseClient.ts` گزینه‌های `auth:{persistSession:true, autoRefreshToken:true}` صریح شوند.
+**محدودیت‌های تسک:** هیچ گیتِ تمام‌صفحه (§۵۸). همان فایلِ `useDataManager` در H10 ادامه می‌یابد → این تسک قبل از H10 و **سری**.
+CONTEXT_FILES: ["hooks/useDataManager.ts", "contexts/DataContext.tsx", "services/offline/snapshot.ts", "services/offline/idb.ts", "services/supabaseClient.ts", "App.tsx"]
+
+## تسک H10 — صفِ نوشتنِ آفلاین + موتورِ سینک
+**راهنمای پیاده‌سازی:**
+1. در CRUDهای `useDataManager`: در `catch`، اگر آفلاین/خطای شبکه بود به‌جای rollback، `outbox.enqueue` کن و state+snapshot را حفظ کن (§۵۴).
+2. `hooks/useOfflineSync.ts`: روی `online` و در بوت، صف را به‌ترتیب flush کن؛ پس از create، `tempId→realId` را در state و opهای وابسته remap کن؛ retry با backoff؛ drop+Toast برای خطای دائمی.
+3. `App.tsx`: mountِ `useOfflineSync`؛ پاس‌دادنِ تعدادِ pending به `NetworkBanner`. `NetworkBanner` وضعیتِ واقعی را نشان دهد.
+**محدودیت‌های تسک:** فقط CRUDِ مجاز در صف؛ AI/مدیا/پرداخت مستثنا و در آفلاین پیامِ مناسب. ترتیبِ صف حفظ شود.
+CONTEXT_FILES: ["hooks/useDataManager.ts", "hooks/useOfflineSync.ts", "services/offline/outbox.ts", "services/offline/snapshot.ts", "components/NetworkBanner.tsx", "hooks/useNetworkStatus.ts", "App.tsx"]
+
+## تسک H11 — UXِ مجوزِ نوتیفیکیشن + راهنمای iOS
+**راهنمای پیاده‌سازی:** یک کارتِ یک‌بارهٔ «روشن‌کردنِ یادآوری‌ها» که `requestNotificationPermission` را **فقط با کلیکِ کاربر** صدا بزند؛ اگر iOS و `navigator.standalone===false` بود، به‌جای تلاشِ شکست‌خورده راهنمای «افزودن به صفحهٔ اصلی» نشان بده.
+**محدودیت‌های تسک:** آیکون از `components/icons.tsx`؛ انیمیشن با `motion`؛ بعد از H1.
+CONTEXT_FILES: ["App.tsx", "services/reminderService.ts", "components/icons.tsx", "components/Modal.tsx", "docs/ARCHITECTURE.md"]
+
+## تسک H12 — تستِ یکپارچهٔ سه بحران (دستی، چک‌لیست)
+**راهنمای پیاده‌سازی:** سناریوهای تأیید: (الف) Push با اپ‌بسته (لاگِ `push_dispatch_log`)، Foreground با اپ‌باز، عدمِ تکرار؛ (ب) ورودِ تسک در آفلاین → بستن/بازکردن → سینکِ خودکار در online، بدونِ گم‌شدن؛ (ج) لودِ اولیه با دیتای زیاد: first-paint سریع، نبودِ `embedding` در پیلود، صفحه‌بندیِ واقعی.
+**محدودیت‌های تسک:** بدونِ کد جدید؛ فقط راستی‌آزمایی و ثبتِ نتیجه در `CURRENT_TASK.md`. هر رگرسیون = برگشت به تسکِ مربوطه.
+CONTEXT_FILES: ["docs/PROJECT.md", "docs/ARCHITECTURE.md", "docs/tasks.md", "docs/CURRENT_TASK.md"]
+
+
+---
+
+# فاز H — اصلاحیهٔ گاردریل (Revision H.2)
+> این بخش بندهای زیر را به تسک‌های موجود **می‌افزاید/سفت‌تر می‌کند** (مرجع: `ARCHITECTURE.md §۱۱.هـ` و `PROJECT.md §H.۶`). کدنویس باید این قیود را روی همان تسک‌ها اعمال کند.
+
+**به‌روزرسانیِ H2 (SQL دیسپچ):** هیچ فایلِ SQLِ قبلی (`35`/`35.5`/...) ویرایش نشود؛ فقط فایلِ جدیدِ `supabase/sql/41_fix_push_dispatch_transport.sql` (Anti-Pattern §۶۱). نامِ پیشنهادی هم‌خانواده: می‌تواند `41_setup_pg_net_and_push.sql` باشد.
+
+**به‌روزرسانیِ H4 (dedup):** علاوه بر `tag`، یک `messageId` قطعی (`task-<id>-<dueEpoch>`، `nudge-<uid>-<tehranDate>`) و دفترِ `shown` در IndexedDB پیاده شود؛ هر سه مسیر (scheduler، Realtime، `sw.js push`) پیش از نمایش `shown` را چک کنند (§۱۱.هـ.۳، Anti-Pattern §۶۳). `sw.js` هم باید `shown` را بخواند/بنویسد.
+CONTEXT_FILES (به‌روز): ["hooks/useRealtimeSync.ts", "services/reminderService.ts", "public/sw.js", "services/offline/idb.ts", "utils/dateUtils.ts", "docs/ARCHITECTURE.md"]
+
+**به‌روزرسانیِ H6 (select صریح):** دقیقاً لیستِ ستون‌های `ARCHITECTURE.md §۱۱.هـ.۱` کپی شود (هیچ فیلدی جا نیفتد؛ `embedding` هرگز)؛ `habit_completions` با پنجرهٔ ۹۰ روزه/RPC (Anti-Pattern §۶۴).
+
+**بهروزرسانیِ H7a (Tailwind — اصلاحِ H.3):** مسیرِ اصلی = `tailwindcss@3.4` build-time با `postcss`+`autoprefixer`+`tailwind.config.js` (بدونِ تغییرِ معناییِ کلاس)، نه v4. safelist با آرایه در `tailwind.config.js` اجباری است. **این تسک باید اولین تسکِ اجراشده، روی برنچ/کامیتِ مجزا و قابلِبرگشت باشد؛ اگر UI شکست، rollback فوری.**
+
+**بهروزرسانیِ H8 (storeها):** IndexedDB چهار store دارد: `snapshot`, `outbox`, `shown`, `failed`. تابعِ `pruneShown()` در بوت. SW دیتابیس را بدون version باز میکند.
+
+**بهروزرسانیِ H10 (dead-letter + cascade):** خطای دائمیِ غیرauth → انتقال به `failed` (نه delete) + انتقالِ cascadeِ opهای وابسته. فقط `getSession()` چک شود؛ `refreshSession()` دستی force نشود. 401/403 قابل retry است.
+
+**ترتیبِ نهاییِ فاز H:** **H7a (اول، ایزوله، قابلِبرگشت)** → H1→H2→H3→H4 → H5→H6→H7b → H8→H9→H10 → H11 → H12.

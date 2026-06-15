@@ -141,11 +141,25 @@ export const useRealtimeSync = ({
       schema: 'public',
       table: 'reminders',
       filter: `user_id=eq.${currentUser.id}`
-    }, (payload) => {
+    }, async (payload) => {
       const newReminder = payload.new;
-      if (newReminder) {
-        addNotification(`یادآوری: ${newReminder.title} - ${newReminder.body}`, "success");
-        sendBrowserNotification(newReminder.title, newReminder.body);
+      if (newReminder && document.visibilityState === 'visible') {
+        const { checkIfShownAndRegister } = await import('../services/reminderService');
+        const { getTehranDateString } = await import('../utils/dateUtils');
+
+        let messageId = `reminder-${newReminder.id}`;
+        if (newReminder.related_entity_type === 'task' && newReminder.related_entity_id) {
+          const dueEpoch = newReminder.remind_at ? new Date(newReminder.remind_at).getTime() : Date.now();
+          messageId = `task-${newReminder.related_entity_id}-${dueEpoch}`;
+        } else if (newReminder.related_entity_type === 'daily_nudge' || newReminder.type === 'custom') {
+          const tehranDate = newReminder.remind_at ? getTehranDateString(new Date(newReminder.remind_at)) : getTehranDateString();
+          messageId = `nudge-${newReminder.user_id}-${tehranDate}`;
+        }
+
+        const isShown = await checkIfShownAndRegister(messageId);
+        if (!isShown) {
+          addNotification(`یادآوری: ${newReminder.title} - ${newReminder.body}`, "success");
+        }
       }
     }).subscribe();
 

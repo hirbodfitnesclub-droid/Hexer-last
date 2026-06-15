@@ -5,11 +5,12 @@ import { Task } from '../types';
 type TaskInsert = Omit<Task, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'status' | 'completed_at'>;
 type TaskUpdate = Partial<Omit<Task, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
 
-export const getTasks = async (): Promise<Task[]> => {
+export const getTasks = async (limit: number = 20): Promise<Task[]> => {
   const { data, error } = await supabase
     .from('tasks')
-    .select('*')
-    .order('created_at', { ascending: false });
+    .select('id, user_id, project_id, title, description, status, priority, due_date, completed_at, tags, checklist, created_at, updated_at')
+    .order('created_at', { ascending: false })
+    .range(0, limit - 1);
 
   if (error) throw error;
   return data as Task[];

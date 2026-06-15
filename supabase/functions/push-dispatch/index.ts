@@ -50,6 +50,17 @@ Deno.serve(async (req: Request) => {
     }
 
     const logs: string[] = [];
+    let sentCountTotal = 0;
+    let failedCountTotal = 0;
+    let cleanedCountTotal = 0;
+
+    // Resolve Tehran date for Daily Nudge uniqueness
+    const tehranDateStr = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Tehran',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(new Date());
 
     // ==========================================
     // 1. Process Overdue Task Reminders
@@ -92,15 +103,20 @@ Deno.serve(async (req: Request) => {
         logs.push(`Task ${taskId}: "${item.task.title}" -> ${item.subs.length} registrations.`);
         
         let sentCount = 0;
+        const dueEpoch = new Date(item.task.due_date).getTime();
+        const taskMessageId = `task-${item.task.id}-${dueEpoch}`;
+
         for (const sub of item.subs) {
           try {
             await webpush.sendNotification(sub, JSON.stringify({
               title: item.task.title,
               body: item.task.description || 'سررسید این وظیفه فرا رسیده است.',
               tag: `task-${item.task.id}`,
+              messageId: taskMessageId,
               data: { taskId: item.task.id }
             }));
             sentCount++;
+            sentCountTotal++;
           } catch (pushErr: any) {
             console.error(`Task Web Push payload failed for sub: ${sub.endpoint}`, pushErr);
             // Self-cleaning expired or broken endpoints
@@ -110,6 +126,9 @@ Deno.serve(async (req: Request) => {
                 .delete()
                 .eq('endpoint', sub.endpoint);
               logs.push(`Removed expired client push subscription: ${sub.endpoint}`);
+              cleanedCountTotal++;
+            } else {
+              failedCountTotal++;
             }
           }
         }
@@ -178,6 +197,7 @@ Deno.serve(async (req: Request) => {
         const randIndex = Math.floor(Math.random() * dailyNudgeTexts.length);
         const nudgeBody = dailyNudgeTexts[randIndex];
         const nudgeTitle = "👋 یادآوری روزانه";
+        const nudgeMessageId = `nudge-${userId}-${tehranDateStr}`;
 
         logs.push(`Nudge user ${userId} -> ${subs.length} registrations.`);
 
@@ -188,9 +208,11 @@ Deno.serve(async (req: Request) => {
               title: nudgeTitle,
               body: nudgeBody,
               tag: `daily-nudge-${userId}`,
+              messageId: nudgeMessageId,
               data: { type: 'daily_nudge' }
             }));
             nudgeSentCount++;
+            sentCountTotal++;
           } catch (pushErr: any) {
             console.error(`Daily Nudge push failed for sub: ${sub.endpoint}`, pushErr);
             if (pushErr.statusCode === 410 || pushErr.statusCode === 404) {
@@ -199,6 +221,9 @@ Deno.serve(async (req: Request) => {
                 .delete()
                 .eq('endpoint', sub.endpoint);
               logs.push(`Removed expired daily nudge subscription: ${sub.endpoint}`);
+              cleanedCountTotal++;
+            } else {
+              failedCountTotal++;
             }
           }
         }
@@ -228,6 +253,20 @@ Deno.serve(async (req: Request) => {
       logs.push("No daily nudge candidates found.");
     }
 
+    // Write execution log to push_dispatch_log table
+    const { error: logError } = await supabase
+      .from('push_dispatch_log')
+      .insert({
+        sent_count: sentCountTotal,
+        failed_count: failedCountTotal,
+        cleaned_count: cleanedCountTotal,
+        notes: logs.join('\n')
+      });
+
+    if (logError) {
+      console.error("Failed to write to push_dispatch_log table:", logError);
+    }
+
     return new Response(JSON.stringify({ success: true, logs }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200
@@ -235,6 +274,25 @@ Deno.serve(async (req: Request) => {
 
   } catch (err: any) {
     console.error("Critical server error under push-dispatch:", err);
+    
+    // Attempt to log critical failure to the table before returning
+    try {
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL') || '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+      );
+      await supabase
+        .from('push_dispatch_log')
+        .insert({
+          sent_count: 0,
+          failed_count: 1,
+          cleaned_count: 0,
+          notes: `CRITICAL ERROR: ${err.message || err}`
+        });
+    } catch (logErr) {
+      console.error("Could not write critical failure to push_dispatch_log:", logErr);
+    }
+
     return new Response(JSON.stringify({ error: err.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500

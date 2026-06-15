@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { getDB, pruneShown as pruneOfflineShown } from './offline/idb';
 
 export interface DBReminder {
   id: string;
@@ -152,6 +153,19 @@ export async function saveSubscription(
  * Direct delivery of a visible notification via the Service Worker registration
  */
 export async function showViaSW(title: string, body: string, options: any = {}): Promise<void> {
+  if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') {
+    return;
+  }
+
+  const messageId = options.messageId || options.data?.messageId || options.tag;
+  if (messageId) {
+    const isShown = await checkIfShownAndRegister(messageId);
+    if (isShown) {
+      console.log(`[Scheduler/Direct] Notification with messageId ${messageId} already shown. Skipping.`);
+      return;
+    }
+  }
+
   if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
     try {
       const registration = await navigator.serviceWorker.ready;
@@ -168,5 +182,38 @@ export async function showViaSW(title: string, body: string, options: any = {}):
     }
   }
   sendBrowserNotification(title, body);
+}
+
+export async function checkIfShownAndRegister(messageId: string): Promise<boolean> {
+  if (typeof window === 'undefined' || !('indexedDB' in window)) {
+    return false;
+  }
+  try {
+    const db = await getDB();
+    const tx = db.transaction('shown', 'readwrite');
+    const store = tx.objectStore('shown');
+    const existing = await store.get(messageId);
+    if (existing !== undefined) {
+      await tx.done;
+      return true; // Already shown
+    }
+    await store.put({ messageId, timestamp: Date.now() });
+    await tx.done;
+    return false; // First time, registered now
+  } catch (err) {
+    console.warn('[OfflineDB] Error in checkIfShownAndRegister:', err);
+    return false;
+  }
+}
+
+export async function pruneShown(): Promise<void> {
+  if (typeof window === 'undefined' || !('indexedDB' in window)) {
+    return;
+  }
+  try {
+    await pruneOfflineShown();
+  } catch (err) {
+    console.warn('[OfflineDB] Error in pruneShown:', err);
+  }
 }
 

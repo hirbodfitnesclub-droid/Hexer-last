@@ -10,16 +10,28 @@ interface HabitCompletion {
 }
 
 export const getHabits = async (): Promise<Habit[]> => {
-    // Select all columns from the habits table. Assumes DB column is now 'name'.
+    // Select explicit columns from the habits table
     const { data: habitsData, error: habitsError } = await supabase
         .from('habits')
-        .select('*');
+        .select('id, user_id, name, description, frequency, target_count, created_at, updated_at');
 
     if (habitsError) throw habitsError;
 
+    // Calculate 90 days ago in Asia/Tehran timezone
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Tehran',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
+    const ninetyDaysAgoStr = formatter.format(ninetyDaysAgo);
+
     const { data: completionsData, error: completionsError } = await supabase
         .from('habit_completions')
-        .select('habit_id, completion_date');
+        .select('habit_id, completion_date')
+        .gte('completion_date', ninetyDaysAgoStr);
 
     if (completionsError) throw completionsError;
 
