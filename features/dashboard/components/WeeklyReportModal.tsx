@@ -99,7 +99,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
   const completionPercentage = totalCount > 0 
     ? Math.round((doneThisWeek.length / totalCount) * 100) 
     : 0;
-  const strokeCircumference = 2 * Math.PI * 40; // ~251.3
+  const strokeCircumference = 2 * Math.PI * 32; // ~201.06
   const strokeDashoffset = strokeCircumference - (strokeCircumference * completionPercentage) / 100;
 
   // Background color / text for health rating
@@ -153,26 +153,26 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
           </div>
 
           {/* Modal Scrollable Body */}
-          <div className="p-6 overflow-y-auto flex-1 space-y-6">
+          <div className="p-6 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-6 overflow-y-auto flex-1 space-y-6">
             {/* Health & Visual Stats Block */}
-            <div className="bg-zinc-900/60 border border-white/5 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-around gap-6">
+            <div className="bg-zinc-900/60 border border-white/5 rounded-2xl p-4 sm:p-6 flex flex-row items-center justify-around gap-4 sm:gap-6">
               {/* Donut Progress Chart */}
-              <div className="relative flex items-center justify-center">
-                <svg className="w-32 h-32 transform -rotate-90">
+              <div className="relative flex items-center justify-center flex-shrink-0">
+                <svg className="w-24 h-24 transform -rotate-90">
                   <circle
-                    cx="64"
-                    cy="64"
-                    r="40"
+                    cx="48"
+                    cy="48"
+                    r="32"
                     className="stroke-zinc-800"
-                    strokeWidth="10"
+                    strokeWidth="8"
                     fill="transparent"
                   />
                   <circle
-                    cx="64"
-                    cy="64"
-                    r="40"
+                    cx="48"
+                    cy="48"
+                    r="32"
                     className="stroke-sky-400 transition-all duration-1000 ease-out"
-                    strokeWidth="10"
+                    strokeWidth="8"
                     strokeDasharray={strokeCircumference}
                     strokeDashoffset={strokeDashoffset}
                     strokeLinecap="round"
@@ -181,19 +181,19 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
                 </svg>
                 {/* Embedded percentage details */}
                 <div className="absolute flex flex-col items-center">
-                  <span className="text-2xl font-black text-white font-mono">{completionPercentage}%</span>
-                  <span className="text-[10px] text-zinc-400">انجام شده</span>
+                  <span className="text-xl font-black text-white font-mono">{completionPercentage}%</span>
+                  <span className="text-[9px] text-zinc-400">انجام شده</span>
                 </div>
               </div>
 
               {/* Status score banner */}
-              <div className="text-center sm:text-right space-y-2">
-                <span className="text-xs text-zinc-400 block font-semibold">امتیاز بهره‌وری</span>
-                <div className="flex items-baseline justify-center sm:justify-start gap-1">
-                  <span className="text-5xl font-black text-white font-mono">{stats.healthScore}</span>
-                  <span className="text-sm text-zinc-500 font-medium select-none">/ ۱۰۰</span>
+              <div className="text-right space-y-1 sm:space-y-2">
+                <span className="text-[10px] sm:text-xs text-zinc-400 block font-semibold">امتیاز بهره‌وری</span>
+                <div className="flex items-baseline justify-start gap-1">
+                  <span className="text-4xl sm:text-5xl font-black text-white font-mono">{stats.healthScore}</span>
+                  <span className="text-[10px] sm:text-sm text-zinc-500 font-medium select-none">/ ۱۰۰</span>
                 </div>
-                <div className={`px-3 py-1 rounded-full text-xs font-bold border inline-block ${healthRating.bg} ${healthRating.color}`}>
+                <div className={`px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold border inline-block ${healthRating.bg} ${healthRating.color}`}>
                   وضعیت هفته: {healthRating.label}
                 </div>
               </div>
@@ -308,7 +308,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
                     {todoThisWeek.length === 0 ? (
                       <div className="py-12 border border-dashed border-white/5 rounded-2xl flex flex-col items-center justify-center text-zinc-500">
                         <CheckIcon className="w-8 h-8 text-emerald-600/40 mb-2 opacity-55" />
-                        <span className="text-xs text-emerald-450/90 font-medium">عالی! هیچ کار موعدداری در این هفته باقی نمانده.</span>
+                        <span className="text-xs text-emerald-400 font-medium">عالی! هیچ کار موعدداری در این هفته باقی نمانده.</span>
                       </div>
                     ) : (
                       todoThisWeek.map(t => {
@@ -348,6 +348,9 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
                 )}
               </AnimatePresence>
             </div>
+
+            {/* Spacer to prevent overlap with the floating AI button on mobile devices */}
+            <div className="h-24 sm:hidden" aria-hidden="true" />
           </div>
         </motion.div>
       </div>
