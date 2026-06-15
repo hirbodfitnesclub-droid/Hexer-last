@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Task, Priority, Project } from '../../../types';
-import { TrashIcon, ListChecksIcon } from '../../../components/icons';
+import { TrashIcon, ListChecksIcon, NotebookIcon } from '../../../components/icons';
 import { formatPersianDate } from '../../../utils/dateUtils';
+import { useData } from '../../../contexts/DataContext';
 
 const priorityConfig = {
   [Priority.High]: { color: 'red', label: 'زیاد', bg: 'bg-red-500/10', text: 'text-red-300', border: 'border-red-500/30' },
@@ -18,9 +19,12 @@ interface TaskCardProps {
 }
 
 export const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, onToggle, onDelete, onEdit }) => {
+  const { entityLinks } = useData();
   const currentPriority = task.priority || Priority.Medium;
   const { color: priorityColor } = priorityConfig[currentPriority] || priorityConfig[Priority.Medium];
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
+
+  const isLinkedToNote = entityLinks.some(link => link.task_id === task.id);
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -91,6 +95,13 @@ export const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, onToggle, o
             <div className={`flex items-center gap-1.5 bg-zinc-800/30 px-2 py-0.5 rounded-md border border-white/5 ${checklistCompleted === checklistTotal ? 'text-green-400' : 'text-zinc-500'}`}>
               <ListChecksIcon className="w-3 h-3" />
               <span className="font-mono text-[10px]">{checklistCompleted}/{checklistTotal}</span>
+            </div>
+          )}
+
+          {isLinkedToNote && (
+            <div className="flex items-center gap-1 bg-purple-500/10 text-purple-300 border border-purple-500/15 px-2 py-0.5 rounded-md font-semibold" title="دارای یادداشت متصل">
+              <NotebookIcon className="w-3 h-3 text-purple-400" />
+              <span>یادداشت متصل</span>
             </div>
           )}
         </div>

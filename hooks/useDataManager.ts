@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '../services/supabaseClient';
-import { Page, Task, Note, ChatMessage, Habit, Project, ActionResult } from '../types';
+import { Page, Task, Note, ChatMessage, Habit, Project, ActionResult, EntityLink } from '../types';
 import * as projectService from '../services/projectService';
 import * as taskService from '../services/taskService';
 import * as noteService from '../services/noteService';
@@ -32,6 +32,7 @@ export const useDataManager = (user: any) => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [habits, setHabits] = useState<Habit[]>([]);
+  const [entityLinks, setEntityLinks] = useState<EntityLink[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   // Pagination states
@@ -95,19 +96,21 @@ export const useDataManager = (user: any) => {
       setLoadingData(true);
     }
     try {
-      const [projectsData, tasksData, notesData, habitsData, profileResult, subData] = await Promise.all([
+      const [projectsData, tasksData, notesData, habitsData, profileResult, subData, linksResult] = await Promise.all([
         projectService.getProjects(),
         taskService.getTasks(),
         noteService.getNotes(),
         habitService.getHabits(),
         supabase.from('profiles').select('*').maybeSingle(),
-        billingService.getSubscription()
+        billingService.getSubscription(),
+        supabase.from('task_note_links').select('*')
       ]);
       setProjects(projectsData);
       setTasks(tasksData);
       setNotes(notesData);
       setHabits(habitsData);
       setSubscription(subData);
+      setEntityLinks(linksResult.data || []);
       
       if (profileResult.data) {
         setProfile(profileResult.data);
@@ -427,6 +430,8 @@ export const useDataManager = (user: any) => {
     setProjects,
     habits,
     setHabits,
+    entityLinks,
+    setEntityLinks,
     loadingData,
     setLoadingData,
     tasksLimit,

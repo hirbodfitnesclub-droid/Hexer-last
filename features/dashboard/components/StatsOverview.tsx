@@ -2,10 +2,14 @@ import React, { useMemo } from 'react';
 import { useData } from '../../../contexts/DataContext';
 import { getTehranDateString, compareTehranDates, isSameTehranDay } from '../../../utils/dateUtils';
 import { Priority } from '../../../types';
-import { FlameIcon, BriefcaseIcon, CheckIcon, PlusIcon } from '../../../components/icons';
+import { FlameIcon, BriefcaseIcon, CheckIcon, PlusIcon, TargetIcon, ChevronLeftIcon } from '../../../components/icons';
 import { WidgetContainer } from './WidgetContainer';
 
-export const StatsOverview: React.FC = () => {
+interface StatsOverviewProps {
+  onOpenWeeklyReport: () => void;
+}
+
+export const StatsOverview: React.FC<StatsOverviewProps> = ({ onOpenWeeklyReport }) => {
   const { tasks, projects } = useData();
 
   const stats = useMemo(() => {
@@ -81,6 +85,18 @@ export const StatsOverview: React.FC = () => {
           colorClass="bg-gray-500/20 text-gray-300 shadow-[0_0_12px_rgba(156,163,175,0.15)]"
         />
       </div>
+      
+      {/* دکمه شیشه‌ای گزارش عملکرد هفتگی */}
+      <button
+        onClick={onOpenWeeklyReport}
+        className="w-full mt-4 bg-zinc-850/40 hover:bg-zinc-800/80 border border-white/5 hover:border-sky-500/20 py-3 px-4 rounded-xl flex items-center justify-between text-xs text-sky-400 font-bold transition-all duration-300 shadow-xl group"
+      >
+        <span className="flex items-center gap-2">
+          <TargetIcon className="w-4 h-4 text-sky-450 group-hover:scale-110 transition-transform" />
+          مشاهده گزارش عملکرد هفتگی
+        </span>
+        <ChevronLeftIcon className="w-4 h-4 text-zinc-550 group-hover:-translate-x-1 transition-transform" />
+      </button>
     </WidgetContainer>
   );
 };

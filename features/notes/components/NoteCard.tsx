@@ -1,6 +1,8 @@
 import React from 'react';
 import { Note, Project } from '../../../types';
 import { formatPersianDate } from '../../../utils/dateUtils';
+import { ListChecksIcon } from '../../../components/icons';
+import { useData } from '../../../contexts/DataContext';
 
 interface NoteCardProps {
   note: Note;
@@ -9,6 +11,9 @@ interface NoteCardProps {
 }
 
 export const NoteCard: React.FC<NoteCardProps> = ({ note, project, onEdit }) => {
+  const { entityLinks } = useData();
+  const isLinkedToTask = entityLinks.some(link => link.note_id === note.id);
+
   return (
     <div 
       onClick={() => onEdit(note)}
@@ -49,9 +54,17 @@ export const NoteCard: React.FC<NoteCardProps> = ({ note, project, onEdit }) => 
 
           {/* Footer: Meta & Tags */}
           <div className="pt-4 mt-2 border-t border-white/5 flex flex-wrap items-center justify-between gap-3 font-semibold">
-            <span className="text-[10px] text-zinc-600 font-mono">
-              {formatPersianDate(note.created_at)}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-zinc-600 font-mono">
+                {formatPersianDate(note.created_at)}
+              </span>
+              {isLinkedToTask && (
+                <div className="flex items-center gap-1 bg-sky-500/10 text-sky-300 border border-sky-500/15 px-1.5 py-0.5 rounded-md text-[9px] font-extrabold" title="دارای کار متصل">
+                  <ListChecksIcon className="w-3 h-3 text-sky-400" />
+                  <span>کار متصل</span>
+                </div>
+              )}
+            </div>
             
             {note.tags && note.tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5 justify-end">

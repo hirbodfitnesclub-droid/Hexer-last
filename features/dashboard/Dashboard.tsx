@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import { isSameTehranDay } from '../../utils/dateUtils';
 import ProfileModal from '../../components/ProfileModal';
+import { WeeklyReportModal } from './components/WeeklyReportModal';
 
 // Feature subcomponents
 import { DashboardHeader } from './components/DashboardHeader';
@@ -26,6 +27,7 @@ const Dashboard: React.FC = () => {
   } = useData();
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
 
   // Calculate selected day's progress for the Header Ring
   const selectedDayProgressStats = useMemo(() => {
@@ -62,7 +64,7 @@ const Dashboard: React.FC = () => {
 
           {/* Side Column (Left) */}
           <div className="lg:col-span-2 space-y-6">
-            <StatsOverview />
+            <StatsOverview onOpenWeeklyReport={() => setIsReportOpen(true)} />
             <HabitTracker />
             <KeyProjects />
           </div>
@@ -77,6 +79,11 @@ const Dashboard: React.FC = () => {
         subscription={subscription}
         profile={profile}
         onTriggerUpgrade={onTriggerUpgrade}
+      />
+
+      <WeeklyReportModal 
+        isOpen={isReportOpen} 
+        onClose={() => setIsReportOpen(false)} 
       />
     </div>
   );

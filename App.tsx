@@ -77,7 +77,8 @@ const MainApp: React.FC = () => {
     updateHabit,
     deleteHabit,
     toggleHabitCompletion,
-    injectAIProposalResult
+    injectAIProposalResult,
+    setEntityLinks
   } = useData();
 
   // Global Modals State
@@ -92,6 +93,7 @@ const MainApp: React.FC = () => {
     setTasks,
     setNotes,
     setHabits,
+    setEntityLinks,
     addNotification
   });
 
