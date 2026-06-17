@@ -63,6 +63,8 @@
 - **نگه‌داری یک‌ماهه:** ترجیحاً job شبانه با `pg_cron`: حذف نشست‌های قدیمی‌تر از ۳۰ روز (پیام‌ها با cascade). اگر `pg_cron` در دسترس نبود، **fallback** حذف تنبل داخل RPC `get_chat_sessions`.
 
 ### ۲.۴. ایندکس‌های متنی برای RAG هیبریدی
+> ⚠️ **[منسوخ — Superseded by فاز I / §۱۲]** تصمیمِ زیر در فاز I بازنگری شد. نتیجه‌گیریِ «trigram انتخاب درست است» دیگر معتبر نیست: تری‌گرمِ `similarity()` روی متنِ بلند نویز بالا تولید می‌کند. از فاز I به بعد، مسیر متنیِ `hybrid_search` از **FTS بومیِ `tsvector` با کانفیگ `'simple'` + `ts_rank_cd`** استفاده می‌کند و ایندکس‌های تری‌گرمِ `idx_*_trgm` حذف می‌شوند. جزئیات در §۱۲.
+
 افزونه‌ی **`pg_trgm`** + ایندکس GIN تری‌گرم روی `tasks.title/description` و `notes.title/content` (full-text فارسی در Postgres ضعیف است؛ trigram انتخاب درست برای جستجوی کلیدواژه‌ای فازی فارسی است).
 
 ---
@@ -934,3 +936,369 @@ flushOutbox(): برای هر op:
 ### هـ. ترتیبِ اجراییِ Tailwind
 H7a اولین تسک، ایزوله، روی کامیت مجزا. در صورت شکست، rollback فوری.
 
+
+
+---
+
+# ۱۲. فاز I — نقشه‌ی مهندسی (جستجوی هیبریدی Zero-Cost: FTS + RRF + استخراج فیلتر)
+
+## ۱۲.۰. وضعیت موجودِ مرتبط (Snapshot — برای زمینه، نه تغییر)
+- **جداول:** `tasks(title, description, tags TEXT[], embedding vector(768), created_at)`، `notes(title, content, tags TEXT[], embedding vector(768), created_at)`، `projects(title, description, embedding vector(768), created_at)`. توجه: **`projects` ستونِ `tags` ندارد.**
+- **تابعِ زنده:** `public.hybrid_search(p_query_embedding vector(768), p_query_text text, p_match_count int)` که آخرین‌بار در **`31_rag_projects.sql`** بازنویسی شده (tasks+notes+projects). مسیرِ وکتور: `1 - (embedding <=> q)` با آستانه‌ی `>= 0.25`. مسیرِ متن: `similarity(title||' '||body, q)` (تری‌گرم) با آستانه‌ی `>= 0.01`. تلفیق: RRF با `k=60` روی `FULL OUTER JOIN`.
+- **ایندکس‌های متنیِ فعلی:** `idx_tasks_title_trgm`، `idx_tasks_description_trgm`، `idx_notes_title_trgm`، `idx_notes_content_trgm` (همگی GIN/`gin_trgm_ops`، از `20_refactor_schema.sql`).
+- **خط لوله‌ی امبدینگ:** Trigger‌های `enqueue_vectorize()` (AFTER INSERT/UPDATE روی tasks/notes/projects) درخواستِ ناهمگامِ `pg_net` به Edge `vectorize` می‌زنند؛ آنجا با مدلِ `google/gemini-embedding-2` (۷۶۸ بُعد، OpenRouter) امبدینگ ساخته و در ستونِ `embedding` ذخیره می‌شود. **این مسیر دست‌نخورده می‌ماند.**
+- **مصرف‌کنندگانِ `hybrid_search`:** (۱) `ai-assistant/lib/rag-context.ts` با `p_match_count=15`؛ (۲) `ai-assistant/lib/action-processor.ts` در اکشنِ `SUGGEST_LINK` با `p_match_count=5`. ورودیِ هیچ‌کدام امروز پیش‌پردازشِ Regex/فیلتر ندارد.
+
+## ۱۲.۱. افزوده‌های اسکیما (Schema Δ — فقط در `supabase/sql/43_fulltext_hybrid_search.sql`)
+
+**گام ۱ — تابعِ نرمال‌سازیِ فارسیِ `IMMUTABLE`** (پایه‌ی انطباقِ ایندکس و کوئری):
+```sql
+CREATE OR REPLACE FUNCTION public.hexer_fa_normalize(p_input text)
+RETURNS text
+LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
+  SELECT lower(
+    regexp_replace(
+      translate(
+        COALESCE(p_input, ''),
+        -- ی/ك عربی → فارسی ، حذف اعراب و کشیده، نیم‌فاصله → فاصله
+        E'\u064A\u0643\u0640\u200C\u064B\u064C\u064D\u064E\u064F\u0650\u0651\u0652',
+        E'\u06CC\u06A9  '
+      ),
+      '\s+', ' ', 'g'
+    )
+  );
+$$;
+```
+> قاعده: چون این تابع در ستونِ `GENERATED` استفاده می‌شود، **باید `IMMUTABLE` بماند** (`translate`/`regexp_replace`/`lower` همگی immutable‌اند). هر تغییرِ بعدیِ منطقِ نرمال‌سازی نیازمندِ مهاجرتِ جدید و بازسازیِ ستون است.
+
+**گام ۲ — ستونِ تولیدشده‌ی `search_vector` (وزن‌دار، `'simple'`)** روی هر سه جدول:
+```sql
+ALTER TABLE public.tasks    ADD COLUMN IF NOT EXISTS search_vector tsvector
+  GENERATED ALWAYS AS (
+    setweight(to_tsvector('simple', hexer_fa_normalize(title)), 'A') ||
+    setweight(to_tsvector('simple', hexer_fa_normalize(COALESCE(description,''))), 'B') ||
+    setweight(to_tsvector('simple', hexer_fa_normalize(COALESCE(array_to_string(tags,' '),''))), 'C')
+  ) STORED;
+
+ALTER TABLE public.notes    ADD COLUMN IF NOT EXISTS search_vector tsvector
+  GENERATED ALWAYS AS (
+    setweight(to_tsvector('simple', hexer_fa_normalize(title)), 'A') ||
+    setweight(to_tsvector('simple', hexer_fa_normalize(COALESCE(content,''))), 'B') ||
+    setweight(to_tsvector('simple', hexer_fa_normalize(COALESCE(array_to_string(tags,' '),''))), 'C')
+  ) STORED;
+
+ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS search_vector tsvector
+  GENERATED ALWAYS AS (
+    setweight(to_tsvector('simple', hexer_fa_normalize(title)), 'A') ||
+    setweight(to_tsvector('simple', hexer_fa_normalize(COALESCE(description,''))), 'B')
+  ) STORED;
+```
+> نکات اجرایی: (الف) `ADD COLUMN ... GENERATED STORED` رکوردهای موجود را **خودکار پر می‌کند** (بدون بک‌فیل). (ب) این عملیات جدول را بازنویسی و قفلِ کوتاه می‌گیرد؛ برای حجمِ داده‌ی یک اپِ بهره‌وریِ شخصی بی‌خطر است ولی باید در ساعتِ کم‌ترافیک اجرا شود. (ج) `array_to_string` برای فارسیِ تگ‌ها immutable و امن است.
+
+**گام ۳ — ایندکس GIN روی هر `search_vector`:**
+```sql
+CREATE INDEX IF NOT EXISTS idx_tasks_search_vector    ON public.tasks    USING gin (search_vector);
+CREATE INDEX IF NOT EXISTS idx_notes_search_vector    ON public.notes    USING gin (search_vector);
+CREATE INDEX IF NOT EXISTS idx_projects_search_vector ON public.projects USING gin (search_vector);
+```
+
+**گام ۴ — حذفِ ایندکس‌های زائدِ trigram (پس از کنارگذاشتنِ `similarity()`):**
+```sql
+DROP INDEX IF EXISTS public.idx_tasks_title_trgm;
+DROP INDEX IF EXISTS public.idx_tasks_description_trgm;
+DROP INDEX IF EXISTS public.idx_notes_title_trgm;
+DROP INDEX IF EXISTS public.idx_notes_content_trgm;
+```
+> افزونه‌ی `pg_trgm` حذف نمی‌شود (بی‌ضرر و ممکن است جای دیگری لازم شود).
+
+## ۱۲.۲. افزوده‌های RPC (RPC Δ) — بازنویسیِ `hybrid_search`
+امضای جدید (سازگارِ رو به عقب؛ سه پارامترِ اول ثابت، فیلترها با `DEFAULT NULL`):
+
+| پارامتر | نوع | مسئولیت |
+|------|------|---------|
+| `p_query_embedding` | `vector(768)` | بردارِ کوئری (بدون تغییر) |
+| `p_query_text` | `text` | متنِ **پاکِ** کوئری (پس از حذفِ توکن‌های فیلتر) |
+| `p_match_count` | `int` | تعدادِ نتیجه‌ی نهایی |
+| `p_filter_type` | `text DEFAULT NULL` | `'task'`/`'note'`/`'project'`؛ `NULL`=همه |
+| `p_date_from` | `timestamptz DEFAULT NULL` | شرطِ `created_at >= p_date_from` |
+| `p_date_to` | `timestamptz DEFAULT NULL` | شرطِ `created_at <= p_date_to` |
+| `p_tags` | `text[] DEFAULT NULL` | شرطِ هم‌پوشانی `tags && p_tags` (فقط tasks/notes؛ projects تگ ندارد) |
+
+**منطقِ داخلیِ هدف (مبتنی بر نسخه‌ی سه‌جدولیِ ۳۱):**
+- در هر دو CTE (وکتور و متن)، در هر شاخه‌ی `UNION ALL` این شرط‌ها اعمال شود: `user_id = auth.uid()` **و** `(p_filter_type IS NULL OR type = p_filter_type)` **و** `(p_date_from IS NULL OR created_at >= p_date_from)` **و** `(p_date_to IS NULL OR created_at <= p_date_to)`.
+- شرطِ تگ فقط در شاخه‌های tasks/notes: `(p_tags IS NULL OR tags && p_tags)`. شاخه‌ی **projects** هنگامی که `p_tags IS NOT NULL` است باید کنار گذاشته شود (با `WHERE p_tags IS NULL`)، چون ستونِ tags ندارد.
+- **مسیرِ وکتور:** `val_vector = CASE WHEN embedding IS NULL THEN 0 ELSE 1-(embedding <=> p_query_embedding) END`؛ `ROW_NUMBER() OVER (ORDER BY val_vector DESC)`؛ **`LIMIT 100`** (به‌جای آستانه).
+- **مسیرِ متن:** ابتدا `v_ts_query tsquery := websearch_to_tsquery('simple', hexer_fa_normalize(p_query_text))`؛ فقط ردیف‌هایی که `search_vector @@ v_ts_query`؛ امتیاز `ts_rank_cd(search_vector, v_ts_query)`؛ `ROW_NUMBER() OVER (ORDER BY rank DESC)`؛ **`LIMIT 100`**. اگر `p_query_text` تهی بود یا `v_ts_query` تهی شد، این CTE خالی می‌ماند (مسیرِ وکتور همچنان کار می‌کند).
+- **تلفیقِ نهایی:** بدونِ هیچ آستانه‌ای —
+  `score = COALESCE(1.0/(60.0 + v.rank_val),0) + COALESCE(1.0/(60.0 + t.rank_val),0)`،
+  `FULL OUTER JOIN ... ON v.id=t.id AND v.type=t.type`، `ORDER BY score DESC LIMIT p_match_count`.
+- خروجی و ستون‌های بازگشتی **بدون تغییر**: `(id uuid, type text, title text, snippet text, score float8)`؛ `SECURITY DEFINER SET search_path = public`؛ گاردِ `auth.uid() IS NULL`.
+- در انتهای فایل: `NOTIFY pgrst, 'reload schema';`.
+
+## ۱۲.۳. جریان داده‌ی جدیدِ جستجو (Data Flow)
+```
+پیامِ کاربر (خام)
+   │
+   ▼  [TS] parseSearchQuery()  ← ماژولِ جدید query-parser.ts
+   ├─ filterType  (نوع:/type: → task|note|project)
+   ├─ tags[]      (#تگ)
+   ├─ dateFrom/dateTo (امروز/دیروز/هفته گذشته/این ماه ...)
+   └─ cleanText  (متن بدون توکن‌های فیلتر)
+        │
+        ├─► generateEmbedding(ai, cleanText, 'query')   → بردار ۷۶۸ (همان یک فراخوانیِ موجود، بدون هزینه‌ی اضافه)
+        │
+        └─► supabase.rpc('hybrid_search', {
+                 p_query_embedding, p_query_text: cleanText, p_match_count,
+                 p_filter_type, p_date_from, p_date_to, p_tags })
+                    │
+                    ▼  Postgres: [وکتور Top-100] + [tsvector/ts_rank_cd Top-100] → RRF(k=60)
+                    ▼  WHERE فیلترهای قطعی (type/date/tags) دایره‌ی جستجو را قبل از رتبه‌بندی محدود می‌کنند
+                 citations / contextString  (بدون تغییرِ قرارداد)
+```
+نتیجه: فیلترهای قطعی نویز را قبل از RRF حذف می‌کنند، `tsvector` دقتِ واژه‌ایِ متونِ بلند را بالا می‌برد، و هیچ توکنِ هوش مصنوعی‌ای مصرف نمی‌شود.
+
+## ۱۲.۴. قانونِ مسیردهیِ فایل‌ها (File Tree Δ)
+- **جدید (DB):** `supabase/sql/43_fulltext_hybrid_search.sql` — تنها محلِ تغییراتِ دیتابیسِ این فاز.
+- **جدید (TS):** `supabase/functions/ai-assistant/lib/query-parser.ts` — تابعِ خالصِ `parseSearchQuery(raw) → { cleanText, filterType, dateFrom, dateTo, tags }` (بدونِ I/O، قابلِ تست).
+- **ویرایش:** `supabase/functions/ai-assistant/lib/rag-context.ts` — فراخوانیِ `parseSearchQuery` قبل از امبدینگ؛ پاس‌دادنِ `cleanText` به `generateEmbedding` و `hybrid_search` به‌همراهِ فیلترها.
+- **ویرایش (اختیاری/ثانویه):** `supabase/functions/ai-assistant/lib/action-processor.ts` — در `SUGGEST_LINK` همان parser برای پاک‌سازیِ `queryText` (بدونِ شکستنِ امضا).
+- **اختیاری/بعدی (UI):** افزودنِ دکمه‌های Toggle (زمان/نوع) در سطحِ چتِ «memory»؛ خارج از هسته‌ی این فاز.
+- **بدونِ تغییر:** `supabase/functions/vectorize/index.ts`، `supabase/functions/_shared/gemini-client.ts`، و فایل‌های SQLِ قدیمی.
+
+## ۱۲.۵. نقشه‌ی تداخلِ فایل‌ها (Conflict Map — برای موازی‌نکردن)
+- تسک‌های دیتابیس همگی روی **یک فایل** (`43_...sql`) می‌نویسند → **به‌هیچ‌وجه موازی نشوند**؛ ترتیبی و در یک کامیت.
+- `rag-context.ts` به امضای جدیدِ `hybrid_search` و به `query-parser.ts` وابسته است → فقط **پس از** اتمام تسکِ SQL و تسکِ parser.
+- `query-parser.ts` مستقل است → می‌تواند موازی با تسکِ SQL پیش برود.
+
+## ۱۲.۶. اصلاحِ §۲.۴ (Supersede)
+ادعای §۲.۴ مبنی بر برتریِ trigram برای فارسی **باطل** شد؛ مرجعِ تصمیمِ جدید: §PROJECT I.۵. از این پس مسیرِ متنیِ RAG منحصراً `tsvector`/`ts_rank_cd` است.
+
+
+---
+
+# ۱۲. فاز I — معماری جستجوی هیبریدی Zero-Cost (FTS/tsvector + RRF + استخراج فیلتر)
+
+## ۱۲.۰. وضعیت موجودِ مرتبط (Snapshot — برای زمینه، نه تغییر)
+- نسخهٔ زندهٔ `public.hybrid_search` از **`31_rag_projects.sql`** می‌آید (سه‌جدولی: `tasks`+`notes`+`projects`)، با امضای `(p_query_embedding vector(768), p_query_text text, p_match_count int)`. `26_update_hybrid_search.sql` منسوخ است.
+- مسیر متنیِ فعلی: `similarity(title || ' ' || body, query)` (تری‌گرم) + آستانهٔ `val_text >= 0.01`. مسیر وکتوری: `1 - (embedding <=> query)` + آستانهٔ `val_vector >= 0.25`. ادغام: RRF با `k=60` روی `FULL OUTER JOIN`.
+- جداول: `tasks`(title, description, tags[], embedding vector(768))، `notes`(title, content, tags[], embedding)، `projects`(title, description, **بدون tags**, embedding). ایندکس HNSW فقط روی `tasks/notes`؛ `projects.embedding` بدون HNSW.
+- مصرف‌کنندگانِ RPC: `ai-assistant/lib/rag-context.ts` (count=15) و `ai-assistant/lib/action-processor.ts` → اکشن `SUGGEST_LINK` (count=5). هر دو فقط ۳ پارامتر می‌فرستند.
+- embedding توسط Edge function `vectorize` با مدلِ ثابتِ `gemini-embedding-2` (۷۶۸ بُعد، از طریق OpenRouter) به‌صورت async (تریگرِ `enqueue_vectorize` + `pg_net`) تولید می‌شود. **این خط دست‌نخورده می‌ماند.**
+- جستجوی داخلِ صفحات `features/notes` و `features/tasks` فیلترِ کلاینتیِ ساده (substring) است و به `hybrid_search` کاری ندارد. تابعِ `searchSemantic` در `services/geminiService.ts` فعلاً **بدونِ فراخواننده** است.
+
+## ۱۲.الف. افزوده‌های اسکیما (Schema Δ) — فقط در مهاجرتِ جدید `supabase/sql/43_fts_hybrid_search.sql`
+
+**۱) تابع نرمال‌سازیِ فارسیِ IMMUTABLE** (لازم برای استفاده در GENERATED COLUMN):
+```sql
+CREATE OR REPLACE FUNCTION public.hexer_fa_normalize(p_text text)
+RETURNS text
+LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE AS $$
+  SELECT regexp_replace(
+           translate(
+             lower(coalesce(p_text, '')),
+             -- عربی → فارسی: ي(U+064A)→ی(U+06CC) , ك(U+0643)→ک(U+06A9)
+             'يك',
+             'یک'
+           ),
+           '[\u200c\u200f\u200e]',  -- ZWNJ/RLM/LRM → فاصله
+           ' ',
+           'g'
+         );
+$$;
+```
+> نکته برای کدنویس: کدپوینت‌ها را با `to_tsvector('simple', public.hexer_fa_normalize('متن آزمایشی كتاب'))` و `SELECT public.hexer_fa_normalize(...)` راستی‌آزمایی کن. تابع باید حتماً `IMMUTABLE` بماند وگرنه در ستونِ تولیدشده خطا می‌دهد.
+
+**۲) ستون‌های `tsvector` تولیدشدهٔ ذخیره‌شده (وزن‌دار):**
+```sql
+-- tasks: title(A) + description(B) + tags(C)
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS search_vector tsvector
+  GENERATED ALWAYS AS (
+    setweight(to_tsvector('simple', public.hexer_fa_normalize(coalesce(title,''))), 'A') ||
+    setweight(to_tsvector('simple', public.hexer_fa_normalize(coalesce(description,''))), 'B') ||
+    setweight(to_tsvector('simple', public.hexer_fa_normalize(coalesce(array_to_string(tags,' '),''))), 'C')
+  ) STORED;
+
+-- notes: title(A) + content(B) + tags(C)
+ALTER TABLE public.notes ADD COLUMN IF NOT EXISTS search_vector tsvector
+  GENERATED ALWAYS AS (
+    setweight(to_tsvector('simple', public.hexer_fa_normalize(coalesce(title,''))), 'A') ||
+    setweight(to_tsvector('simple', public.hexer_fa_normalize(coalesce(content,''))), 'B') ||
+    setweight(to_tsvector('simple', public.hexer_fa_normalize(coalesce(array_to_string(tags,' '),''))), 'C')
+  ) STORED;
+
+-- projects: title(A) + description(B)  ← projects ستون tags ندارد (طبق 03_core)
+ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS search_vector tsvector
+  GENERATED ALWAYS AS (
+    setweight(to_tsvector('simple', public.hexer_fa_normalize(coalesce(title,''))), 'A') ||
+    setweight(to_tsvector('simple', public.hexer_fa_normalize(coalesce(description,''))), 'B')
+  ) STORED;
+```
+
+**۳) ایندکس‌های GIN روی ستون‌های جدید + حذفِ ایندکس‌های تری‌گرمِ مرده:**
+```sql
+CREATE INDEX IF NOT EXISTS idx_tasks_search_vector    ON public.tasks    USING gin (search_vector);
+CREATE INDEX IF NOT EXISTS idx_notes_search_vector    ON public.notes    USING gin (search_vector);
+CREATE INDEX IF NOT EXISTS idx_projects_search_vector ON public.projects USING gin (search_vector);
+
+DROP INDEX IF EXISTS public.idx_tasks_title_trgm;
+DROP INDEX IF EXISTS public.idx_tasks_description_trgm;
+DROP INDEX IF EXISTS public.idx_notes_title_trgm;
+DROP INDEX IF EXISTS public.idx_notes_content_trgm;
+```
+> افزونهٔ `pg_trgm` حذف **نمی‌شود** (بی‌آزار است). HNSW موجود روی `tasks/notes` دست‌نخورده می‌ماند؛ نبودِ HNSW روی `projects` مشکلِ این فاز نیست (مقیاس کوچک، seq-scan کافی است).
+
+## ۱۲.ب. افزوده‌های RPC (RPC Δ) — بازنویسیِ `hybrid_search` در همان فایلِ `43_…`
+
+امضای جدید (سازگار با عقب — پارامترهای فیلتر `DEFAULT NULL`):
+```sql
+CREATE OR REPLACE FUNCTION public.hybrid_search(
+    p_query_embedding vector(768),
+    p_query_text TEXT,
+    p_match_count INT,
+    p_filter_type TEXT DEFAULT NULL,     -- 'task' | 'note' | 'project' | NULL
+    p_date_from TIMESTAMPTZ DEFAULT NULL,
+    p_date_to   TIMESTAMPTZ DEFAULT NULL,
+    p_tags      TEXT[]      DEFAULT NULL
+)
+RETURNS TABLE (id UUID, type TEXT, title TEXT, snippet TEXT, score FLOAT8)
+AS $$
+DECLARE
+    v_user_id UUID := auth.uid();
+    v_ts_query tsquery := websearch_to_tsquery('simple', public.hexer_fa_normalize(coalesce(p_query_text,'')));
+BEGIN
+    IF v_user_id IS NULL THEN RAISE EXCEPTION 'Unauthorized'; END IF;
+
+    RETURN QUERY
+    WITH
+    -- مسیر وکتوری: Top-100 سراسری، بدون آستانه، فقط رکوردهای دارای embedding
+    vector_results AS (
+        SELECT s.id, s.type, s.title, s.snippet,
+               ROW_NUMBER() OVER (ORDER BY s.dist ASC) AS rank_val
+        FROM (
+            SELECT t.id, 'task'::text AS type, t.title, coalesce(t.description,'') AS snippet,
+                   (t.embedding <=> p_query_embedding) AS dist
+            FROM public.tasks t
+            WHERE t.user_id = v_user_id AND t.embedding IS NOT NULL
+              AND (p_filter_type IS NULL OR p_filter_type = 'task')
+              AND (p_date_from IS NULL OR t.created_at >= p_date_from)
+              AND (p_date_to   IS NULL OR t.created_at <= p_date_to)
+              AND (p_tags IS NULL OR t.tags && p_tags)
+            UNION ALL
+            SELECT n.id, 'note'::text, n.title, coalesce(n.content,''),
+                   (n.embedding <=> p_query_embedding)
+            FROM public.notes n
+            WHERE n.user_id = v_user_id AND n.embedding IS NOT NULL
+              AND (p_filter_type IS NULL OR p_filter_type = 'note')
+              AND (p_date_from IS NULL OR n.created_at >= p_date_from)
+              AND (p_date_to   IS NULL OR n.created_at <= p_date_to)
+              AND (p_tags IS NULL OR n.tags && p_tags)
+            UNION ALL
+            SELECT p.id, 'project'::text, p.title, coalesce(p.description,''),
+                   (p.embedding <=> p_query_embedding)
+            FROM public.projects p
+            WHERE p.user_id = v_user_id AND p.embedding IS NOT NULL
+              AND (p_filter_type IS NULL OR p_filter_type = 'project')
+              AND (p_date_from IS NULL OR p.created_at >= p_date_from)
+              AND (p_date_to   IS NULL OR p.created_at <= p_date_to)
+              AND (p_tags IS NULL)   -- projects تگ ندارد؛ با فیلترِ تگ کنار می‌رود
+            ORDER BY dist ASC
+            LIMIT 100
+        ) s
+    ),
+    -- مسیر متنی: فقط رکوردهای واقعاً منطبق (@@)، Top-100 با ts_rank_cd، بدون آستانه
+    text_results AS (
+        SELECT s.id, s.type, s.title, s.snippet,
+               ROW_NUMBER() OVER (ORDER BY s.rnk DESC) AS rank_val
+        FROM (
+            SELECT t.id, 'task'::text AS type, t.title, coalesce(t.description,'') AS snippet,
+                   ts_rank_cd(t.search_vector, v_ts_query) AS rnk
+            FROM public.tasks t
+            WHERE t.user_id = v_user_id AND t.search_vector @@ v_ts_query
+              AND (p_filter_type IS NULL OR p_filter_type = 'task')
+              AND (p_date_from IS NULL OR t.created_at >= p_date_from)
+              AND (p_date_to   IS NULL OR t.created_at <= p_date_to)
+              AND (p_tags IS NULL OR t.tags && p_tags)
+            UNION ALL
+            SELECT n.id, 'note'::text, n.title, coalesce(n.content,''),
+                   ts_rank_cd(n.search_vector, v_ts_query)
+            FROM public.notes n
+            WHERE n.user_id = v_user_id AND n.search_vector @@ v_ts_query
+              AND (p_filter_type IS NULL OR p_filter_type = 'note')
+              AND (p_date_from IS NULL OR n.created_at >= p_date_from)
+              AND (p_date_to   IS NULL OR n.created_at <= p_date_to)
+              AND (p_tags IS NULL OR n.tags && p_tags)
+            UNION ALL
+            SELECT p.id, 'project'::text, p.title, coalesce(p.description,''),
+                   ts_rank_cd(p.search_vector, v_ts_query)
+            FROM public.projects p
+            WHERE p.user_id = v_user_id AND p.search_vector @@ v_ts_query
+              AND (p_filter_type IS NULL OR p_filter_type = 'project')
+              AND (p_date_from IS NULL OR p.created_at >= p_date_from)
+              AND (p_date_to   IS NULL OR p.created_at <= p_date_to)
+              AND (p_tags IS NULL)
+            ORDER BY rnk DESC
+            LIMIT 100
+        ) s
+        WHERE v_ts_query IS NOT NULL
+    )
+    -- ادغام RRF با k=60 (بدون نرمال‌سازیِ score)
+    SELECT
+        COALESCE(v.id, x.id)       AS id,
+        COALESCE(v.type, x.type)   AS type,
+        COALESCE(v.title, x.title) AS title,
+        COALESCE(v.snippet, x.snippet) AS snippet,
+        ( COALESCE(1.0/(60.0 + v.rank_val), 0.0)
+        + COALESCE(1.0/(60.0 + x.rank_val), 0.0) )::float8 AS score
+    FROM vector_results v
+    FULL OUTER JOIN text_results x ON v.id = x.id AND v.type = x.type
+    ORDER BY score DESC
+    LIMIT p_match_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+NOTIFY pgrst, 'reload schema';
+```
+**نکات قراردادی RPC:**
+- خروجی `(id, type, title, snippet, score)` بدون تغییر → مصرف‌کنندگانِ فعلی نمی‌شکنند.
+- حذفِ آستانه ≠ بازگرداندنِ همه‌چیز؛ مسیر متنی با شرطِ `@@` به‌صورت طبیعی به رکوردهای منطبق محدود می‌شود و هر دو مسیر با `LIMIT 100` سقف می‌خورند.
+- فیلترِ تاریخ روی `created_at` هر سه جدول یکدست اعمال می‌شود (سادگی و یکنواختی؛ `due_date` عمداً استفاده نشده).
+- `websearch_to_tsquery` نسبت به `to_tsquery` در برابر ورودیِ خام کاربر امن است (روی نقل‌قول/منفی/خطای نحوی استثناء پرتاب نمی‌کند).
+
+## ۱۲.ج. جریان داده‌ی جدیدِ جستجو (Data Flow)
+```
+پیامِ کاربر
+  │
+  ▼  (TypeScript — رایگان)
+parseSearchQuery(message)  →  { cleanText, filterType, tags[], dateFrom, dateTo }
+  │                                   استخراج: «نوع:/type:», «#تگ», «امروز/هفته گذشته/...»
+  ├─ cleanText ─►  generateEmbedding(ai, cleanText, 'query')  ── (همان ۱ فراخوانیِ قبلی، صفر هزینهٔ افزوده)
+  │
+  ▼
+supabaseClient.rpc('hybrid_search', {
+   p_query_embedding, p_query_text: cleanText, p_match_count,
+   p_filter_type: filterType, p_date_from: dateFrom, p_date_to: dateTo, p_tags: tags
+})
+  │
+  ▼  (PostgreSQL — رایگان)
+  ┌─ vector_results: Top-100 با cosine (با WHEREِ فیلترها)
+  ├─ text_results:   Top-100 با ts_rank_cd روی tsvector (با WHEREِ فیلترها)
+  └─ RRF: 1/(60+rank_v) + 1/(60+rank_t)  →  مرتب‌سازی نزولی  →  LIMIT match_count
+```
+- اگر `cleanText` پس از استخراج خالی شد، برای جلوگیری از embeddingِ خالی، از پیامِ اصلی برای embedding استفاده شود (یا مسیر وکتوری رد شود)؛ این لبهٔ خاص باید مدیریت شود.
+
+## ۱۲.د. منطق مسیردهی فایل‌ها (File Tree — درختِ کامل دوباره رسم نمی‌شود)
+- **جدید (SQL):** `supabase/sql/43_fts_hybrid_search.sql` — تمام Schema Δ + بازنویسیِ `hybrid_search`. Idempotent و قابلِ‌اجرای دستی.
+- **جدید (TS):** `supabase/functions/ai-assistant/lib/query-parser.ts` — تابعِ خالصِ `parseSearchQuery` (بدون I/O، قابل‌تست).
+- **ویرایش (TS):** `supabase/functions/ai-assistant/lib/rag-context.ts` — فراخوانیِ parser، عبورِ `cleanText` به embedding و پارامترهای فیلتر به RPC.
+- **ویرایش (TS):** `supabase/functions/ai-assistant/lib/action-processor.ts` — اکشنِ `SUGGEST_LINK`: عبورِ پیشوندِ `'query'` به `generateEmbedding` (هم‌سان‌سازیِ task-type) و در صورت نیاز عبورِ فیلترها (پارامترهای جدید اختیاری‌اند).
+- **اختیاری/بعدی (TS/TSX):** `services/geminiService.ts` (`searchSemantic` پارامترِ فیلتر بگیرد) + یک سطحِ UIِ فیلترِ سریع (Toggle زمان/نوع). چون `searchSemantic` فعلاً بدون مصرف‌کننده است، این جدا و کم‌اولویت است.
+- **بدون تغییر:** `_shared/gemini-client.ts`، `vectorize/index.ts`، تریگر `enqueue_vectorize`، مدل embedding، فایل‌های SQL قدیمی.
+
+## ۱۲.ه. نقشهٔ تداخل فایل‌ها (Conflict Map — برای موازی‌نکردن)
+| فایل | تسک‌های نویسنده | قاعده |
+|------|------------------|-------|
+| `supabase/sql/43_fts_hybrid_search.sql` | I1 | یک تسک، یک فایل؛ Schema و RPC در همین فایل |
+| `ai-assistant/lib/query-parser.ts` | I2 | فایلِ جدیدِ مستقل |
+| `rag-context.ts` + `action-processor.ts` | I3 | به `query-parser.ts` (I2) و RPCِ I1 وابسته‌اند → بعد از I1,I2 |
+| `geminiService.ts` + UI | I4 (اختیاری) | بعد از I3 |
+> ترتیب اجباری: **I1 → I2 → I3 → (I4)**. هیچ دو تسکی هم‌زمان روی یک فایل نمی‌نویسند.
