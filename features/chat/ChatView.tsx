@@ -11,6 +11,18 @@ import { useMediaRecorder } from './hooks/useMediaRecorder';
 import { getTehranDateString } from '../../utils/dateUtils';
 import { linkTaskNote } from '../../services/linkService';
 
+// Helper to sanitize chat history to prevent leak of UUID database keys to Gemini model
+const sanitizeHistoryMessage = (text: string): string => {
+  if (!text) return "";
+  // 1. Remove bracketed UUID expressions containing 'شناسه' (e.g. [شناسه تسک: ...])
+  let sanitized = text.replace(/\[[^\]]*شناسه[^\]]*\]/g, "");
+  // 2. Remove case-insensitive technical bracket tags [TASK], [NOTE], [PROJECT]
+  sanitized = sanitized.replace(/\[(TASK|NOTE|PROJECT)\]/ig, "");
+  // 3. Remove raw UUIDs to avoid any stray leaks
+  sanitized = sanitized.replace(/\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b/g, "");
+  return sanitized;
+};
+
 // Subcomponents
 import { ModeChip } from './components/ModeChip';
 import { CitationCard } from './components/CitationCard';
@@ -51,6 +63,18 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState<ChatMode>('auto');
+  
+  // Search Semantic Filter States (Task I5)
+  const [filterType, setFilterType] = useState<'all' | 'task' | 'note' | 'project'>('all');
+  const [filterTime, setFilterTime] = useState<'all' | 'today' | 'last_week'>('all');
+
+  const handleModeChange = (newMode: ChatMode) => {
+    setMode(newMode);
+    if (newMode !== 'memory') {
+      setFilterType('all');
+      setFilterTime('all');
+    }
+  };
   
   // Persistent Sessions & History state
   const [activeSession, setActiveSession] = useState<ChatSession | null>(null);
@@ -223,7 +247,25 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
       return;
     }
 
-    const messageText = textToSend || (recordedAudio ? '[پیام صوتی]' : '[تصویر]');
+    // Append Filter Tokens in Memory Mode (Task I5)
+    let textWithFilters = textToSend;
+    if (mode === 'memory' && textToSend.trim() && !textOverride) {
+      if (filterType === 'task') {
+        textWithFilters += ' نوع:کار';
+      } else if (filterType === 'note') {
+        textWithFilters += ' نوع:یادداشت';
+      } else if (filterType === 'project') {
+        textWithFilters += ' نوع:پروژه';
+      }
+
+      if (filterTime === 'today') {
+        textWithFilters += ' تاریخ:امروز';
+      } else if (filterTime === 'last_week') {
+        textWithFilters += ' تاریخ:هفته گذشته';
+      }
+    }
+
+    const messageText = textWithFilters || (recordedAudio ? '[پیام صوتی]' : '[تصویر]');
     
     setIsLoading(true);
     setInput('');
@@ -278,9 +320,14 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
       let data: any;
       try {
         if (audioPathVal || imagePathVal) {
-          data = await extractFromMedia(audioPathVal || undefined, imagePathVal || undefined, textToSend);
+          data = await extractFromMedia(audioPathVal || undefined, imagePathVal || undefined, textWithFilters);
         } else {
-          data = await sendChatMessage(textToSend, messages, mode);
+          // Sanitize chat history messages beforehand to prevent leakage of old IDs and patterns
+          const sanitizedHistory = messages.map(msg => ({
+            ...msg,
+            text: msg.sender === 'ai' ? sanitizeHistoryMessage(msg.text) : msg.text
+          }));
+          data = await sendChatMessage(textWithFilters, sanitizedHistory, mode);
         }
       } catch (geminiErr: any) {
         if (geminiErr.message === '402') {
@@ -525,15 +572,105 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
         </div>
 
         <div className="flex flex-wrap gap-2 pt-1 w-full">
-          <ModeChip mode="auto" currentMode={mode} label="خودکار" icon={<SparklesIcon className="w-3.5 h-3.5"/>} onClick={setMode} />
-          <ModeChip mode="action" currentMode={mode} label="دستور" icon={<TargetIcon className="w-3.5 h-3.5"/>} onClick={setMode} />
-          <ModeChip mode="memory" currentMode={mode} label="حافظه" icon={<LightbulbIcon className="w-3.5 h-3.5"/>} onClick={setMode} />
+          <ModeChip mode="auto" currentMode={mode} label="خودکار" icon={<SparklesIcon className="w-3.5 h-3.5"/>} onClick={handleModeChange} />
+          <ModeChip mode="action" currentMode={mode} label="دستور" icon={<TargetIcon className="w-3.5 h-3.5"/>} onClick={handleModeChange} />
+          <ModeChip mode="memory" currentMode={mode} label="حافظه" icon={<LightbulbIcon className="w-3.5 h-3.5"/>} onClick={handleModeChange} />
         </div>
 
         {/* Compact AI Usage Quota Display */}
         <div className="pt-0.5 select-none w-full">
           <UsageMeter compact />
         </div>
+
+        {/* Search Semantic Filter Toggles (Task I5) */}
+        {mode === 'memory' && (
+          <div className="flex flex-col gap-2 pt-1.5 border-t border-white/5 w-full text-right" dir="rtl">
+            {/* Filter Type Row */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+              <span className="text-[10px] text-zinc-500 font-semibold ml-1 shrink-0">نوع فیلتر:</span>
+              <button
+                onClick={() => setFilterType('all')}
+                className={`px-2.5 py-1 rounded-md text-[10px] font-medium transition-all shrink-0 cursor-pointer ${
+                  filterType === 'all'
+                    ? 'bg-neutral-800 text-white border border-transparent font-semibold shadow-sm'
+                    : 'bg-neutral-900 border border-neutral-800 text-zinc-400 hover:text-white'
+                }`}
+              >
+                همه
+              </button>
+              <button
+                onClick={() => setFilterType('task')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-medium transition-all shrink-0 cursor-pointer ${
+                  filterType === 'task'
+                    ? 'bg-green-500/15 text-green-400 border border-green-500/30'
+                    : 'bg-neutral-900 border border-neutral-800 text-zinc-400 hover:text-white'
+                }`}
+              >
+                <ListChecksIcon className="w-2.5 h-2.5" />
+                کارها
+              </button>
+              <button
+                onClick={() => setFilterType('note')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-medium transition-all shrink-0 cursor-pointer ${
+                  filterType === 'note'
+                    ? 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/30'
+                    : 'bg-neutral-900 border border-neutral-800 text-zinc-400 hover:text-white'
+                }`}
+              >
+                <NotebookIcon className="w-2.5 h-2.5" />
+                یادداشت‌ها
+              </button>
+              <button
+                onClick={() => setFilterType('project')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-medium transition-all shrink-0 cursor-pointer ${
+                  filterType === 'project'
+                    ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
+                    : 'bg-neutral-900 border border-neutral-800 text-zinc-400 hover:text-white'
+                }`}
+              >
+                <BriefcaseIcon className="w-2.5 h-2.5" />
+                پروژه‌ها
+              </button>
+            </div>
+
+            {/* Filter Time Row */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+              <span className="text-[10px] text-zinc-500 font-semibold ml-1 shrink-0">بازه زمانی:</span>
+              <button
+                onClick={() => setFilterTime('all')}
+                className={`px-2.5 py-1 rounded-md text-[10px] font-medium transition-all shrink-0 cursor-pointer ${
+                  filterTime === 'all'
+                    ? 'bg-neutral-800 text-white border border-transparent font-semibold shadow-sm'
+                    : 'bg-neutral-900 border border-neutral-800 text-zinc-400 hover:text-white'
+                }`}
+              >
+                همه زمان‌ها
+              </button>
+              <button
+                onClick={() => setFilterTime('today')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-medium transition-all shrink-0 cursor-pointer ${
+                  filterTime === 'today'
+                    ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30'
+                    : 'bg-neutral-900 border border-neutral-800 text-zinc-400 hover:text-white'
+                }`}
+              >
+                <CalendarIcon className="w-2.5 h-2.5" />
+                امروز
+              </button>
+              <button
+                onClick={() => setFilterTime('last_week')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-medium transition-all shrink-0 cursor-pointer ${
+                  filterTime === 'last_week'
+                    ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30'
+                    : 'bg-neutral-900 border border-neutral-800 text-zinc-400 hover:text-white'
+                }`}
+              >
+                <CalendarIcon className="w-2.5 h-2.5" />
+                هفته گذشته
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Messages Scroll Area */}
