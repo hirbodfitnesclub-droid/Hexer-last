@@ -1070,3 +1070,86 @@ DROP INDEX IF EXISTS public.idx_notes_content_trgm;
 
 ## ۱۲.۶. اصلاحِ §۲.۴ و لغو کامل tsvector (Nuclear Revert)
 «ممنوعیت استفاده از مدل صلب tsvector برای عبارات محاوره‌ای فارسی چت: در فازهای قبلی تلاش شد برای افزایش سرعت، از کاتالوگ واژگانی tsvector همراه با پارسر رجکس استفاده شود. این ساختار در پروداکشن به دلیل ماهیت اتصالات سختگیرانه AND و نبود استاپ-ورد بومی فارسی، به کلی شکست خورد و عبارات محاوره‌ای کاربران را مسدود کرد. پلتفرم Hexer رسماً و برای همیشه به معماری ترکیبی True Semantic Vector + Trigram Fuzzy (similarity) متعهد است و هیچکس حق اور-انجینیرینگ و مخدوش کردن متن طبیعی کاربر را ندارد.»
+
+
+
+---
+
+# ۱۳. فاز J — نقشه‌ی مهندسی (حریم امن سراسری، BottomNav، فاصله‌گذاری مودال/کشو)
+
+> مرجعِ هویت و نبایدها: `docs/PROJECT.md` فاز J. این بخش «چگونگیِ» مهندسی را مپ می‌کند. اصلِ طراحی: **یک لایه‌ی ابزارِ مرکزی در `index.css`** + اعمال در «درزهای» معماری. هیچ کامپوننتی نباید env() را به‌صورت موضعی بازنویسی کند.
+
+## ۱۳.۰. وضعیت موجود (Snapshot — با شواهدِ خط‌به‌خط)
+- `index.html`: `viewport-fit=cover` ✓ و `apple-mobile-web-app-status-bar-style=black-translucent` (یعنی در PWAِ iOS، status bar روی وب‌ویو می‌افتد و حریمِ بالا لازم است). Tailwind از CDN: `https://cdn.tailwindcss.com` (بدون کانفیگ).
+- `index.css`: متغیرهای `--safe-area-inset-bottom/top` تعریف شده‌اند اما تقریباً بی‌مصرف؛ تنها ابزارهای واقعیِ موجود `scroll-fade-edge` و override اتوفیلْ‌اند.
+- `components/BottomNav.tsx:28`: `fixed bottom-0 right-0 left-0 h-20 px-4 z-50`؛ بارِ شناور `absolute bottom-4 ... h-16` (خط ۳۰). → فاقدِ inset؛ لبه‌ی نوار روی Home Indicator.
+- `App.tsx:310-316`: پوسته `relative flex flex-col h-[100dvh]` → `<main className="flex-1 overflow-y-auto overflow-x-hidden pb-24">` (تنها اسکرولِ بیرونی) → سپس `<BottomNav/>` به‌صورت خواهر. با `border-box`، فرزندِ `h-full`ِ هر ویو دقیقاً به‌اندازه‌ی `pb-24` از پایین تو رفته است؛ پس **`pb-24`ِ `main` همان فاصله‌ی نوار برای همه‌ی ویوهاست**.
+- ویوها دو مدلِ اسکرول دارند: (الف) خودگردان `h-full flex-col` با اسکرولِ داخلی — `TasksView` (هدر خط ۱۶۳ `... pt-safe ... shrink-0`، اسکرول خط ۱۹۴ `flex-1 overflow-y-auto ... pb-32`)، `NotesView`/`ProjectsView` (ریشه `min-h-full pb-32 ... h-full` + اسکرولِ `flex-1`)، `ChatView` (هدر `pt-safe`، پیام‌ها `flex-1 overflow-y-auto`، نوارِ ورودی خط ۸۳۶ `p-4 ... border-t`). (ب) جریانی که روی اسکرولِ `main` می‌نشیند — `Dashboard` (`<div className="pb-24">`، هدرِ sticky با `pt-safe`).
+- مودال‌ها (همه bottom-sheet با `items-end`، `h-[100dvh]`، `min-h-0` روی اسکرول):
+  - `TaskEditorModal`: footerِ ثابت `p-4 sm:p-6 border-t shrink-0` (خط ۶۳۰) — بدون inset. اسکرول `... pb-24 sm:pb-6` (خط ۳۲۲؛ زائد چون footer جداست).
+  - `NoteEditorModal`: footerِ متادیتا `shrink-0 ... p-4 sm:p-6 pb-20 sm:pb-6` (خط ۲۳۵) — `pb-20`ِ ثابت.
+  - `SubscriptionModal`: footerِ ثابت `p-4 border-t ... shrink-0 pb-safe` (خط ۳۱۲) — `pb-safe`ِ **no-op**.
+  - `HabitEditorModal`/`HabitManagerModal`/`ProjectDetailsModal`: **بدونِ footerِ ثابت**؛ دکمه‌ها/محتوای پایانی داخلِ ناحیه‌ی `flex-1 overflow-y-auto min-h-0` هستند و آن ناحیه پدینگِ امنِ پایین ندارد.
+- `ChatHistoryDrawer.tsx:44-62`: کشوی پایین `fixed inset-0 z-[60] items-end` + پنل `max-h-[80vh] rounded-t-3xl flex-col` + اسکرول `p-4 overflow-y-auto flex-1` — لبه‌ی پایین روی Home Indicator.
+- موارد **درستِ موجود** (مرجعِ سبک، تغییر نمی‌کنند مگر برای DRY): `Onboarding.tsx:66-69` (style اینلاین با `calc(env(...)+1.5rem)`) و `WeeklyReportModal.tsx:156` (`pb-[calc(5rem+env(safe-area-inset-bottom))]`).
+
+## ۱۳.الف. لایه‌ی منبعِ واحد در `index.css` (قرارداد دقیق — هسته‌ی فاز J)
+این بلاک پس از بلاکِ `:root` موجود اضافه می‌شود. مقادیرِ پایه‌ی طراحی طوری انتخاب شده‌اند که روی دستگاه‌های **بدونِ** notch دقیقاً معادلِ پدینگِ فعلی باشند (صفر رگرسیون) و روی دستگاه‌های دارایِ inset، حریم را بیفزایند. استفاده از `!important` عمدی و موجه است (مصونیت از ترتیب تزریقِ Runtime CDN — §۱۱.هـ.۵).
+
+```css
+:root {
+  /* فضای اشغالیِ BottomNav بدونِ احتسابِ حریم سیستم (h-20 = 5rem) */
+  --bottom-nav-space: 5rem;
+}
+
+/* حریمِ بالا برای هدرهای sticky (ناچ/داینامیک‌آیلند/استتوس‌بار). این کلاس مالکِ padding-top است. */
+.pt-safe { padding-top: calc(env(safe-area-inset-top, 0px) + 2rem) !important; }
+
+/* حریمِ پایین برای نوارهای عمل/footerِ ثابت. مالکِ padding-bottom است. */
+.pb-safe { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem) !important; }
+
+/* محتوای اسکرول‌شونده‌ی مودال/کشو که footerِ ثابت ندارد (دکمه‌ها داخلِ اسکرول‌اند). */
+.pb-safe-content { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1.5rem) !important; }
+
+/* فاصله‌ی صفحاتِ اسکرول‌شونده از BottomNavِ شناور = فضای نوار + حریم سیستم + نفس‌کشی. */
+.pb-bottom-nav { padding-bottom: calc(var(--bottom-nav-space) + env(safe-area-inset-bottom, 0px) + 0.5rem) !important; }
+```
+
+**چرا این طراحی درست است:** `.pt-safe`/`.pb-safe` مالکِ کاملِ همان ضلع‌اند؛ روی هدرهایی که `py-8`/`pt-8` (=۲rem) دارند، روی دستگاه بدونِ notch دقیقاً ۲rem می‌ماند (بدون رگرسیون) و روی notch به‌درستی رشد می‌کند. چون `!important` است، نیازی به دست‌زدن به کلاس‌های پدینگِ موجود نیست؛ ۶ هدر و footerِ اشتراک که امروز no-op دارند، **بلافاصله و بدونِ تغییر markup** فعال می‌شوند.
+
+## ۱۳.ب. اصلاح `BottomNav` (بالا آوردن از Home Indicator)
+نوارِ شناور باید به‌اندازه‌ی `env(safe-area-inset-bottom)` بالا بیاید و ظرفِ بیرونی هم‌اندازه رشد کند، تا توکنِ `--bottom-nav-space` با فضای واقعی هم‌خوان بماند:
+- ظرفِ بیرونی: `h-20` → `h-[calc(5rem+env(safe-area-inset-bottom))]` (یا افزودنِ `padding-bottom: env(...)` معادل).
+- بارِ شناورِ داخلی: افست `bottom-4` → `bottom-[calc(1rem+env(safe-area-inset-bottom))]`.
+- مقادیرِ `z-50`، `max-w-lg`، گریدِ ۵‌ستونی و دکمه‌ی مرکزی دست‌نخورده.
+> نتیجه: لبه‌ی پایینِ نوار بالای اندیکیتور قرار می‌گیرد؛ سقفِ نوار در `5rem + inset` می‌نشیند که دقیقاً همان چیزی است که `.pb-bottom-nav` رزرو می‌کند.
+
+## ۱۳.ج. فاصله‌ی سراسریِ صفحه (مالکِ واحد) و حذفِ اعدادِ جادویی
+- `App.tsx`: در `<main>` کلاسِ `pb-24` → `pb-bottom-nav`. از این پس **`main` تنها مالکِ فاصله‌ی نوار** برای همه‌ی ویوهاست (چون فرزندانِ `h-full` با `border-box` به‌اندازه‌ی این پدینگ از پایین تو می‌روند و ویوهای جریانی هم داخلِ همین اسکرول‌اند).
+- حذفِ پدینگِ نوارِ زائد در ویوها (ضدِّ Double-Padding، Anti §۸۲): `Dashboard` ریشه‌ی `pb-24` → حذف (یا `pb-2` صرفاً نفس‌کشی)؛ `TasksView` اسکرولِ داخلی `pb-32` → `pb-4`؛ `NotesView`/`ProjectsView` ریشه‌ی `pb-32` → حذف.
+- FABها (`TasksView`/`NotesView` با `fixed bottom-24`): افستِ ثابت `bottom-24` → `bottom-[calc(var(--bottom-nav-space)+env(safe-area-inset-bottom))]` تا روی نوار/اندیکیتور نیفتند.
+- هدرهای ویوها (`pt-safe`ِ موجود) خودبه‌خود با §۱۳.الف فعال می‌شوند — تغییری لازم نیست.
+
+## ۱۳.د. قراردادِ مودال/کشو (الگوی واحد — اصلاحِ §۷.۳، §۷.۵، §۷.۶)
+دو حالت، یک قاعده:
+1. **مودال با footerِ ثابت** (خواهرِ `shrink-0`ِ ناحیه‌ی اسکرول، مثل `TaskEditorModal`، `SubscriptionModal`، modalِ ساختِ `ProjectsView`): footer کلاسِ `pb-safe` بگیرد؛ ناحیه‌ی اسکرول `min-h-0` و `pb`ِ زائد (مثل `pb-24`/`pb-20`ِ موبایل) حذف/کوچک شود. هدرِ شیت `pt-safe` بگیرد (برای شیت‌های `h-[100dvh]` که سقفِ ویوپورت را لمس می‌کنند).
+2. **مودال/کشو بدونِ footerِ ثابت** (دکمه‌ها داخلِ اسکرول، مثل `HabitEditorModal`، `HabitManagerModal`، `ProjectDetailsModal`، `ChatHistoryDrawer`): ناحیه‌ی `flex-1 overflow-y-auto` کلاسِ `pb-safe-content` بگیرد تا آخرین اِلمان بالای Home Indicator بایستد.
+> قاعده‌ی ثابت: `h-[100dvh]`/`min-h-0`/`max-h-[..vh]` و `z-index`ها (§۷.۲) دست‌نخورده می‌مانند؛ فقط padding اضافه می‌شود. `NoteEditorModal` باید `pb-20`ِ موبایلِ footer را به `pb-safe` تبدیل کند (حذفِ عددِ جادویی).
+
+## ۱۳.هـ. نقشه‌ی مسیردهیِ فایل‌ها (File Tree Δ — این پروژه از‌قبل موجود است)
+- **منطقِ مسیردهی:** هیچ فایل/پوشه‌ی جدیدی ساخته نمی‌شود. تنها فایلِ «تعریفِ سبک» `index.css` است؛ مابقی، اعمالِ کلاس‌ها در درزهای موجود.
+- فایل‌های دست‌خورده: `index.css` (تعریفِ لایه)، `components/BottomNav.tsx`، `App.tsx`، `features/dashboard/Dashboard.tsx`، `features/tasks/TasksView.tsx`، `features/notes/NotesView.tsx`، `features/projects/ProjectsView.tsx` (هم صفحه و هم modalِ اینلاینِ همان فایل)، `features/tasks/components/TaskEditorModal.tsx`، `features/notes/components/NoteEditorModal.tsx`، `features/habits/components/HabitEditorModal.tsx`، `features/habits/components/HabitManagerModal.tsx`، `features/projects/components/ProjectDetailsModal.tsx`، `features/billing/components/SubscriptionModal.tsx`، `components/PaywallModal.tsx`، `components/ProfileModal.tsx`، `features/chat/components/ChatHistoryDrawer.tsx`. اختیاری (DRY): همگام‌سازیِ `WeeklyReportModal.tsx` و `Onboarding.tsx` با لایه‌ی مرکزی.
+- خارج از اسکوپ: `components/Modal.tsx` (مرده)، `components/Sidebar.tsx` (فایلِ خالی).
+
+## ۱۳.و. نقشه‌ی تداخلِ فایل‌ها (Conflict Map — برای موازی‌نکردن)
+- `index.css` فقط در **J1** و **پیش‌نیازِ همه** است → J1 باید اول و تنها اجرا شود.
+- `BottomNav.tsx` فقط J2؛ `App.tsx` فقط J3 (هر دو به توکنِ `--bottom-nav-space` از J1 وابسته‌اند).
+- ویوهای صفحه‌ای (`Dashboard`/`TasksView`/`NotesView`/`ProjectsView`) فقط در **J4**. توجه: `ProjectsView.tsx` همِ صفحه و همِ modalِ اینلاین دارد → **کلِ این فایل فقط در J4** اصلاح شود (نه در J5) تا یک فایل در دو تسک نباشد.
+- مودال‌های مستقل (`TaskEditorModal`/`NoteEditorModal`/`HabitEditorModal`/`HabitManagerModal`/`ProjectDetailsModal`) فقط در **J5**.
+- اورلی/کشو/سایر (`PaywallModal`/`ProfileModal`/`ChatHistoryDrawer`/`SubscriptionModal` + اختیاری‌ها) فقط در **J6**.
+- هیچ فایلی در بیش از یک تسک ظاهر نمی‌شود → پس از J1، تسک‌های J4/J5/J6 روی فایل‌های مجزا هستند و در صورت نیاز می‌توانند موازی شوند؛ J2/J3 نیز مستقل‌اند.
+
+## ۱۳.ز. سوپرسید (Supersede) — اصلاحِ قراردادهای قبلی
+- **§۷.۵ (فاصله از Bottom Navigation):** عبارتِ «هر صفحه‌ی اسکرول‌دار باید `pb-24` داشته باشد» منسوخ است. از این پس مالکِ واحدِ فاصله‌ی نوار، `App main` با `.pb-bottom-nav` است و صفحات نباید فاصله‌ی نوار را تکرار کنند (Anti §۷۸/§۸۲).
+- **§۷.۶ (Safe Area Insets):** مثالِ ناقص/خالیِ «Tailwind config یا inline» با لایه‌ی مشخصِ §۱۳.الف تکمیل و جایگزین می‌شود. مکانیزمِ رسمی = کلاس‌های `.pt-safe`/`.pb-safe`/`.pb-safe-content`/`.pb-bottom-nav` در `index.css`.
+- **§۷.۳ (الگوی مودال):** «`pb-safe` برای notch» اکنون معنا دارد چون در §۱۳.الف واقعاً تعریف شده؛ مودال‌های بدونِ footerِ ثابت از `.pb-safe-content` استفاده می‌کنند.
