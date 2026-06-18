@@ -41,7 +41,7 @@ export async function buildMetaContext(
       if (filteredTasks.length > 0) {
         filteredTasks.forEach((t: any) => {
           const dueInfo = t.due_date ? `(تاریخ سررسید: ${new Date(t.due_date).toLocaleDateString('fa-IR')})` : "(بدون تاریخ مکتوب)";
-          metaContext += `- ${t.title} ${dueInfo} [شناسه تسک: ${t.id}]\n`;
+          metaContext += `- ${t.title} ${dueInfo}\n`;
         });
       } else {
         metaContext += "- هیچ تسک فعال یا معلقی برای امروز یا بدون تاریخ یافت نشد.\n";
@@ -61,7 +61,7 @@ export async function buildMetaContext(
       metaContext += "\nعناوین ۵ یادداشت اخیر کاربر:\n";
       if (recentNotes && recentNotes.length > 0) {
         recentNotes.forEach((n: any) => {
-          metaContext += `- ${n.title} [شناسه یادداشت: ${n.id}]\n`;
+          metaContext += `- ${n.title}\n`;
         });
       } else {
         metaContext += "- هیچ یادداشتی در حافظه اخیر کاربر یافت نشد.\n";
@@ -79,7 +79,11 @@ export async function buildMetaContext(
       }
 
       if (projects && projects.length > 0) {
-        metaContext += `\n\nAvailable Projects (use these UUID values for 'projectId' params): ${JSON.stringify(projects)}`;
+        const cleanProjects = projects.map((p: any) => ({
+          id: p.id,
+          title: p.title
+        }));
+        metaContext += `\n\nAvailable Projects (use these UUID values for 'projectId' params): ${JSON.stringify(cleanProjects)}`;
       }
     }
 
