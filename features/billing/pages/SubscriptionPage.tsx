@@ -101,7 +101,7 @@ export const SubscriptionPage: React.FC = () => {
   return (
     <div className="min-h-full pb-32 bg-slate-950 text-white relative flex flex-col h-full" dir="rtl">
       {/* Header Container */}
-      <header className="sticky top-0 z-30 px-6 py-8 bg-slate-950/90 backdrop-blur-xl border-b border-white/5 shrink-0">
+      <header className="sticky top-0 pt-safe z-30 px-6 py-8 bg-slate-950/90 backdrop-blur-xl border-b border-white/5 shrink-0">
         <div className="max-w-[1600px] mx-auto text-right">
           <h1 className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-200 to-sky-300">
             ارتقا بستر کاربری و اشتراک

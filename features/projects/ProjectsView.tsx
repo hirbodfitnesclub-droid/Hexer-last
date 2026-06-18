@@ -60,7 +60,7 @@ export const ProjectsView: React.FC = () => {
   return (
     <div className="min-h-full pb-32 bg-slate-950 text-white relative flex flex-col h-full" dir="rtl">
       {/* Header Section */}
-      <header className="sticky top-0 z-30 px-6 py-8 bg-slate-950/80 backdrop-blur-xl border-b border-white/5 shrink-0">
+      <header className="sticky top-0 pt-safe z-30 px-6 py-8 bg-slate-950/80 backdrop-blur-xl border-b border-white/5 shrink-0">
         <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="text-right">
             <h1 className="text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-200 to-sky-300">

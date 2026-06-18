@@ -30,7 +30,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   const isComplete = hasTasksToday && todayProgress === 100;
   
   return (
-    <header className="sticky top-0 z-50 w-full bg-gray-950/80 backdrop-blur-xl border-b border-white/10 transition-all duration-300">
+    <header className="sticky top-0 z-50 w-full bg-gray-950/80 backdrop-blur-xl border-b border-white/10 transition-all duration-300 pt-safe">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         {/* Right Side: Profile & Greeting (RTL Start) */}
         <div className="flex items-center gap-4">

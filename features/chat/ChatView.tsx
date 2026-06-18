@@ -547,7 +547,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
   return (
     <div className="flex flex-col h-full bg-gray-950">
       {/* Header */}
-      <div className="p-4 border-b border-white/10 flex flex-col gap-3 bg-gray-950/80 backdrop-blur-md sticky top-0 z-10 w-full">
+      <div className="p-4 border-b border-white/10 flex flex-col gap-3 bg-gray-950/80 backdrop-blur-md sticky top-0 pt-safe z-10 w-full">
         <div className="flex justify-between items-center w-full">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <BotIcon className="w-6 h-6 text-sky-400" />
