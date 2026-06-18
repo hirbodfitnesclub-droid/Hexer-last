@@ -1070,3 +1070,96 @@ DROP INDEX IF EXISTS public.idx_notes_content_trgm;
 
 ## ۱۲.۶. اصلاحِ §۲.۴ و لغو کامل tsvector (Nuclear Revert)
 «ممنوعیت استفاده از مدل صلب tsvector برای عبارات محاوره‌ای فارسی چت: در فازهای قبلی تلاش شد برای افزایش سرعت، از کاتالوگ واژگانی tsvector همراه با پارسر رجکس استفاده شود. این ساختار در پروداکشن به دلیل ماهیت اتصالات سختگیرانه AND و نبود استاپ-ورد بومی فارسی، به کلی شکست خورد و عبارات محاوره‌ای کاربران را مسدود کرد. پلتفرم Hexer رسماً و برای همیشه به معماری ترکیبی True Semantic Vector + Trigram Fuzzy (similarity) متعهد است و هیچکس حق اور-انجینیرینگ و مخدوش کردن متن طبیعی کاربر را ندارد.»
+
+
+---
+
+# ۱۳. فاز F1‑R — معماریِ «قابِ ایمن» (Safe Frame) و PWAِ کامل
+
+> «چه/چرا» در `PROJECT.md` فاز F1‑R. گام‌به‌گام در `tasks.md` (F1.0–F1.5). این بخش **جایگزینِ (Supersede)** قراردادهای §۷.۳، §۷.۵ و §۷.۶ است؛ هرجا تعارضی بود، §۱۳ مرجع است.
+
+## ۱۳.۰. وضعیتِ موجودِ مرتبط (Snapshot — با شواهدِ کد، نه برای تغییرِ کور)
+- `index.html`: `viewport` دارای `viewport-fit=cover` ✓ و `apple-mobile-web-app-status-bar-style=black-translucent` ✓ و `theme-color=#09090b` ✓. Tailwind از **Play CDN**.
+- `App.tsx`: `#app-root` با `min-h-screen` (=`100vh`) اما `#main-app-container` با `h-[100dvh]` → **تناقضِ ارتفاع**. `<main id="view-viewport">` دارای `pb-24` برای جا‌بازکردنِ نوارِ `fixed`.
+- `components/BottomNav.tsx`: `fixed bottom-0 right-0 left-0 h-20` با کارتِ داخلیِ `absolute bottom-4`؛ **هیچ `env(safe-area-inset-bottom)` ندارد** → زیرِ نوارِ آدرسِ سافاری و Home Indicator می‌افتد.
+- هدرهای `sticky top-0` بدونِ safe‑top: `features/dashboard/components/DashboardHeader.tsx:33`، `features/tasks/TasksView.tsx:163`، `features/notes/NotesView.tsx:55`، `features/projects/ProjectsView.tsx:63`، `features/chat/ChatView.tsx:550`، `features/billing/pages/SubscriptionPage.tsx:104`.
+- overlayهای پایینی با عددِ هاردکد: `components/ui/ToastNotifications.tsx:21` (`bottom-24`)، FABها در `features/tasks/TasksView.tsx:327` و `features/notes/NotesView.tsx:111` (`bottom-24`).
+- فوترهای مودالِ فعال با padding هاردکد: `features/tasks/components/TaskEditorModal.tsx:322` (`pb-24 sm:pb-6`)، `features/notes/components/NoteEditorModal.tsx:235` (`pb-20 sm:pb-6`).
+- `index.css`: متغیرهای `--safe-area-inset-*` تعریف شده‌اند اما **هیچ مصرف‌کننده‌ای ندارند**. الگوی درستِ موجود برای تقلید: `Onboarding.tsx:66‑69` و `WeeklyReportModal.tsx:156` که مستقیم `env()` دارند.
+- `public/manifest.webmanifest`: `standalone`/`#09090b`/۱۹۲/۵۱۲/maskable‑۵۱۲ دارد؛ فاقدِ `id` و `description`.
+- `generate_icons.cjs`: PNGِ ۱×۱ شفاف روی آیکون‌های واقعی می‌نویسد (بمبِ ساعتی).
+- **کدِ مرده (تأییدشده با گرافِ import):** `components/{Dashboard,TasksView,NotesView,ChatView,TaskEditorModal,NoteEditorModal,HabitEditorModal,Onboarding,ProjectsView,Modal,Sidebar}.tsx` فقط یکدیگر را import می‌کنند؛ App از `/features/` استفاده می‌کند. **ویرایش‌نشوند.**
+
+## ۱۳.۱. قراردادِ «قابِ ایمن» (Safe Frame Contract)
+کلِ پوستهٔ اپ یک ستونِ سه‌ناحیه‌ایِ `100dvh` است که نوارِ پایین درونِ آن «جریان دارد» (نه `fixed`):
+
+```jsx
+{/* App.tsx → #main-app-container */}
+<div id="main-app-container" className="relative flex flex-col h-[100dvh] overflow-hidden">
+  <NetworkBanner />                              {/* overlay: top = pt-safe */}
+  <main className="flex-1 overflow-y-auto overflow-x-hidden min-h-0" id="view-viewport">
+    {renderContent()}                            {/* دیگر pb-24 لازم نیست */}
+  </main>
+  <ToastNotifications ... />                      {/* overlay: above-bottom-nav */}
+  <BottomNav ... />                               {/* عضوِ flex، shrink-0، pb-safe */}
+  {/* Global Modals ... */}
+</div>
+```
+
+- **هدر** (داخلِ هر view، `sticky top-0`): کلاسِ `pt-safe` می‌گیرد؛ ردیفِ داخلیِ `h-16` دست‌نخورده می‌ماند تا پس‌زمینهٔ هدر تا زیرِ ناچ کشیده شود و محتوا پایین‌ترِ آن بنشیند.
+- **`<main>`**: `flex-1 overflow-y-auto min-h-0`؛ `pb-24`‌ها (هم در `App.tsx` و هم در inner viewها مثلِ `features/dashboard/Dashboard.tsx:45`) **حذف می‌شوند** چون نوار دیگر روی محتوا نمی‌افتد.
+- **نوارِ پایین** (`BottomNav`): از `fixed` به عضوِ in‑flowِ ستون تبدیل می‌شود؛ کانتینرِ بیرونی `shrink-0 px-4` با `padding-bottom: env(safe-area-inset-bottom)` (کلاسِ `pb-safe`). ارتفاعِ محتواییِ نوار با متغیرِ `--bottom-nav-height` هماهنگ می‌ماند.
+- **FAB/Toast** (overlayهایی که باید بالای نوار شناور بمانند): با کلاسِ `above-bottom-nav` لنگر می‌اندازند.
+
+## ۱۳.۲. شالودهٔ `index.css` (مرجعِ واحدِ Safe‑Area)
+کلاس‌های کمکیِ زیر اضافه می‌شوند (متغیرهای `:root` از قبل هستند؛ حفظ شوند):
+
+```css
+:root {
+  --bottom-nav-height: 5rem; /* معادلِ ارتفاعِ محتواییِ نوار (h-20) */
+}
+
+/* مصرف‌کننده‌های Safe-Area — تنها مکانیزمِ مجاز */
+.pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.px-safe { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+
+/* تعریفِ واقعیِ کلاسی که Onboarding از قبل به آن اشاره دارد (قبلاً بی‌اثر بود) */
+.preserve-safe-area {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* لنگرِ overlayهای پایینی بالای نوارِ in-flow */
+.above-bottom-nav {
+  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 0.75rem);
+}
+```
+
+> نکته: چون Tailwind از Play CDN است، مقادیرِ دلخواهِ `env()` (مثلِ `pb-[calc(1rem+env(safe-area-inset-bottom))]`) در زمانِ اجرا کار می‌کنند؛ اما برای DRY و سادگیِ کدنویس، کلاس‌های بالا ترجیح‌اند.
+
+## ۱۳.۳. منطقِ مسیردهیِ فایل‌ها (Routing Logic — پروژهٔ موجود)
+- **شالودهٔ سراسری:** `index.css`.
+- **پوسته/قاب:** `App.tsx` (هر دو `#app-root` و `#main-app-container`) + `components/BottomNav.tsx` + loaderِ `components/Auth.tsx`.
+- **هدرهای view:** فقط نسخه‌های `/features/...` فهرست‌شده در §۱۳.۰.
+- **overlayها:** `components/NetworkBanner.tsx`، `components/ui/ToastNotifications.tsx`، و FABهای داخلِ `features/tasks/TasksView.tsx` و `features/notes/NotesView.tsx`.
+- **مودال‌های فعال** (footer/header safe‑area): `features/tasks/components/TaskEditorModal.tsx`، `features/notes/components/NoteEditorModal.tsx`، `features/habits/components/HabitEditorModal.tsx`، `features/habits/components/HabitManagerModal.tsx`، `features/projects/components/ProjectDetailsModal.tsx`، `features/projects/ProjectsView.tsx` (مودالِ داخلی)، `features/billing/components/SubscriptionModal.tsx`، `components/PaywallModal.tsx`، `features/billing/components/RenewReminderModal.tsx`، `components/ProfileModal.tsx`، `components/SupportTicketModal.tsx`. (`WeeklyReportModal` و `Onboarding` از قبل safe‑area دارند — فقط ممیزی شوند.)
+- **PWA:** `public/manifest.webmanifest`، `index.html`، `public/sw.js`، `generate_icons.cjs` (خنثی‌سازی).
+- **ممنوع (کدِ مرده):** هیچ‌یک از `/components/`های legacyِ §۱۳.۰ لمس نشود.
+
+## ۱۳.۴. PWA — قراردادِ کامل
+- `manifest.webmanifest`: افزودنِ `"id": "/"` و `"description"` فارسی؛ حفظِ `display:standalone`/`orientation:portrait`/`background_color`/`theme_color = #09090b`/`dir:rtl`/`lang:fa`؛ نگه‌داشتنِ آرایهٔ آیکون‌ها (۱۹۲، ۵۱۲، maskable‑۵۱۲). افزودنِ `"categories": ["productivity"]` (اختیاری اما توصیه‌شده).
+- `index.html`: حفظِ همهٔ متاهای موجود؛ فقط bump کردنِ `?v=` روی `manifest`/`icon` و افزودنِ `<link rel="apple-touch-icon">` با اندازهٔ صحیح (موجود است). تأییدِ `theme-color=#09090b` و `black-translucent`.
+- `public/sw.js`: افزایشِ `CACHE_VERSION` (مثلِ `v1.74`). استراتژی‌ها بدونِ تغییر (navigate=network‑first، asset=cache‑first، Supabase هرگز کش‌نشود).
+- `generate_icons.cjs`: خنثی‌سازی — یا حذفِ فایل، یا تبدیلِ بدنه به یک گاردِ صریح که از بازنویسیِ آیکون‌های واقعی جلوگیری کند (`console.error` + `process.exit(1)`).
+
+## ۱۳.۵. جریانِ داده
+این فاز **صرفاً Layout/Presentation است**؛ هیچ تغییری در State، DataContext، RPC، اسکیما یا سرویس‌ها ندارد. هیچ فایلِ SQL/Edge لمس نمی‌شود.
+
+## ۱۳.۶. نقشهٔ تداخلِ فایل‌ها (Conflict Map — برای موازی‌نکردن)
+- `index.css` ← تنها در **F1.0**. (همه به آن وابسته‌اند → اول اجرا شود.)
+- `App.tsx` + `BottomNav.tsx` + `Auth.tsx` ← تنها در **F1.1**.
+- هدرهای viewها + `NetworkBanner.tsx` + `ToastNotifications.tsx` + FABها ← تنها در **F1.2**.
+- مودال‌های فعال ← تنها در **F1.3**.
+- `manifest.webmanifest` + `index.html` + `sw.js` + `generate_icons.cjs` ← تنها در **F1.4**.
+- هیچ فایلی بینِ دو تسک مشترک نیست؛ F1.0 پیش‌نیازِ بقیه است، F1.1→F1.2→F1.3 ترتیبِ منطقیِ تأییدِ بصری‌اند، F1.4 مستقل است.

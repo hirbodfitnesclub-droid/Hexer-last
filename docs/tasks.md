@@ -2,6 +2,80 @@
 
 ---
 
+# فاز F1‑R — قابِ ایمنِ iOS/سافاری و PWAِ کامل (فعال)
+
+> مرجعِ کامل: `docs/ARCHITECTURE.md §۱۳` و `docs/PROJECT.md` فاز F1‑R. این فاز تسکِ پیشینِ F1 را تصحیح و تکمیل می‌کند. **هیچ فایلِ SQL/Edge/سرویس لمس نمی‌شود؛ این کار صرفاً Layout/PWA است.**
+>
+> **یادآوری به کدنویس (مهم):** این پروژه کاربرِ فعالِ واقعی دارد. دقیقاً همان فایل‌هایی را که در `CONTEXT_FILES` آمده بخوان و فقط همان‌ها را ویرایش کن. نسخه‌های legacyِ `/components/` (`Dashboard,TasksView,NotesView,ChatView,TaskEditorModal,NoteEditorModal,HabitEditorModal,Onboarding,ProjectsView,Modal,Sidebar`) **مرده‌اند و ویرایش نمی‌شوند** (نسخهٔ فعال در `/features/` است).
+
+## محدودیت‌های سراسریِ فاز F1‑R (روی همه‌ی تسک‌ها)
+- ارتفاعِ قابِ ریشه فقط `h-[100dvh]`؛ `100vh`/`min-h-screen`/`h-screen` ممنوع (Anti §۷۸).
+- Safe‑Area فقط با `env(safe-area-inset-*)` از طریقِ کلاس‌های `index.css` یا مقادیرِ `pb-[calc(...)]`؛ عددِ هاردکدِ `bottom-24`/`pb-24`/`pb-20` ممنوع (Anti §۸۰).
+- نوارِ پایین in‑flow است نه `fixed` (Anti §۷۷). هدرهای چسبان `pt-safe` می‌گیرند (Anti §۷۹).
+- هر تغییرِ پوسته/مانیفست با bump شدنِ `CACHE_VERSION` و `?v=` همراه است (Anti §۸۳). Tailwind همچنان Play CDN است — هیچ `tailwind.config` ساخته نمی‌شود.
+
+## ترتیبِ اجرا (وابستگی‌ها)
+**F1.0 (شالوده، پیش‌نیازِ همه)** → **F1.1 (پوسته+نوار)** → **F1.2 (هدرها+overlayها)** → **F1.3 (مودال‌ها)**. **F1.4 (PWA)** مستقل و موازی‌پذیر با F1.1–F1.3 است (فایلِ مشترک ندارد). **F1.5** تأییدِ نهایی پس از همه.
+
+## تسک F1.0 — شالودهٔ Safe‑Area در `index.css`
+**راهنمای پیاده‌سازی فنی:**
+1. در بلوکِ `:root` متغیرِ `--bottom-nav-height: 5rem;` را اضافه کن (معادلِ ارتفاعِ محتواییِ `h-20`). متغیرهای `--safe-area-inset-*` موجود را دست‌نزن.
+2. کلاس‌های کمکی را اضافه کن: `.pt-safe { padding-top: env(safe-area-inset-top,0px); }`, `.pb-safe { padding-bottom: env(safe-area-inset-bottom,0px); }`, `.px-safe { padding-left/right: env(safe-area-inset-left/right,0px); }`.
+3. کلاسِ `.preserve-safe-area` را با `padding-top/bottom: env(safe-area-inset-top/bottom,0px)` تعریفِ واقعی کن (این کلاس در `Onboarding` استفاده شده ولی تا الان بی‌اثر بوده — Anti §۸۶).
+4. کلاسِ لنگرِ overlay را اضافه کن: `.above-bottom-nav { bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom,0px) + 0.75rem); }`.
+5. قانونِ موجودِ `html, body { height:100%; overscroll-behavior-y:none; }` حفظ شود.
+**محدودیت‌های اختصاصی تسک:** فقط CSS؛ هیچ کلاسِ موجود حذف یا تغییرِ رفتار ندهد (به‌خصوص بلوکِ Autofill و `.scroll-fade-edge`). از `@layer`/`@apply`/`tailwind.config` استفاده نکن (CDN است). مقادیرِ `env()` همیشه fallbackِ `0px` داشته باشند.
+CONTEXT_FILES: ["index.css", "docs/ARCHITECTURE.md", "docs/PROJECT.md"]
+
+## تسک F1.1 — پوستهٔ سه‌ناحیه‌ایِ `dvh` و in‑flow کردنِ نوارِ پایین
+**راهنمای پیاده‌سازی فنی:**
+1. در `App.tsx`: `#app-root` را از `min-h-screen` به `h-[100dvh]` تغییر بده؛ loaderِ `AppContent` (`h-[100dvh]` که هست) و loaderهای داخلی هماهنگ بمانند.
+2. `#main-app-container` بماند `relative flex flex-col h-[100dvh]` و `overflow-hidden` بگیرد.
+3. از `<main id="view-viewport">` کلاسِ `pb-24` را حذف کن (نوار دیگر روی محتوا نمی‌افتد)؛ `flex-1 overflow-y-auto overflow-x-hidden min-h-0` باشد.
+4. در `components/BottomNav.tsx`: ریشه را از `fixed bottom-0 right-0 left-0 h-20 px-4 z-50` به یک عضوِ in‑flow تبدیل کن: `shrink-0 px-4 z-50 pb-safe` (دیگر `fixed`/`bottom-0` نباشد). ساختارِ کارتِ داخلی و دکمهٔ شناورِ مرکزی (چت) حفظ شود اما لنگرِ عمودی‌شان نسبت به همین کانتینرِ in‑flow بازتنظیم شود تا با `pb-safe` هم‌خوان بماند.
+5. در `components/Auth.tsx:313` ارتفاع را از `min-h-screen` به `h-[100dvh]` تغییر بده (Anti §۷۸).
+**محدودیت‌های اختصاصی تسک:** ترتیبِ ناوبری، آیکون‌ها و دکمهٔ مرکزیِ چت نباید تغییرِ رفتاری کند. مراقبِ ringِ دکمهٔ مرکزی (`ring-gray-950`) باش که با پس‌زمینهٔ نوار هم‌خوان بماند. هیچ‌چیزِ مربوط به state/routing را در `App.tsx` تغییر نده (Anti §۱۱).
+CONTEXT_FILES: ["App.tsx", "components/BottomNav.tsx", "components/Auth.tsx", "index.css", "docs/ARCHITECTURE.md"]
+
+## تسک F1.2 — `pt-safe` برای هدرهای چسبان و لنگرِ امنِ overlayها
+**راهنمای پیاده‌سازی فنی:**
+1. به هر `<header className="sticky top-0 ...">` کلاسِ `pt-safe` اضافه کن (پس‌زمینه تا زیرِ ناچ کشیده شود، ردیفِ `h-16`/`py-*` داخلی دست‌نخورده): `DashboardHeader.tsx`, `tasks/TasksView.tsx`, `notes/NotesView.tsx`, `projects/ProjectsView.tsx`, `chat/ChatView.tsx`, `billing/pages/SubscriptionPage.tsx`.
+2. `components/NetworkBanner.tsx`: لنگرِ بالا از `top-4` به `top-[calc(1rem+env(safe-area-inset-top))]` (یا افزودنِ `pt-safe` به والد) تا با ناچ تداخل نکند.
+3. `components/ui/ToastNotifications.tsx`: `bottom-24` را با کلاسِ `above-bottom-nav` جایگزین کن.
+4. FABها: در `features/tasks/TasksView.tsx:327` و `features/notes/NotesView.tsx:111` کلاسِ `bottom-24` را با `above-bottom-nav` جایگزین کن.
+5. اگر در viewهای اسکرول‌خور `pb-24`ِ inner وجود دارد (مثلِ `features/dashboard/Dashboard.tsx`)، چون نوار دیگر `fixed` نیست، فاصلهٔ انتهایی را به `pb-6` کاهش بده تا گپِ خالیِ بزرگ ایجاد نشود (FAB با `above-bottom-nav` لنگر دارد).
+**محدودیت‌های اختصاصی تسک:** فقط کلاس‌های Layout؛ منطقِ هدر/پروگرس‌رینگ/داده تغییر نکند. هر هدر جداگانه ویرایش شود اما همه الگوی یکسانِ `pt-safe` را بگیرند. نسخه‌های legacyِ `/components/` لمس نشوند (Anti §۸۵).
+CONTEXT_FILES: ["features/dashboard/components/DashboardHeader.tsx", "features/tasks/TasksView.tsx", "features/notes/NotesView.tsx", "features/projects/ProjectsView.tsx", "features/chat/ChatView.tsx", "features/billing/pages/SubscriptionPage.tsx", "components/NetworkBanner.tsx", "components/ui/ToastNotifications.tsx", "features/dashboard/Dashboard.tsx", "index.css"]
+
+## تسک F1.3 — Safe‑Area در فوتر/هدرِ مودال‌های فعال
+**راهنمای پیاده‌سازی فنی:**
+1. فوترِ اکشنِ هر مودالِ تمام‌قد (`h-[100dvh]`) را safe‑bottom کن: بخشِ `pb-*` را به `pb-[calc(<base>+env(safe-area-inset-bottom))]` تبدیل کن. مشخصاً: `TaskEditorModal.tsx:322` (`pb-24`→`pb-[calc(1.5rem+env(safe-area-inset-bottom))]`)، `NoteEditorModal.tsx:235` (`pb-20`→`pb-[calc(1.5rem+env(safe-area-inset-bottom))]`).
+2. هدرِ مودال‌های تمام‌قد که دکمهٔ بستن/بازگشت دارند `pt-safe` بگیرند (تا دکمهٔ بالا زیرِ ناچ نرود): `TaskEditorModal`, `NoteEditorModal`, `habits/HabitEditorModal`, `habits/HabitManagerModal`, `projects/ProjectDetailsModal`, `projects/ProjectsView` (مودالِ داخلی)، `billing/SubscriptionModal`.
+3. overlayهای تمام‌صفحه: `components/PaywallModal.tsx` (والدِ `overflow-y-auto px-5 py-6`) → `pt-safe pb-safe`؛ ممیزیِ `RenewReminderModal`, `ProfileModal`, `SupportTicketModal` برای اطمینان از اینکه محتوای حساس زیرِ ناچ/Home‑Indicator نمی‌رود.
+4. `WeeklyReportModal` و `Onboarding` از قبل safe‑area دارند — فقط ممیزی شوند، تغییر نده مگر باگ ببینی.
+**محدودیت‌های اختصاصی تسک:** ساختارِ `flex flex-col h-[100dvh]` + `min-h-0` روی ناحیهٔ اسکرول حفظ شود (قراردادِ §۷.۳/§۱۳)؛ هیچ منطقِ ذخیره/فرم تغییر نکند. هر مودال جداگانه. این تسک با F1.1/F1.2 فایلِ مشترک ندارد.
+CONTEXT_FILES: ["features/tasks/components/TaskEditorModal.tsx", "features/notes/components/NoteEditorModal.tsx", "features/habits/components/HabitEditorModal.tsx", "features/habits/components/HabitManagerModal.tsx", "features/projects/components/ProjectDetailsModal.tsx", "features/projects/ProjectsView.tsx", "features/billing/components/SubscriptionModal.tsx", "components/PaywallModal.tsx", "components/ProfileModal.tsx", "components/SupportTicketModal.tsx", "index.css", "docs/ARCHITECTURE.md"]
+
+## تسک F1.4 — سخت‌سازیِ PWA (manifest, index.html, sw.js, خنثی‌سازیِ آیکون‌ساز)
+**راهنمای پیاده‌سازی فنی:**
+1. `public/manifest.webmanifest`: افزودنِ `"id": "/"` و `"description"` فارسیِ کوتاه و `"categories": ["productivity"]`؛ بقیهٔ فیلدها (standalone/portrait/`#09090b`/rtl/fa/icons) حفظ شوند.
+2. `index.html`: `?v=` روی `manifest` و `icon` را bump کن (مثلِ `?v=3`)؛ تأیید کن `theme-color=#09090b`، `apple-mobile-web-app-capable=yes`، `apple-mobile-web-app-status-bar-style=black-translucent`، `viewport-fit=cover` و `<link rel="apple-touch-icon">` سرِ جای‌اند (حذف نشوند — Anti §۸۴).
+3. `public/sw.js`: `CACHE_VERSION` را به نسخهٔ بالاتر (مثلِ `'v1.74'`) ببر؛ استراتژی‌ها بدونِ تغییر (navigate=network‑first، asset=cache‑first، هرگز `supabase.co` کش نشود).
+4. `generate_icons.cjs`: خنثی کن — بدنه را به گاردِ صریح تبدیل کن که در صورتِ اجرا با پیامِ خطا متوقف شود (`console.error('Refusing to overwrite real PWA icons'); process.exit(1);`) یا فایل را حذف کن (Anti §۸۲).
+**محدودیت‌های اختصاصی تسک:** بدونِ افزودنِ کتابخانهٔ PWA. منطقِ Web‑Push و `checkIfShownAndRegister` در `sw.js` دست‌نخورده بماند. آیکون‌های واقعیِ `public/*.png` را بازنویسی نکن.
+CONTEXT_FILES: ["public/manifest.webmanifest", "index.html", "public/sw.js", "generate_icons.cjs", "index.tsx"]
+
+## تسک F1.5 — تأییدِ یکپارچهٔ پایان‌به‌پایان (دستی، چک‌لیست)
+**راهنمای پیاده‌سازی فنی:**
+1. سافاریِ iOS (دارای ناچ/Dynamic Island): هدر و دکمه‌هایش کاملاً زیرِ ناچ نباشند و قابلِ‌کلیک باشند.
+2. اسکرول در سافاری با نوارِ آدرسِ داینامیک: نوارِ پایین و دکمهٔ مرکزی همیشه بالای نوارِ آدرس و قابلِ‌لمس بمانند؛ فوترِ مودال‌ها (ذخیره/انصراف) هرگز زیرِ نوار/Home‑Indicator نروند.
+3. نصبِ Add to Home Screen: اجرای Standalone بدونِ اثرِ مرورگر، تمِ تیرهٔ یکپارچه، آیکونِ سالم.
+4. رگرسیون: dvh هنگامِ بازشدنِ کیبورد در مودال‌ها (فوتر قابلِ‌دسترس)، تداخلِ z-index طبقِ §۷.۲، و عملکردِ FAB/Toast.
+**محدودیت‌های اختصاصی تسک:** بدونِ نوشتنِ کد؛ صرفاً تأیید و گزارشِ هر رگرسیون به‌صورتِ تسکِ اصلاحی.
+CONTEXT_FILES: ["docs/PROJECT.md", "docs/ARCHITECTURE.md", "docs/tasks.md", "docs/CURRENT_TASK.md"]
+
+---
+
 # فاز I — نقشه‌ی راهِ مرجع (جستجوی هیبریدی Zero-Cost: FTS/`tsvector` + RRF + استخراج فیلتر)
 
 > مرجعِ کامل: `docs/ARCHITECTURE.md` §۱۲ و `docs/PROJECT.md` فاز I. هدف: دقتِ بالاتر با هزینه‌ی LLMِ صفر. **هیچ فایل SQL قدیمی ویرایش نمی‌شود** و **مدلِ امبدینگ تغییر نمی‌کند.**
