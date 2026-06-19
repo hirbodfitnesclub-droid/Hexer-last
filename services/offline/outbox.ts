@@ -3,7 +3,7 @@ import { getFromStore, putToStore, deleteFromStore, getAllFromStore, clearStore 
 export interface Mutation {
   id: string; // Outbox transaction ID (could be same as entity ID)
   entity: string; // 'projects' | 'tasks' | 'notes' | 'habits' | 'links'
-  action: 'insert' | 'update' | 'delete';
+  action: 'insert' | 'update' | 'delete' | 'set_completion' | 'toggle';
   payload: any;
   timestamp: number;
   retryCount: number;

@@ -49,18 +49,22 @@ export const getHabits = async (): Promise<Habit[]> => {
     }));
 };
 
-export const createHabit = async (habit: HabitInsert) => {
+export const createHabit = async (habit: HabitInsert & { id?: string }, id?: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("User not authenticated");
 
-    const habitForDb = {
+    const finalId = id || habit.id;
+    const habitForDb: any = {
       ...habit,
       user_id: user.id
     };
+    if (finalId) {
+      habitForDb.id = finalId;
+    }
 
     const { data, error } = await supabase
         .from('habits')
-        .insert([habitForDb])
+        .upsert([habitForDb], { onConflict: 'id' })
         .select()
         .single();
         
@@ -131,5 +135,32 @@ export const toggleHabitCompletion = async (habitId: string, date: string) => {
                 completion_date: date,
             });
         if (insertError) throw insertError;
+    }
+};
+
+export const setHabitCompletion = async (habitId: string, date: string, completed: boolean) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not authenticated");
+
+    if (completed) {
+        // Insert with ON CONFLICT DO NOTHING
+        const { error } = await supabase
+            .from('habit_completions')
+            .upsert([{
+                user_id: user.id,
+                habit_id: habitId,
+                completion_date: date
+            }], { onConflict: 'habit_id,completion_date' });
+            
+        if (error) throw error;
+    } else {
+        // Delete
+        const { error } = await supabase
+            .from('habit_completions')
+            .delete()
+            .eq('habit_id', habitId)
+            .eq('completion_date', date);
+            
+        if (error) throw error;
     }
 };

@@ -15,13 +15,22 @@ export const getProjects = async (limit: number = 20): Promise<Project[]> => {
   return data as Project[];
 };
 
-export const createProject = async (project: ProjectInsert) => {
+export const createProject = async (project: ProjectInsert & { id?: string }, id?: string) => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("User not authenticated");
 
+  const finalId = id || project.id;
+  const row: any = {
+    ...project,
+    user_id: user.id
+  };
+  if (finalId) {
+    row.id = finalId;
+  }
+
   const { data, error } = await supabase
     .from('projects')
-    .insert([{ ...project, user_id: user.id }])
+    .upsert([row], { onConflict: 'id' })
     .select()
     .single();
 

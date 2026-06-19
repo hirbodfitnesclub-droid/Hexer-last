@@ -37,7 +37,6 @@ import { NetworkBanner } from './components/NetworkBanner';
 import { ToastNotifications } from './components/ui/ToastNotifications';
 import * as billingService from './services/billingService';
 import { AnnouncementManager } from './features/announcements/AnnouncementManager';
-import { useOfflineSync } from './hooks/useOfflineSync';
 
 const MainApp: React.FC = () => {
   const { user } = useAuth();

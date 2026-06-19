@@ -16,7 +16,7 @@ export const getTasks = async (limit: number = 20): Promise<Task[]> => {
   return data as Task[];
 };
 
-export const createTask = async (task: TaskInsert): Promise<Task> => {
+export const createTask = async (task: TaskInsert & { id?: string }, id?: string): Promise<Task> => {
   // Use the RPC we defined in SQL with checklist support
   const rpcParams = {
     p_title: task.title,
@@ -25,7 +25,8 @@ export const createTask = async (task: TaskInsert): Promise<Task> => {
     p_due_date: task.due_date || null,
     p_priority: task.priority || 'medium',
     p_tags: task.tags || [],
-    p_checklist: task.checklist || [] // mapped as jsonb atomically
+    p_checklist: task.checklist || [], // mapped as jsonb atomically
+    p_id: id || task.id || null
   };
 
   const { data, error } = await supabase

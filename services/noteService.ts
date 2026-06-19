@@ -16,12 +16,13 @@ export const getNotes = async (limit: number = 20): Promise<Note[]> => {
   return data as Note[];
 };
 
-export const createNote = async (note: NoteInsert): Promise<Note> => {
+export const createNote = async (note: NoteInsert & { id?: string }, id?: string): Promise<Note> => {
   const rpcParams = {
     p_title: note.title,
     p_content: note.content || null,
     p_project_id: note.project_id || null,
-    p_tags: note.tags || []
+    p_tags: note.tags || [],
+    p_id: id || note.id || null
   };
 
   const { data, error } = await supabase

@@ -1,10 +1,10 @@
 import React from 'react';
-import { XIcon, CheckIcon } from '../icons';
+import { XIcon, CheckIcon, InfoIcon, WarningIcon } from '../icons';
 
 export interface AppNotification {
   id: number;
   message: string;
-  type: 'success' | 'error';
+  type: 'success' | 'error' | 'info';
   action?: {
     label: string;
     onClick: () => void;
@@ -26,10 +26,18 @@ export const ToastNotifications: React.FC<ToastNotificationsProps> = ({ notifica
           className={`flex items-center justify-between gap-4 p-4 rounded-xl shadow-2xl shadow-black/50 animate-fade-in-up border ${
             n.type === 'success'
               ? 'bg-green-600/20 border-green-500/30 text-green-200'
-              : 'bg-red-600/20 border-red-500/30 text-red-200'
+              : n.type === 'error'
+              ? 'bg-red-600/20 border-red-500/30 text-red-200'
+              : 'bg-neutral-800/30 border-neutral-600/40 text-neutral-200'
           } backdrop-blur-xl`}
         >
-          <CheckIcon className="w-6 h-6 flex-shrink-0" />
+          {n.type === 'success' ? (
+            <CheckIcon className="w-6 h-6 flex-shrink-0 text-green-400" />
+          ) : n.type === 'error' ? (
+            <WarningIcon className="w-6 h-6 flex-shrink-0 text-red-400" />
+          ) : (
+            <InfoIcon className="w-6 h-6 flex-shrink-0 text-neutral-300" />
+          )}
           <div className="flex-1 text-sm">
             <p className="font-semibold">{n.message}</p>
             {n.action && (

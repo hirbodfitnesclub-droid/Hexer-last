@@ -8,7 +8,7 @@ import * as habitService from '../services/habitService';
 
 export const useOfflineSync = (
   userId: string | undefined, 
-  addNotification: (msg: string, type?: 'success' | 'error') => void, 
+  addNotification: (msg: string, type?: 'success' | 'error' | 'info') => void, 
   loadInitial: () => void
 ) => {
   const [isSyncing, setIsSyncing] = useState(false);
@@ -40,25 +40,24 @@ export const useOfflineSync = (
       return;
     }
 
-    // Session Guard: Get session and refresh if needed
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session) {
-      console.warn('[Sync] No active session found during offline sync flush, skipping.');
-      return;
-    }
-
     syncInProgressRef.current = true;
     setIsSyncing(true);
 
     try {
+      // Session Guard: Get session and refresh if needed
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        console.warn('[Sync] No active session found during offline sync flush, skipping.');
+        return;
+      }
+
       let pendingList = await listPending();
       if (pendingList.length === 0) {
-        setIsSyncing(false);
-        syncInProgressRef.current = false;
         return;
       }
 
       console.log(`[Sync] Starting sync for ${pendingList.length} offline operations.`);
+      let processed = 0;
       
       for (const item of pendingList) {
         // Double check network while processing the queue
@@ -73,8 +72,12 @@ export const useOfflineSync = (
         try {
           if (item.entity === 'projects') {
             if (item.action === 'insert') {
-              const res = await projectService.createProject(item.payload);
-              await remapTempId(item.id, res.id);
+              if (item.id.startsWith('temp-')) {
+                const res = await projectService.createProject(item.payload);
+                await remapTempId(item.id, res.id);
+              } else {
+                await projectService.createProject(item.payload, item.id);
+              }
             } else if (item.action === 'update') {
               await projectService.updateProject(item.id, item.payload);
             } else if (item.action === 'delete') {
@@ -82,8 +85,12 @@ export const useOfflineSync = (
             }
           } else if (item.entity === 'tasks') {
             if (item.action === 'insert') {
-              const res = await taskService.createTask(item.payload);
-              await remapTempId(item.id, res.id);
+              if (item.id.startsWith('temp-')) {
+                const res = await taskService.createTask(item.payload);
+                await remapTempId(item.id, res.id);
+              } else {
+                await taskService.createTask(item.payload, item.id);
+              }
             } else if (item.action === 'update') {
               await taskService.updateTask(item.id, item.payload);
             } else if (item.action === 'delete') {
@@ -91,8 +98,12 @@ export const useOfflineSync = (
             }
           } else if (item.entity === 'notes') {
             if (item.action === 'insert') {
-              const res = await noteService.createNote(item.payload);
-              await remapTempId(item.id, res.id);
+              if (item.id.startsWith('temp-')) {
+                const res = await noteService.createNote(item.payload);
+                await remapTempId(item.id, res.id);
+              } else {
+                await noteService.createNote(item.payload, item.id);
+              }
             } else if (item.action === 'update') {
               await noteService.updateNote(item.id, item.payload);
             } else if (item.action === 'delete') {
@@ -100,12 +111,18 @@ export const useOfflineSync = (
             }
           } else if (item.entity === 'habits') {
             if (item.action === 'insert') {
-              const res = await habitService.createHabit(item.payload);
-              await remapTempId(item.id, res.id);
+              if (item.id.startsWith('temp-')) {
+                const res = await habitService.createHabit(item.payload);
+                await remapTempId(item.id, res.id);
+              } else {
+                await habitService.createHabit(item.payload, item.id);
+              }
             } else if (item.action === 'update') {
               await habitService.updateHabit(item.id, item.payload);
             } else if (item.action === 'delete') {
               await habitService.deleteHabit(item.id);
+            } else if (item.action === 'set_completion') {
+              await habitService.setHabitCompletion(item.payload.habitId, item.payload.date, item.payload.completed);
             } else if (item.action === 'toggle') {
               await habitService.toggleHabitCompletion(item.payload.habitId, item.payload.date);
             }
@@ -118,6 +135,7 @@ export const useOfflineSync = (
 
         if (success) {
           await remove(item.id);
+          processed++;
         } else {
           const isErrRetryable = isRetryable(finalErrorObj);
           const errorMsg = finalErrorObj?.message || 'Unknown network/server error';
@@ -158,6 +176,10 @@ export const useOfflineSync = (
       await refreshPendingCount();
       loadInitial();
       
+      if (processed >= 1) {
+        addNotification('تغییرات همگام‌سازی شد', 'success');
+      }
+      
     } catch (globalErr) {
       console.error('[Sync] Global error during sync run:', globalErr);
     } finally {
@@ -175,7 +197,12 @@ export const useOfflineSync = (
       flushOutbox();
     };
 
+    const handleOffline = () => {
+      addNotification('شما آفلاین هستید؛ تغییرات ذخیره می‌شوند', 'info');
+    };
+
     window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
     
     if (navigator.onLine) {
       flushOutbox();
@@ -183,8 +210,9 @@ export const useOfflineSync = (
 
     return () => {
       window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
-  }, [userId, flushOutbox]);
+  }, [userId, flushOutbox, addNotification]);
 
   return { isSyncing, pendingCount, flushOutbox };
 };
