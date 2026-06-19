@@ -1122,7 +1122,12 @@ DROP INDEX IF EXISTS public.idx_notes_content_trgm;
 - ظرفِ بیرونی: `h-20` → `h-[calc(5rem+env(safe-area-inset-bottom))]` (یا افزودنِ `padding-bottom: env(...)` معادل).
 - بارِ شناورِ داخلی: افست `bottom-4` → `bottom-[calc(1rem+env(safe-area-inset-bottom))]`.
 - مقادیرِ `z-50`، `max-w-lg`، گریدِ ۵‌ستونی و دکمه‌ی مرکزی دست‌نخورده.
-> نتیجه: لبه‌ی پایینِ نوار بالای اندیکیتور قرار می‌گیرد؛ سقفِ نوار در `5rem + inset` می‌نشیند که دقیقاً همان چیزی است که `.pb-bottom-nav` رزرو می‌کند.
+- **[حیاتی — گاردِ pointer-events] رفعِ انسدادِ لمسیِ تمام‌عرض:** ظرفِ بیرونیِ `fixed bottom-0 right-0 left-0` تمام‌عرض و شفاف است و با `pointer-events` پیش‌فرض (`auto`) کلِ نوارِ پایینِ صفحه (شاملِ فضاهای کناریِ بیرونِ پیلِ `max-w-lg` و گپِ شفافِ بالای پیل) را در برابر لمس می‌بلعد. این یک باگِ واقعیِ از‌قبل‌موجود است که افزایشِ ارتفاعِ نوار آن را بدتر می‌کند. راهِ اصولی و استاندارد:
+  - ظرفِ بیرونی (خط ۲۸): افزودنِ `pointer-events-none`.
+  - پیلِ ناوبری (خط ۳۰، `absolute bottom-4 ... grid grid-cols-5`): افزودنِ `pointer-events-auto`.
+  - ظرفِ دکمه‌ی مرکزیِ چت (خط ۵۸، `absolute left-1/2 top-0 ...`): افزودنِ `pointer-events-auto`.
+  > این الگو (wrapperِ `none` + کنترل‌های `auto`) استانداردِ نوارهای شناورِ تمام‌عرض است و فقط روی خودِ کنترل‌ها لمس را فعال نگه می‌دارد؛ بقیه‌ی نوار به محتوای زیرین «شفافِ لمسی» می‌شود.
+> نتیجه: لبه‌ی پایینِ نوار بالای اندیکیتور قرار می‌گیرد؛ سقفِ نوار در `5rem + inset` می‌نشیند که دقیقاً همان چیزی است که `.pb-bottom-nav` رزرو می‌کند؛ و هیچ ناحیه‌ی مرده‌ی لمسی باقی نمی‌ماند.
 
 ## ۱۳.ج. فاصله‌ی سراسریِ صفحه (مالکِ واحد) و حذفِ اعدادِ جادویی
 - `App.tsx`: در `<main>` کلاسِ `pb-24` → `pb-bottom-nav`. از این پس **`main` تنها مالکِ فاصله‌ی نوار** برای همه‌ی ویوهاست (چون فرزندانِ `h-full` با `border-box` به‌اندازه‌ی این پدینگ از پایین تو می‌روند و ویوهای جریانی هم داخلِ همین اسکرول‌اند).
@@ -1133,13 +1138,15 @@ DROP INDEX IF EXISTS public.idx_notes_content_trgm;
 ## ۱۳.د. قراردادِ مودال/کشو (الگوی واحد — اصلاحِ §۷.۳، §۷.۵، §۷.۶)
 دو حالت، یک قاعده:
 1. **مودال با footerِ ثابت** (خواهرِ `shrink-0`ِ ناحیه‌ی اسکرول، مثل `TaskEditorModal`، `SubscriptionModal`، modalِ ساختِ `ProjectsView`): footer کلاسِ `pb-safe` بگیرد؛ ناحیه‌ی اسکرول `min-h-0` و `pb`ِ زائد (مثل `pb-24`/`pb-20`ِ موبایل) حذف/کوچک شود. هدرِ شیت `pt-safe` بگیرد (برای شیت‌های `h-[100dvh]` که سقفِ ویوپورت را لمس می‌کنند).
-2. **مودال/کشو بدونِ footerِ ثابت** (دکمه‌ها داخلِ اسکرول، مثل `HabitEditorModal`، `HabitManagerModal`، `ProjectDetailsModal`، `ChatHistoryDrawer`): ناحیه‌ی `flex-1 overflow-y-auto` کلاسِ `pb-safe-content` بگیرد تا آخرین اِلمان بالای Home Indicator بایستد.
+2. **مودال/کشو بدونِ footerِ ثابت** (دکمه‌ها/محتوای پایانی داخلِ اسکرول، مثل `HabitManagerModal` که `HabitForm` و دکمه‌های submit/cancelِ آن داخلِ اسکرول‌اند، `ProjectDetailsModal`، `ChatHistoryDrawer`، `ProfileModal`): ناحیه‌ی `flex-1 overflow-y-auto` کلاسِ `pb-safe-content` بگیرد تا آخرین اِلمان بالای Home Indicator بایستد.
 > قاعده‌ی ثابت: `h-[100dvh]`/`min-h-0`/`max-h-[..vh]` و `z-index`ها (§۷.۲) دست‌نخورده می‌مانند؛ فقط padding اضافه می‌شود. `NoteEditorModal` باید `pb-20`ِ موبایلِ footer را به `pb-safe` تبدیل کند (حذفِ عددِ جادویی).
+
+> **[گاردِ صحتِ WebKit — پاسخ به نگرانیِ کات‌شدنِ `padding-bottom`]** کانتینرهای اسکرولِ این پروژه همگی **بلاک‌اند** (یک `div` که `flex-1 overflow-y-auto` دارد = آیتمِ flex، نه عنصرِ `display:flex`). باگِ تاریخیِ نادیده‌گرفتنِ padding انتهایی مخصوصِ کانتینرهایی است که خودشان `display:flex|grid` دارند؛ روی کانتینرِ بلاک، `padding-bottom` در WebKit مدرن رعایت می‌شود. بنابراین `pb-safe-content` روی این کانتینرها امن است. **قانونِ سخت:** اگر هر کانتینرِ اسکرولی در آینده `display:flex|grid` شد، به‌جای padding باید از یک **اسپیسرِ انتهایی** (یک `div` فرزند با `flex:none` و `height: calc(env(safe-area-inset-bottom,0px)+1.5rem)`) استفاده شود — چون ارتفاعِ فرزند همیشه در هر موتوری رعایت می‌شود. در J7 این مورد روی iOS واقعی راستی‌آزمایی می‌شود و در صورتِ مشاهده‌ی کات‌شدگی، همان کانتینر به اسپیسر سوییچ می‌کند (نه چسب‌زخم؛ تعویضِ اصولیِ مکانیزم).
 
 ## ۱۳.هـ. نقشه‌ی مسیردهیِ فایل‌ها (File Tree Δ — این پروژه از‌قبل موجود است)
 - **منطقِ مسیردهی:** هیچ فایل/پوشه‌ی جدیدی ساخته نمی‌شود. تنها فایلِ «تعریفِ سبک» `index.css` است؛ مابقی، اعمالِ کلاس‌ها در درزهای موجود.
-- فایل‌های دست‌خورده: `index.css` (تعریفِ لایه)، `components/BottomNav.tsx`، `App.tsx`، `features/dashboard/Dashboard.tsx`، `features/tasks/TasksView.tsx`، `features/notes/NotesView.tsx`، `features/projects/ProjectsView.tsx` (هم صفحه و هم modalِ اینلاینِ همان فایل)، `features/tasks/components/TaskEditorModal.tsx`، `features/notes/components/NoteEditorModal.tsx`، `features/habits/components/HabitEditorModal.tsx`، `features/habits/components/HabitManagerModal.tsx`، `features/projects/components/ProjectDetailsModal.tsx`، `features/billing/components/SubscriptionModal.tsx`، `components/PaywallModal.tsx`، `components/ProfileModal.tsx`، `features/chat/components/ChatHistoryDrawer.tsx`. اختیاری (DRY): همگام‌سازیِ `WeeklyReportModal.tsx` و `Onboarding.tsx` با لایه‌ی مرکزی.
-- خارج از اسکوپ: `components/Modal.tsx` (مرده)، `components/Sidebar.tsx` (فایلِ خالی).
+- فایل‌های دست‌خورده: `index.css` (تعریفِ لایه)، `components/BottomNav.tsx`، `App.tsx`، `features/dashboard/Dashboard.tsx`، `features/tasks/TasksView.tsx`، `features/notes/NotesView.tsx`، `features/projects/ProjectsView.tsx` (هم صفحه و هم modalِ اینلاینِ همان فایل)، `features/tasks/components/TaskEditorModal.tsx`، `features/notes/components/NoteEditorModal.tsx`، `features/habits/components/HabitManagerModal.tsx` (مسیرِ زنده‌ی ویرایشِ عادت = این مودال که `HabitForm` را داخلِ اسکرولِ خود رندر می‌کند)، `features/projects/components/ProjectDetailsModal.tsx`، `features/billing/components/SubscriptionModal.tsx`، `components/PaywallModal.tsx`، `components/ProfileModal.tsx`، `features/chat/components/ChatHistoryDrawer.tsx`. اختیاری (DRY): همگام‌سازیِ `WeeklyReportModal.tsx` و `Onboarding.tsx` با لایه‌ی مرکزی.
+- **خارج از اسکوپ — فایل‌های مرده (تأییدشده با grep: هیچ ایمپورتری ندارند):** `components/Modal.tsx`، `components/Sidebar.tsx` (خالی)، **و `HabitEditorModal` در هر دو مسیر `components/HabitEditorModal.tsx` و `features/habits/components/HabitEditorModal.tsx`** — هیچ‌کدام در درختِ زنده رندر نمی‌شوند (App فقط `HabitManagerModal` را رندر می‌کند و آن `HabitForm` را به‌کار می‌برد، نه `HabitEditorModal`). به این فایل‌ها دست نزنید.
 
 ## ۱۳.و. نقشه‌ی تداخلِ فایل‌ها (Conflict Map — برای موازی‌نکردن)
 - `index.css` فقط در **J1** و **پیش‌نیازِ همه** است → J1 باید اول و تنها اجرا شود.
@@ -1153,3 +1160,13 @@ DROP INDEX IF EXISTS public.idx_notes_content_trgm;
 - **§۷.۵ (فاصله از Bottom Navigation):** عبارتِ «هر صفحه‌ی اسکرول‌دار باید `pb-24` داشته باشد» منسوخ است. از این پس مالکِ واحدِ فاصله‌ی نوار، `App main` با `.pb-bottom-nav` است و صفحات نباید فاصله‌ی نوار را تکرار کنند (Anti §۷۸/§۸۲).
 - **§۷.۶ (Safe Area Insets):** مثالِ ناقص/خالیِ «Tailwind config یا inline» با لایه‌ی مشخصِ §۱۳.الف تکمیل و جایگزین می‌شود. مکانیزمِ رسمی = کلاس‌های `.pt-safe`/`.pb-safe`/`.pb-safe-content`/`.pb-bottom-nav` در `index.css`.
 - **§۷.۳ (الگوی مودال):** «`pb-safe` برای notch» اکنون معنا دارد چون در §۱۳.الف واقعاً تعریف شده؛ مودال‌های بدونِ footerِ ثابت از `.pb-safe-content` استفاده می‌کنند.
+
+
+## ۱۳.ح. پاسخ به ممیزیِ پایداریِ اجراییِ کدنویس (Audit Response — مبتنی بر شواهد)
+این بخش سه ایرادِ گزارش‌شده توسطِ موتورِ اجرایی را با ارجاع به کدِ زنده داوری می‌کند.
+
+1. **انسدادِ لمسیِ نوارِ پایین (pointer-events) — ✅ پذیرفته و حیاتی.** ظرفِ بیرونیِ تمام‌عرضِ `BottomNav` لمس‌ها را می‌بلعد. راهِ اصولی در §۱۳.ب اضافه شد (`pointer-events-none` روی wrapper + `auto` روی پیل و دکمه‌ی مرکزی). تسک J2 به‌روزرسانی شد.
+2. **کات‌شدنِ `padding-bottom` در WebKit — ⚠️ تا حد زیادی نادرست؛ گاردِ دفاعی افزوده شد.** فایلِ ارجاع‌شده (`components/HabitEditorModal.tsx`) هم **مرده** است و هم مودالِ **وسط‌چینِ** `max-h-[90vh]` (فاقدِ مسئله‌ی لبه‌ی پایین). باگِ ادعاشده مخصوصِ کانتینرهای `display:flex|grid` است؛ کانتینرهای اسکرولِ این پروژه **بلاک‌اند** (آیتمِ flex، نه عنصرِ flex) و `padding-bottom`شان در WebKit رعایت می‌شود. قانونِ گارد در §۱۳.د درج شد: در صورتِ هر کانتینرِ `display:flex|grid`، به‌جای padding از اسپیسرِ انتهایی استفاده شود؛ و J7 روی iOS واقعی این را می‌سنجد.
+3. **تداخلِ z-index در `z-50` و سوسوی backdrop-blur — ❌ رد.** شواهدِ زنده: `BottomNav=z-50`؛ همه‌ی مودال‌های زنده `z-[60]`..`z-[100]`اند (Task/Note/HabitManager/ChatDrawer=۶۰، ProjectDetails=۷۰، Profile=۹۰، Subscription/Paywall=۱۰۰). هیچ مودالِ زنده‌ای هم‌تراز z-50 نیست. backdropِ `z-50`ِ دیده‌شده در فایلِ **مرده‌ی** `components/HabitEditorModal.tsx` است. فاز J نیز z-index/backdrop-blur را تغییر نمی‌دهد و پس از گاردِ pointer-events، مودال‌ها نوار را کاملاً می‌پوشانند. → بلاکر نیست. (بهینه‌سازیِ اختیاریِ آینده: مخفی‌کردنِ نوار هنگامِ باز بودنِ مودال؛ فعلاً غیرضروری و خارج از اسکوپ.)
+
+**اصلاحِ داخلیِ معمار (مستقل از ممیزی):** فایلِ `HabitEditorModal` (هر دو مسیر) از اسکوپ حذف شد چون مرده است؛ مسیرِ زنده‌ی عادت = `HabitManagerModal → HabitForm` (دکمه‌های فرم داخلِ اسکرولِ مودال‌اند → `pb-safe-content` روی همان اسکرول).

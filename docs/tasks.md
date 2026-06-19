@@ -94,8 +94,9 @@ CONTEXT_FILES: ["index.css", "index.html", "docs/ARCHITECTURE.md", "docs/PROJECT
 **راهنمای پیاده‌سازیِ فنی:**
 1. ظرفِ بیرونی (خط ۲۸، `fixed bottom-0 ... h-20 ... z-50`): ارتفاع `h-20` را به `h-[calc(5rem+env(safe-area-inset-bottom,0px))]` تغییر بده.
 2. بارِ شناورِ داخلی (خط ۳۰، `absolute bottom-4 ... h-16`): افستِ `bottom-4` را به `bottom-[calc(1rem+env(safe-area-inset-bottom,0px))]` تغییر بده.
-3. سایرِ کلاس‌ها (`z-50`, `max-w-lg`, گریدِ ۵‌ستونی، دکمه‌ی مرکزیِ شناور) دست‌نخورده بمانند.
-**محدودیت‌های اختصاصیِ تسک:** فقط `components/BottomNav.tsx`. مقدارِ ارتفاعِ پایه (۵rem) باید با توکنِ `--bottom-nav-space` در J1 هم‌خوان بماند؛ آن را تغییر نده. منطقِ ناوبری/آیکن‌ها لمس نشود.
+3. **[حیاتی — گاردِ pointer-events، پذیرفته از ممیزیِ کدنویس]** برای این‌که ظرفِ تمام‌عرضِ نوار، لمسِ محتوای زیرین را نبلعد: به ظرفِ بیرونی (خط ۲۸) `pointer-events-none` بده؛ به پیلِ ناوبری (خط ۳۰) و به ظرفِ دکمه‌ی مرکزیِ چت (خط ۵۸) `pointer-events-auto` بده.
+4. سایرِ کلاس‌ها (`z-50`, `max-w-lg`, گریدِ ۵‌ستونی، دکمه‌ی مرکزیِ شناور) دست‌نخورده بمانند.
+**محدودیت‌های اختصاصیِ تسک:** فقط `components/BottomNav.tsx`. مقدارِ ارتفاعِ پایه (۵rem) باید با توکنِ `--bottom-nav-space` در J1 هم‌خوان بماند؛ آن را تغییر نده. منطقِ ناوبری/آیکن‌ها لمس نشود. گاردِ pointer-events الزامی است (وگرنه افزایشِ ارتفاع یک ناحیه‌ی مرده‌ی لمسیِ بزرگ‌تر می‌سازد).
 CONTEXT_FILES: ["components/BottomNav.tsx", "App.tsx", "index.css", "docs/ARCHITECTURE.md"]
 
 ## تسک J3 — مالکِ واحدِ فاصله‌ی نوار در پوسته‌ی اپ (`App.tsx`)
@@ -116,11 +117,10 @@ CONTEXT_FILES: ["features/dashboard/Dashboard.tsx", "features/tasks/TasksView.ts
 **راهنمای پیاده‌سازیِ فنی:** برای هر مودال، هدرِ شیت `pt-safe` و انتهای آن طبق نوعش:
 1. `features/tasks/components/TaskEditorModal.tsx`: هدر (خط ۳۰۳) `pt-safe`؛ footerِ ثابت (خط ۶۳۰) `pb-safe`؛ از اسکرول (خط ۳۲۲) `pb-24` حذف شود (footer جداست).
 2. `features/notes/components/NoteEditorModal.tsx`: هدر (خط ۱۸۴) `pt-safe`؛ footerِ متادیتا (خط ۲۳۵) `pb-20` موبایل → `pb-safe`.
-3. `features/habits/components/HabitEditorModal.tsx`: هدر (خط ۷۰) `pt-safe`؛ ناحیه‌ی اسکرول (خط ۸۸، که دکمه‌ها داخلش‌اند) `pb-safe-content`.
-4. `features/habits/components/HabitManagerModal.tsx`: هدر (خط ۹۷) `pt-safe`؛ اسکرول (خط ۱۱۵) `pb-safe-content`.
-5. `features/projects/components/ProjectDetailsModal.tsx`: هدر (خط ۸۸) `pt-safe`؛ اسکرول (خط ۱۱۶) `pb-safe-content`.
-**محدودیت‌های اختصاصیِ تسک:** فقط همین پنج فایل. `h-[100dvh]`/`min-h-0`/`z-index` دست‌نخورده. تمایزِ دو حالت را رعایت کن: footerِ ثابت (خواهرِ `shrink-0`) → `pb-safe`؛ دکمه‌های داخلِ اسکرول → `pb-safe-content` روی همان ناحیه‌ی اسکرول.
-CONTEXT_FILES: ["features/tasks/components/TaskEditorModal.tsx", "features/notes/components/NoteEditorModal.tsx", "features/habits/components/HabitEditorModal.tsx", "features/habits/components/HabitManagerModal.tsx", "features/projects/components/ProjectDetailsModal.tsx", "index.css", "docs/ARCHITECTURE.md"]
+3. `features/habits/components/HabitManagerModal.tsx`: هدر (خط ۹۷) `pt-safe`؛ اسکرول (خط ۱۱۵، که `HabitForm` و دکمه‌های submit/cancelِ آن داخلش‌اند) `pb-safe-content`. **توجه:** `HabitEditorModal` (هر دو مسیر) مرده است و در اسکوپ نیست — به آن دست نزن.
+4. `features/projects/components/ProjectDetailsModal.tsx`: هدر (خط ۸۸) `pt-safe`؛ اسکرول (خط ۱۱۶) `pb-safe-content`.
+**محدودیت‌های اختصاصیِ تسک:** فقط همین چهار فایلِ زنده. `h-[100dvh]`/`min-h-0`/`z-index` دست‌نخورده. تمایزِ دو حالت را رعایت کن: footerِ ثابت (خواهرِ `shrink-0`) → `pb-safe`؛ دکمه‌های داخلِ اسکرول → `pb-safe-content` روی همان ناحیه‌ی اسکرول (که در این پروژه بلاک است و امن؛ گاردِ §۱۳.د). `HabitForm` نیازی به ویرایش ندارد چون پدینگِ اسکرولِ والد (HabitManager) فضای زیرِ دکمه‌هایش را تأمین می‌کند.
+CONTEXT_FILES: ["features/tasks/components/TaskEditorModal.tsx", "features/notes/components/NoteEditorModal.tsx", "features/habits/components/HabitManagerModal.tsx", "features/habits/components/HabitForm.tsx", "features/projects/components/ProjectDetailsModal.tsx", "index.css", "docs/ARCHITECTURE.md"]
 
 ## تسک J6 — اورلی‌های تمام‌صفحه، کشو و اشتراک
 **راهنمای پیاده‌سازیِ فنی:**
@@ -133,6 +133,6 @@ CONTEXT_FILES: ["features/tasks/components/TaskEditorModal.tsx", "features/notes
 CONTEXT_FILES: ["features/billing/components/SubscriptionModal.tsx", "features/chat/components/ChatHistoryDrawer.tsx", "components/PaywallModal.tsx", "components/ProfileModal.tsx", "features/dashboard/components/WeeklyReportModal.tsx", "features/onboarding/Onboarding.tsx", "index.css"]
 
 ## تسک J7 — تستِ یکپارچه‌ی پایان‌به‌پایان (دستی، چک‌لیست)
-**راهنمای پیاده‌سازیِ فنی:** روی شبیه‌سازِ آیفونِ دارای Dynamic Island (مثلاً iPhone 15 Pro) و یک اندرویدِ ژستی، و نیز یک دستگاهِ بدونِ notch: (الف) در `TaskEditorModal` تا انتها اسکرول کن — دکمه‌ی «ذخیره» کاملاً بالای اندیکیتور و قابلِ‌کلیک باشد؛ (ب) همین برای `HabitEditorModal`/`HabitManagerModal`/`ProjectDetailsModal` (دکمه‌های داخلِ اسکرول)؛ (ج) `SubscriptionModal`/`PaywallModal` CTA بالای اندیکیتور؛ (د) `ChatHistoryDrawer` آخرین آیتم دیده شود؛ (هـ) در همه‌ی صفحات (Dashboard/Tasks/Notes/Projects/Chat) آخرین محتوا بالای BottomNav بماند و BottomNav روی اندیکیتور نیفتد؛ (و) هدرها زیرِ ناچ نروند؛ (ز) **رگرسیون‌نبودن روی دستگاه بدونِ notch** (پدینگ‌ها معادلِ قبل)؛ (ح) باز/بسته‌شدنِ کیبوردِ مجازی هنوز footer را حفظ کند (قراردادِ `dvh`). نتایج در `docs/CURRENT_TASK.md` ثبت شود.
+**راهنمای پیاده‌سازیِ فنی:** روی شبیه‌سازِ آیفونِ دارای Dynamic Island (مثلاً iPhone 15 Pro) و یک اندرویدِ ژستی، و نیز یک دستگاهِ بدونِ notch: (الف) در `TaskEditorModal` تا انتها اسکرول کن — دکمه‌ی «ذخیره» کاملاً بالای اندیکیتور و قابلِ‌کلیک باشد؛ (ب) همین برای `HabitManagerModal` (که `HabitForm` و دکمه‌هایش داخلِ اسکرول‌اند)/`ProjectDetailsModal`؛ (ب۲) **گاردِ لمسیِ نوار:** در صفحاتِ زیرین، روی فضاهای کناریِ پایینِ صفحه (بیرونِ پیلِ مرکزی) تپ کن و مطمئن شو لمس به محتوای زیرین می‌رسد (نه بلاک)؛ (ج) `SubscriptionModal`/`PaywallModal` CTA بالای اندیکیتور؛ (د) `ChatHistoryDrawer` آخرین آیتم دیده شود؛ (هـ) در همه‌ی صفحات (Dashboard/Tasks/Notes/Projects/Chat) آخرین محتوا بالای BottomNav بماند و BottomNav روی اندیکیتور نیفتد؛ (و) هدرها زیرِ ناچ نروند؛ (ز) **رگرسیون‌نبودن روی دستگاه بدونِ notch** (پدینگ‌ها معادلِ قبل)؛ (ح) باز/بسته‌شدنِ کیبوردِ مجازی هنوز footer را حفظ کند (قراردادِ `dvh`). نتایج در `docs/CURRENT_TASK.md` ثبت شود.
 **محدودیت‌های اختصاصیِ تسک:** بدونِ کدِ جدید؛ فقط راستی‌آزمایی. هر رگرسیون = بازگشت به تسکِ مربوطه (J1–J6).
 CONTEXT_FILES: ["docs/PROJECT.md", "docs/ARCHITECTURE.md", "docs/tasks.md", "docs/CURRENT_TASK.md"]

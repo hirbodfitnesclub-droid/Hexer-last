@@ -6,7 +6,7 @@
 ## 🌲 درخت تمرکز (Focus Tree)
 ```
 index.css                                  ← [J1] هسته: تعریفِ .pt-safe/.pb-safe/.pb-safe-content/.pb-bottom-nav + توکن --bottom-nav-space
-components/BottomNav.tsx                    ← [J2] بالا آوردن نوار از Home Indicator
+components/BottomNav.tsx                    ← [J2] بالا آوردن نوار از Home Indicator + pointer-events-none/auto (گاردِ انسدادِ لمسی)
 App.tsx                                     ← [J3] main: pb-24 → pb-bottom-nav (مالکِ واحدِ فاصله)
 features/dashboard/Dashboard.tsx            ← [J4] حذفِ pb-24 زائد
 features/tasks/TasksView.tsx                ← [J4] pb-32→pb-4 + FAB
@@ -14,8 +14,8 @@ features/notes/NotesView.tsx                ← [J4] حذفِ pb-32 + FAB
 features/projects/ProjectsView.tsx          ← [J4] صفحه + modalِ اینلاین
 features/tasks/components/TaskEditorModal.tsx        ← [J5] footer pb-safe + هدر pt-safe
 features/notes/components/NoteEditorModal.tsx        ← [J5] pb-20→pb-safe
-features/habits/components/HabitEditorModal.tsx      ← [J5] اسکرول pb-safe-content
-features/habits/components/HabitManagerModal.tsx     ← [J5] اسکرول pb-safe-content
+features/habits/components/HabitManagerModal.tsx     ← [J5] اسکرول pb-safe-content (مسیرِ زنده؛ HabitForm داخلِ آن)
+  (⚠️ HabitEditorModal در هر دو مسیر مرده است — دست نزن)
 features/projects/components/ProjectDetailsModal.tsx ← [J5] اسکرول pb-safe-content
 features/billing/components/SubscriptionModal.tsx    ← [J6] تأیید pb-safe (فعال‌شده با J1)
 features/chat/components/ChatHistoryDrawer.tsx        ← [J6] pb-safe-content
