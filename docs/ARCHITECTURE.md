@@ -1170,3 +1170,91 @@ DROP INDEX IF EXISTS public.idx_notes_content_trgm;
 3. **تداخلِ z-index در `z-50` و سوسوی backdrop-blur — ❌ رد.** شواهدِ زنده: `BottomNav=z-50`؛ همه‌ی مودال‌های زنده `z-[60]`..`z-[100]`اند (Task/Note/HabitManager/ChatDrawer=۶۰، ProjectDetails=۷۰، Profile=۹۰، Subscription/Paywall=۱۰۰). هیچ مودالِ زنده‌ای هم‌تراز z-50 نیست. backdropِ `z-50`ِ دیده‌شده در فایلِ **مرده‌ی** `components/HabitEditorModal.tsx` است. فاز J نیز z-index/backdrop-blur را تغییر نمی‌دهد و پس از گاردِ pointer-events، مودال‌ها نوار را کاملاً می‌پوشانند. → بلاکر نیست. (بهینه‌سازیِ اختیاریِ آینده: مخفی‌کردنِ نوار هنگامِ باز بودنِ مودال؛ فعلاً غیرضروری و خارج از اسکوپ.)
 
 **اصلاحِ داخلیِ معمار (مستقل از ممیزی):** فایلِ `HabitEditorModal` (هر دو مسیر) از اسکوپ حذف شد چون مرده است؛ مسیرِ زنده‌ی عادت = `HabitManagerModal → HabitForm` (دکمه‌های فرم داخلِ اسکرولِ مودال‌اند → `pb-safe-content` روی همان اسکرول).
+
+---
+
+# ۱۴. فاز K — نقشه‌ی مهندسی (Offline-First: Idempotency, Auto-Sync, UX ظریف)
+
+> این فاز معماریِ آفلاینِ فاز H را از تحویلِ at-least-once به effectively-once ارتقا می‌دهد. هر تصمیم زیر از خواندنِ خط‌به‌خط استخراج شده و در صورتِ لزوم بخش‌های §۱۱.ب و §۱۱.ه را **Supersede** می‌کند (پایینِ همین فاز).
+
+## ۱۴.۰. وضعیت موجودِ مرتبط (Snapshot — برای زمینه، نه تغییر)
+- **مسیرِ نوشتن:** `useDataManager.{add,update,delete}{Task,Note,Project,Habit}` → optimistic state + `saveSnapshot` → اگر آفلاین/خطای شبکه: `enqueue` در `outbox`؛ اگر آنلاین: سرویسِ مستقیم.
+- **شناسه‌ی موقت:** `const tempId = 'temp-' + Date.now()` در همه‌ی `add*`.
+- **موتورِ سینک:** `useOfflineSync.flushOutbox` روی `online`/بوت؛ برای هر op سرویسِ متناظر؛ پس از `insert` → `remapTempId(item.id, res.id)`؛ store `failed` (DLQ) برای خطای دائمی.
+- **سرور:** RPCهای `create_task_with_tags`/`create_note_with_tags` (در `supabase/sql/10_functions.sql`) با `gen_random_uuid()`؛ `projects`/`habits` با `.insert()`؛ همه‌ی جداولِ هسته `id UUID PRIMARY KEY DEFAULT gen_random_uuid()` (در `supabase/sql/03_core.sql`)؛ `habit_completions` دارای `UNIQUE (habit_id, completion_date)`.
+- **Realtime:** `useRealtimeSync.handleInserts` با `if (prev.find(i=>i.id===payload.new.id)) return prev;` تشخیصِ تکراری می‌دهد (وابسته به برابریِ id).
+- **UX:** `NetworkBanner` (`fixed top-4`) + دکمه‌ی دستیِ `flushOutbox`؛ `ToastNotifications` با نوع‌های `'success'|'error'`، auto-dismiss پس از ۵ ثانیه (در `useDataManager.addNotification`).
+
+## ۱۴.الف. سنگِ‌بنا — UUID کلاینت به‌عنوان کلید اصلیِ واقعی
+- **فایلِ جدید `utils/uuid.ts`:** تابعِ `export const newId = (): string => …` که `crypto.randomUUID()` را در صورتِ دسترس‌پذیری برمی‌گرداند و در غیرِ این صورت UUID v4 را از `crypto.getRandomValues(new Uint8Array(16))` می‌سازد (تنظیمِ نسخه/variant بیت‌ها). بدونِ وابستگیِ خارجی.
+- در `useDataManager`، هر `'temp-' + Date.now()` با `newId()` جایگزین می‌شود. این UUID:
+  - شناسه‌ی موجودیتِ optimistic در state و snapshot است،
+  - در `payload`/فراخوانیِ سرویس به‌عنوانِ id به سرور فرستاده می‌شود،
+  - شناسه‌ی op در `outbox` است (keyPath).
+- **اثرِ زنجیره‌ای (مثبت):** چون id هرگز تغییر نمی‌کند، swapِ `temp→real` و `remapTempId` برای آیتم‌های جدید حذف می‌شود؛ echoِ Realtime با همان id مطابقت می‌کند و کپیِ دومِ بصری از بین می‌رود.
+
+## ۱۴.ب. idempotency سمت سرور (RPC Δ + Service Δ)
+**فایلِ SQL جدید (idempotent، append-only): `supabase/sql/47_offline_idempotency.sql`**
+- بازتعریفِ `create_task_with_tags` با افزودنِ پارامترِ **اولِ defaulted** `p_id UUID DEFAULT NULL` (سایر پارامترها بدونِ تغییرِ ترتیب). الگوی بدنه:
+  ```sql
+  -- v_id := COALESCE(p_id, gen_random_uuid())
+  RETURN QUERY
+  INSERT INTO public.tasks (id, user_id, project_id, title, description, priority, due_date, tags, checklist, created_at, updated_at)
+  VALUES (v_id, auth.uid(), p_project_id, p_title, p_description, p_priority, p_due_date, p_tags, p_checklist, now(), now())
+  ON CONFLICT (id) DO NOTHING
+  RETURNING *;
+  IF NOT FOUND THEN
+    RETURN QUERY SELECT * FROM public.tasks WHERE id = v_id AND user_id = auth.uid();
+  END IF;
+  ```
+  → فراخوانیِ N بار = دقیقاً یک ردیف، و همیشه همان ردیف برگردانده می‌شود.
+- بازتعریفِ مشابهِ `create_note_with_tags` با `p_id UUID DEFAULT NULL`.
+- `SECURITY DEFINER SET search_path = public` و امضای backward-compatible حفظ می‌شوند (Edge Functionِ AI که `p_id` نمی‌فرستد، با `gen_random_uuid()` کار می‌کند).
+
+**Service Δ:**
+- `services/taskService.ts` و `services/noteService.ts`: `create*` یک `id` می‌گیرند (یا از `payload.id`) و در `rpcParams` به‌صورتِ `p_id` می‌فرستند.
+- `services/projectService.ts` و `services/habitService.ts`: `.insert([...])` → `.upsert([{ id, ...row, user_id }], { onConflict: 'id', ignoreDuplicates: true }).select()`. (با `ignoreDuplicates:true` تریگرِ `UPDATE`ـیِ vectorize دوباره شلیک نمی‌شود.)
+- `update*`/`delete*` بدونِ تغییر: update طبیعتاً ایدمپوتنت (LWW، هم‌راستا با `useRealtimeSync.handleUpdates`)، delete طبیعتاً ایدمپوتنت (حذفِ ردیفِ غایب = ۰ ردیف، بدونِ خطا).
+
+## ۱۴.ج. تکمیلِ عادت: SET به‌جای FLIP
+- **`services/habitService.ts`:** افزودنِ `setHabitCompletion(habitId, date, completed: boolean)`:
+  - `completed === true` → `INSERT INTO habit_completions (user_id, habit_id, completion_date) VALUES (…) ON CONFLICT (habit_id, completion_date) DO NOTHING`.
+  - `completed === false` → `DELETE FROM habit_completions WHERE habit_id = … AND completion_date = …`.
+  - `toggleHabitCompletion` فقط به‌عنوانِ aliasِ سازگاریِ عقب‌رو برای آیتم‌های `toggle`ـیِ legacy نگه داشته می‌شود.
+- **`useDataManager.toggleHabitCompletion`:** وضعیتِ مطلوب `desired = !alreadyCompleted` در زمانِ تعاملِ کاربر محاسبه و در صف `enqueue({ id: 'set-${habitId}-${date}', entity:'habits', action:'set_completion', payload:{ habitId, date, completed: desired } })` می‌شود؛ مسیرِ آنلاین نیز `setHabitCompletion(habitId, date, desired)` را صدا می‌زند (ایدمپوتنت تحتِ Race/Realtime).
+- **`outbox.ts`:** نوعِ `Mutation.action` به `'insert'|'update'|'delete'|'set_completion'` گسترش می‌یابد (`'toggle'` برای legacy نگه داشته می‌شود).
+
+## ۱۴.د. موتورِ سینک — قفلِ اتمیک + dispatchِ جدید (`hooks/useOfflineSync.ts`)
+- **قفلِ اتمیک:** در ابتدای `flushOutbox`، **پیش از هر `await`**:
+  ```
+  if (!userId || syncInProgressRef.current) return;
+  syncInProgressRef.current = true;
+  try { /* getSession → loop */ } finally { syncInProgressRef.current = false; setIsSyncing(false); }
+  ```
+  (ست‌کردنِ `setIsSyncing(true)` پس از گذرِ گاردِ session مجاز است؛ اما قفلِ ref باید همگام و فوری باشد.)
+- **شاخه‌ی insert (سازگاریِ گذار):** اگر `item.id` یک UUID معتبر بود → آن را به‌عنوانِ id به سرویس بده (ایدمپوتنت؛ بدونِ `remapTempId`)؛ اگر با `temp-` شروع شد (آیتمِ legacy) → مسیرِ قدیمی (سرور id می‌سازد) + `remapTempId(item.id, res.id)`.
+- **dispatchِ `set_completion`:** `await habitService.setHabitCompletion(payload.habitId, payload.date, payload.completed)`؛ شاخه‌ی legacy `'toggle'` همچنان `toggleHabitCompletion` را صدا می‌زند.
+- **Toastِ موفقیتِ واحد:** پس از یک اجرای موفق که `processedCount >= 1` بود، یک `addNotification('تغییرات همگام‌سازی شد', 'success')` (نه به‌ازای هر آیتم).
+- **Toastِ آفلاین:** افزودنِ شنونده‌ی `window.addEventListener('offline', …)` در همین هوک که یک‌بار `addNotification('شما آفلاین هستید؛ تغییرات ذخیره می‌شوند', 'info')` می‌زند (تمرکزِ همه‌ی side-effectهای گذارِ شبکه در یک مالک).
+
+## ۱۴.ه. UX — حذفِ بنرِ دائمی و دکمه‌ی دستی
+- **`components/NetworkBanner.tsx`:** حذفِ کاملِ دکمه‌ی «همگام‌سازی»، نشانِ «N تغییرِ معلق» و حالتِ «آماده‌ی همگام‌سازی». کامپوننت به یک نشانِ آفلاینِ بسیار ظریف و **فقط هنگامِ آفلاین** فرومی‌کاهد (یا `return null` و واگذاریِ کاملِ پیام‌ها به Toast — انتخابِ پیاده‌سازی در تسک‌ها). هیچ `flushOutbox`ـی از این کامپوننت صدا زده نمی‌شود.
+- **`components/ui/ToastNotifications.tsx` + `useDataManager.AppNotification`:** افزودنِ نوعِ سومِ خنثی `'info'` به union و یک استایلِ آرام (مثلاً `bg-neutral-800/20 border-neutral-600/30 text-neutral-200`) با آیکنِ مناسب (نه آیکنِ موفقیت). تغییرِ نوعِ `AppNotification` در `useDataManager.ts` (مالکِ تعریف) و مصرفِ آن در `ToastNotifications.tsx`.
+- **`App.tsx`:** نگه‌داشتنِ یا حذفِ `<NetworkBanner />` مطابقِ تصمیمِ بالا؛ بدونِ پاس‌دادنِ هیچ هندلرِ سینکِ دستی.
+
+## ۱۴.و. قانونِ مسیردهیِ فایل‌ها (File Tree Δ — پروژه از قبل موجود است)
+- منطقِ آفلاین در `services/offline/*` می‌ماند؛ هیچ کامپوننتی مستقیم با IndexedDB حرف نمی‌زند.
+- **فایلِ جدید (فقط):** `utils/uuid.ts` (تولیدِ id) و `supabase/sql/47_offline_idempotency.sql` (RPCهای ایدمپوتنت).
+- **ویرایش‌ها (مسیرهای دقیق):** `services/taskService.ts`, `services/noteService.ts`, `services/projectService.ts`, `services/habitService.ts`, `services/offline/outbox.ts`, `hooks/useDataManager.ts`, `hooks/useOfflineSync.ts`, `components/NetworkBanner.tsx`, `components/ui/ToastNotifications.tsx`, `App.tsx`.
+
+## ۱۴.ز. نقشه‌ی تداخلِ فایل‌ها (Conflict Map — برای موازی‌نکردن)
+- `hooks/useDataManager.ts` (K2) و `hooks/useOfflineSync.ts` (K3) **قراردادِ مشترکِ outbox** دارند → **سریِ اکید** (اول K2 بعد K3)، هرچند فایل‌های متفاوتی‌اند.
+- `services/offline/outbox.ts` (نوعِ `Mutation`) پایه‌ی هر دوی K2/K3 است → باید در K1 نهایی شود.
+- RPC/SQL (K1) و `utils/uuid.ts` (K1) مستقل‌اند و پیش‌نیازِ K2 هستند.
+- K4 (UI: `NetworkBanner.tsx`, `ToastNotifications.tsx`, `App.tsx`) با K3 تداخلِ فایلی ندارد، اما به نوعِ `'info'`ـی که K2 در `useDataManager.AppNotification` اضافه می‌کند وابسته است → K4 پس از K2.
+
+## ۱۴.ح. Supersede — اصلاحِ قراردادهای پیشینِ آفلاین
+- **§۱۱.ب.۱ (مدلِ Mutation):** اکنون `action` شاملِ `'set_completion'` است و `tempId`/`remapTempId` فقط مسیرِ legacy است؛ شناسه‌ی op برای رکوردهای جدید **همان UUIDِ نهاییِ سرور** است.
+- **§۱۱.ه.۴ (گاردِ سشن پیش از سینک):** قفلِ اتمیک اکنون **پیش از** `getSession()` گرفته می‌شود (نه بعد از آن). ترتیبِ retry/DLQ بدونِ تغییر باقی می‌ماند.
+- **§۱۱.ب.۲ / NetworkBanner:** نمایشِ «N تغییرِ معلق» و دکمه‌ی دستی **حذف** شد؛ UX به Auto-Sync + Toastِ گذرا منتقل شد.
+- بقیه‌ی قراردادهای فاز H (SWR boot، store `failed`، dedupِ `shown`، session refresh توسطِ خودِ کتابخانه) بدونِ تغییر و معتبر باقی می‌مانند.
