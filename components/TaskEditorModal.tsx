@@ -204,13 +204,13 @@ const TaskEditorModal: React.FC<TaskEditorModalProps> = ({ task, isOpen, project
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex justify-center items-center p-2 sm:p-4" role="dialog" aria-modal="true" onClick={handleClose}>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[60] flex justify-center items-center p-2 sm:p-4" role="dialog" aria-modal="true" onClick={handleClose}>
             <div
                 onClick={e => e.stopPropagation()}
                 className={`bg-slate-900 border border-slate-700/80 w-full max-w-xl rounded-2xl shadow-2xl transition-all duration-300 ease-out flex flex-col max-h-[85vh] ${isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
             >
                 {/* Header - Fixed */}
-                <div className="p-4 sm:p-6 border-b border-white/5 flex justify-between items-center flex-shrink-0">
+                <div className="p-4 sm:p-6 pt-safe border-b border-white/5 flex justify-between items-center flex-shrink-0">
                     <div className="flex items-center gap-2">
                         {mode === 'view' ? (
                              <div className={`px-3 py-1 rounded-full text-xs font-bold border ${priorityConfig[formState.priority || Priority.Medium].badge}`}>
@@ -224,7 +224,7 @@ const TaskEditorModal: React.FC<TaskEditorModalProps> = ({ task, isOpen, project
                 </div>
 
                 {/* Content - Scrollable */}
-                <div className="flex-1 overflow-y-auto pb-32">
+                <div className="flex-1 overflow-y-auto pb-6">
                     {mode === 'view' ? (
                         // --- VIEW MODE ---
                         <div className="p-6 space-y-6">
@@ -437,7 +437,7 @@ const TaskEditorModal: React.FC<TaskEditorModalProps> = ({ task, isOpen, project
                                 </PropertyRow>
                             </div>
 
-                            <div className="p-4 sm:p-6 border-t border-slate-800/60 flex gap-3 flex-shrink-0">
+                            <div className="p-4 sm:p-6 pb-safe border-t border-slate-800/60 flex gap-3 flex-shrink-0">
                                 <button onClick={handleSave} className="flex-1 bg-sky-600 hover:bg-sky-500 text-white py-3 rounded-xl font-bold transition-colors shadow-lg shadow-sky-900/20">
                                     {isNew ? 'ساختن کار' : 'ذخیره تغییرات'}
                                 </button>

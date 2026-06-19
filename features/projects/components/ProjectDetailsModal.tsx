@@ -85,7 +85,7 @@ export const ProjectDetailsModal: React.FC<ProjectDetailsModalProps> = ({
         onClick={e => e.stopPropagation()} 
         className="bg-slate-900 border-t sm:border border-slate-700/80 w-full max-w-2xl flex flex-col h-[100dvh] sm:h-[85vh] sm:rounded-2xl shadow-2xl overflow-hidden"
       >
-        <header className={`relative p-5 border-b border-white/5 bg-gradient-to-br ${colors.gradient} to-transparent shrink-0 text-right`} dir="rtl">
+        <header className={`relative p-5 pt-safe border-b border-white/5 bg-gradient-to-br ${colors.gradient} to-transparent shrink-0 text-right`} dir="rtl">
           <div className="flex items-center gap-4">
             <div className={`w-11 h-11 rounded-xl ${colors.solidBg} flex items-center justify-center shrink-0`}>
               <BriefcaseIcon className="w-6 h-6 text-white/95" />
@@ -224,6 +224,8 @@ export const ProjectDetailsModal: React.FC<ProjectDetailsModalProps> = ({
               )}
             </div>
           )}
+
+          <div className="safe-spacer-bottom" />
         </div>
       </div>
     </div>

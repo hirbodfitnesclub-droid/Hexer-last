@@ -42,7 +42,7 @@ const Dashboard: React.FC = () => {
   }, [tasks, selectedDate]);
 
   return (
-    <div className="pb-24">
+    <div className="pb-2">
       {/* Sticky Header with Smart Profile Ring (synced to selectedDate progress) */}
       <DashboardHeader 
         onOpenProfile={() => setIsProfileOpen(true)} 

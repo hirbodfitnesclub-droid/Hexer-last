@@ -153,7 +153,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
           </div>
 
           {/* Modal Scrollable Body */}
-          <div className="p-6 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-6 overflow-y-auto flex-1 space-y-6">
+          <div className="p-6 pb-bottom-nav sm:pb-6 overflow-y-auto flex-1 space-y-6">
             {/* Health & Visual Stats Block */}
             <div className="bg-zinc-900/60 border border-white/5 rounded-2xl p-4 sm:p-6 flex flex-row items-center justify-around gap-4 sm:gap-6">
               {/* Donut Progress Chart */}

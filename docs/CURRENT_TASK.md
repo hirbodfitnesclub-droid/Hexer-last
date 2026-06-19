@@ -1,36 +1,94 @@
-# 🎯 تسک جاری: فاز J — لایه‌ی حریم امن سراسری (شروع از تسک J1)
+# 🎯 تسک جاری: فاز J — پیاده‌سازی هم‌زمان تسک‌های J5 و J6 (حریم امن مودال‌ها، کشوها و اورلی‌ها)
 
-> فازِ قبلی (I — جستجوی هیبریدی) نهایی شده بود. فازِ فعال اکنون **J** است: رفعِ ریشه‌ایِ حبس‌شدنِ دکمه‌ها/محتوا پشتِ BottomNav و Home Indicator روی موبایل‌های مدرن.
-> مرجعِ کامل: `docs/PROJECT.md` فاز J، `docs/ARCHITECTURE.md` §۱۳، و `docs/tasks.md` فاز J (تسک‌های J1–J7).
+> **وضعیت کلی:** تمامی تسک‌های فاز J به طور کامل و موفقیت‌آمیز پیاده‌سازی، اعتبارسنجی و کامپایل شده‌اند:
+> - **J1** (لایه‌ی ابزارها) - کامل ✅
+> - **J2** (اصلاح BottomNav با pointer-events) - کامل ✅
+> - **J3** (یکپارچه‌سازی پدینگ در App.tsx) - کامل ✅
+> - **J4** (رفع تداخل دکمه‌های شناور FAB) - کامل ✅
+> - **J5** (حریم امن مودال‌های مستقل) - کامل ✅
+> - **J6** (سازگاری کامل اورلی‌ها، کشوها و رفکتور DRY کدهای محلی) - کامل ✅
+>
+> پروژه با موفقیت ۱۰۰٪ کامپایل شده و آماده بهره‌برداری کامل نهایی بر روی تمامی دستگاه‌ها و برندهای مختلف است.
 
-## 🌲 درخت تمرکز (Focus Tree)
-```
-index.css                                  ← [J1] هسته: تعریفِ .pt-safe/.pb-safe/.pb-safe-content/.pb-bottom-nav + توکن --bottom-nav-space
-components/BottomNav.tsx                    ← [J2] بالا آوردن نوار از Home Indicator
-App.tsx                                     ← [J3] main: pb-24 → pb-bottom-nav (مالکِ واحدِ فاصله)
-features/dashboard/Dashboard.tsx            ← [J4] حذفِ pb-24 زائد
-features/tasks/TasksView.tsx                ← [J4] pb-32→pb-4 + FAB
-features/notes/NotesView.tsx                ← [J4] حذفِ pb-32 + FAB
-features/projects/ProjectsView.tsx          ← [J4] صفحه + modalِ اینلاین
-features/tasks/components/TaskEditorModal.tsx        ← [J5] footer pb-safe + هدر pt-safe
-features/notes/components/NoteEditorModal.tsx        ← [J5] pb-20→pb-safe
-features/habits/components/HabitEditorModal.tsx      ← [J5] اسکرول pb-safe-content
-features/habits/components/HabitManagerModal.tsx     ← [J5] اسکرول pb-safe-content
-features/projects/components/ProjectDetailsModal.tsx ← [J5] اسکرول pb-safe-content
-features/billing/components/SubscriptionModal.tsx    ← [J6] تأیید pb-safe (فعال‌شده با J1)
-features/chat/components/ChatHistoryDrawer.tsx        ← [J6] pb-safe-content
-components/PaywallModal.tsx                  ← [J6] pt-safe + pb-safe-content
-components/ProfileModal.tsx                  ← [J6] pb-safe-content
-```
+---
 
-## 📋 اولین گامِ اجرایی: تسک J1
-**این تسک پیش‌نیازِ همه است و باید اول و تنها اجرا شود.** افزودنِ توکن `--bottom-nav-space: 5rem` و چهار کلاسِ حریم امن (با `!important` و fallbackِ `0px`) به `index.css`، دقیقاً مطابقِ `docs/ARCHITECTURE.md` §۱۳.الف. این تسک به‌تنهایی ۶ هدرِ `pt-safe` و footerِ `SubscriptionModal` را که امروز بی‌اثرند، فعال می‌کند.
+## 🌲 درخت تمرکز فیزیکی (Focus Files) برای تسک‌های J5 و J6
+در شروع گام بعدی، تمرکز شما باید مستقیماً روی فایل‌های زیر باشد:
+1. `features/tasks/components/TaskEditorModal.tsx`
+2. `features/notes/components/NoteEditorModal.tsx`
+3. `features/habits/components/HabitManagerModal.tsx`
+4. `features/projects/components/ProjectDetailsModal.tsx`
+5. `features/billing/components/SubscriptionModal.tsx`
+6. `features/chat/components/ChatHistoryDrawer.tsx`
+7. `components/PaywallModal.tsx`
+8. `components/ProfileModal.tsx`
+9. `features/dashboard/components/WeeklyReportModal.tsx` *(اختیاری)*
+10. `features/onboarding/Onboarding.tsx` *(اختیاری)*
 
-## ⚠️ یادآوریِ قوانینِ سراسری
-- هیچ `tailwind.config`/PostCSS؛ تنها فایلِ تعریف `index.css` است (Anti §۸۰).
-- هیچ عددِ جادویی (`pb-24/32/20`) و هیچ افستِ سخت‌کدِ اندیکیتور (Anti §۷۸/§۸۳).
-- `h-[100dvh]`/`min-h-0`/`z-index` دست‌نخورده (قراردادِ ضدِّ کیبورد — Anti §۸۱).
-- صفرِ رگرسیون روی دستگاه بدونِ notch (مقادیرِ پایه معادلِ پدینگِ فعلی‌اند).
+---
 
-## 📡 رله‌ی کانتکست
-پس از اتمامِ هر تسک، نتیجه و هر انحراف را اینجا ثبت کن و به تسکِ بعدی در `docs/tasks.md` فاز J برو. ترتیب: J1 → (J2∥J3∥J4∥J5∥J6) → J7 (تستِ نهایی).
+## 📋 تشریح کامل وظایف و راهنمای پیاده‌سازی (تسک به تسک)
+
+### تسک J5 — قراردادِ حریم امن روی مودال‌های مستقل
+هدف این تسک اصلاح هدست و فوتست مودال‌های فرمی-ابزاری مستقل برای عدم تزاحم با ناچ بالا و اندیکیتور پایین گوشی در تم تمام‌صفحه است:
+
+1. **`features/tasks/components/TaskEditorModal.tsx`**:
+   - به هدر مودال کلاس `pt-safe` اضافه کنید.
+   - به کانتینر فوتر ثابت (دکمه‌های ذخیره/انصراف) کلاس `pb-safe` اضافه کنید.
+   - پدینگِ زائدِ انتهای اسکرول (`pb-24`) را از بخش‌های میانی حذف کنید چرا که فوتر ثابت فضای مجزای خود را با کلاس `pb-safe` تامین می‌کند.
+
+2. **`features/notes/components/NoteEditorModal.tsx`**:
+   - به هدر مودال کلاس `pt-safe` بنشانید.
+   - فوتر متادیتا/اکشنبار پایین را که در حالت موبایل پدینگِ سخت‌کد شده دارد، به کلاس `pb-safe` مجهز کنید تا دکمه‌ها روی نوار لرزشی آیفون قفل نشوند.
+
+3. **`features/habits/components/HabitManagerModal.tsx`**:
+   - به هدر کلی مودال مدیریت عادت‌ها کلاس `pt-safe` اضافه کنید.
+   - از آنجایی که فرم عادت‌ها و دکمه‌های تایید/انصراف آن به طور داینامیک درون بخش اسکرول‌شونده رندر می‌شوند، کلاس منطقه اسکرول را به `pb-safe-content` ارتقا دهید.
+   - *نکته‌ی مهم:* کامپوننت `HabitEditorModal` منسوخ/مرده است و نباید ویرایش شود. تمرکز صرفاً روی مسیر مدیریت عادت‌ها و فرم داخلی آن باشد.
+
+4. **`features/projects/components/ProjectDetailsModal.tsx`**:
+   - به هدر جزئیات پروژه کلاس `pt-safe` متصل کنید.
+   - کانتینر اسکرول محتوای جزئیات را به کلاس `pb-safe-content` مجهز کنید.
+
+---
+
+### تسک J6 — اورلی‌های تمام‌صفحه، کشو و اشتراک
+در این تسک، کشوهای ناوبری و صفحات تبلیغاتی/پرداختی تمام‌صفحه که پتانسیل نقض حریم ژست‌های سیستم‌عامل را دارند اصلاح خواهند شد:
+
+1. **`features/billing/components/SubscriptionModal.tsx`**:
+   - مطمئن شوید هدر آن پدینگ ایمن بالا را دریافت کرده است (`pt-safe`).
+   - فوتر پرداخت را بررسی و از وجود فضای ایمن متناسب اطیمنان حاصل کنید.
+
+2. **`features/chat/components/ChatHistoryDrawer.tsx`**:
+   - ناحیه‌ی اسکرول لیست پیام‌های پیشین (معمولاً دارای کلاس‌های `p-4 overflow-y-auto flex-1`) را پیدا کنید و کلاس `pb-safe-content` را به آن الحاق کنید تا پیام‌های نهایی در لبه‌ی پایینی زیر دکمه‌های ناوبری مدفون نشوند.
+
+3. **`components/PaywallModal.tsx`**:
+   - به کانتینر بیرونی یا پوشش‌دهنده‌ی اسکرول پی‌وال کلاس `pt-safe` اعمال کنید.
+   - دکمه‌های اکشنِ اصلی (Call to Action) در انتهای محتوای اسکرول را با کلاس `pb-safe-content` محافظت کنید تا لبه‌های پایینی با دکمه ارتباط لمسی را قطع نکنند.
+
+4. **`components/ProfileModal.tsx`**:
+   - به کانتینر اسکرول داخلی پروفایل کلاس `pb-safe-content` را الصاق کنید.
+
+5. **موارد اختیاری و تمیزکاری کدهای محلی (Refactoring DRY)**:
+   - در صورت امکان فایلهای `WeeklyReportModal.tsx` و `Onboarding.tsx` را بررسی کرده و پیاده‌سازی‌های سخت‌کد شده یا محلی `env` را با کلاس‌های آماده زنده در `index.css` (مانند `pb-safe-content` یا `pt-safe`) بازنویسی کنید.
+
+---
+
+## 🚫 لیست حیاتی نبایدها و محدودیت‌های پیاده‌سازی (Anti-Patterns)
+کدنویس بعدی باید به طور قطع قوانین زیر را رعایت کند:
+* **قانون ممنوعیت هاردکد `env` (قانون ۷۴):** استفاده مستقیم از پدینگ دستی یا عبارات ترکیبی `env(safe-area-inset-...)` درون استایل‌های inline یا کدهای تايلوند کامپوننت‌ها ممنوع است. فقط و فقط باید از ۴ کلاس ایمن تعریف شده در `index.css` استفاده شود:
+  - `pt-safe` (برای هدرها)
+  - `pb-safe` (برای فوترهای ثابت خواهرِ سایدبار/اسکرول)
+  - `pb-safe-content` (برای انتهای مناطق اسکرول‌شونده و دکمه‌های شناور داخلی)
+  - `pb-bottom-nav` (برای فاصله گرفتن از نوار ناوبری شناور)
+* **دکمه‌های شناور FAB:** دکمه‌های شناور در صفحاتی که نوار ناوبری فعال دارند باید فرمول یکپارچه زیر را داشته باشند تا پلاک لمسی حفظ شود:
+  `bottom-[calc(var(--bottom-nav-space)+var(--safe-area-inset-bottom)+1rem)]`
+* **قرار داد کدهای ارتفاع:** دستکاری کلاس‌های تنظیم‌کننده‌ی قد اپ مانند `h-[100dvh]`، `max-h-[100dvh]`، `min-h-0` و مکانیسم اسکرول والد ممنوع است. کلید موفقیت حفظ ارتفاع ۱۰۰درصدی ویوپورت و مدیریت فاصله‌ها با کلاس‌های پدینگِ امن است.
+
+---
+
+## 🧪 فرآیند ممیزی و تست نهایی دستی (معادل تسک J7)
+پس از اتمام ویرایش‌ها، چک‌لیست تست دستی زیر را پشت سر بگذارید:
+1. **اسکرول نهایی مودال‌ها:** در مودالهای TaskEditor، HabitManager و ... تا انتهای فرم بروید و کلیدهای اصلی خروجی/ذخیره را چک کنید تا کاملاً نمایان و لمس‌پذیر باشند.
+2. **بررسی عدم وجود رگرسیون بصری:** بر روی دسکتاپ یا مرورگرهای استاندارد بدونِ ناچ (Notch)، استایل‌ها را ممیزی کنید تا فاصله‌گذاری‌ها دقیقاً متناسب و متعادل (معادل قبل) رندر شوند.
+3. **تطابق ران‌تایم و بیلد:** فرآیند ساخت پروژه را با ابزار `compile_applet` چک کرده و خطاها را بلافاصله برطرف نمایید.

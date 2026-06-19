@@ -25,9 +25,9 @@ const NavItem: React.FC<{
 
 const BottomNav: React.FC<BottomNavProps> = ({ currentPage, setPage }) => {
   return (
-    <div className="fixed bottom-0 right-0 left-0 h-20 px-4 z-50">
+    <div className="fixed bottom-0 right-0 left-0 h-[calc(var(--bottom-nav-space)+var(--safe-area-inset-bottom))] px-4 z-50 pointer-events-none">
       <div className="relative w-full h-full max-w-lg mx-auto">
-        <div className="absolute bottom-4 right-0 left-0 h-16 bg-gray-900/70 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/50 grid grid-cols-5 items-center">
+        <div className="absolute bottom-[calc(1rem+var(--safe-area-inset-bottom))] right-0 left-0 h-16 bg-gray-900/70 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/50 grid grid-cols-5 items-center pointer-events-auto">
             <NavItem
               icon={<HomeIcon className="w-6 h-6" />}
               label={Page.Dashboard}
@@ -55,7 +55,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentPage, setPage }) => {
               onClick={() => setPage(Page.Projects)}
             />
         </div>
-        <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2">
+        <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 pointer-events-auto">
             <button
                 onClick={() => setPage(Page.Chat)}
                 className="w-16 h-16 bg-gradient-to-br from-sky-500 to-fuchsia-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-sky-500/30 hover:scale-110 transition-transform duration-300 ring-4 ring-gray-950"

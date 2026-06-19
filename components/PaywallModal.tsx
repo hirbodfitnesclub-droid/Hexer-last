@@ -106,13 +106,13 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
   ];
 
   return (
-    <div className="fixed inset-0 bg-neutral-950/95 backdrop-blur-xl flex flex-col justify-start z-[100] overflow-y-auto px-5 py-6 font-sans">
+    <div className="fixed inset-0 bg-neutral-950/95 backdrop-blur-xl flex flex-col justify-start z-[100] overflow-y-auto px-5 py-6 pt-safe font-sans">
       
       {/* Absolute floating luxury ambient backdrops */}
       <div className="absolute top-[-10%] right-[-10%] w-[100vw] h-[100vw] rounded-full bg-indigo-500/5 blur-[130px] pointer-events-none"></div>
       <div className="absolute top-[40%] left-[-20%] w-[100vw] h-[100vw] rounded-full bg-pink-500/5 blur-[130px] pointer-events-none"></div>
 
-      <div className="w-full max-w-md mx-auto relative z-10 flex flex-col min-h-full justify-between pb-8">
+      <div className="w-full max-w-md mx-auto relative z-10 flex flex-col min-h-full justify-between pb-safe-content">
         
         {/* Header Navigation Area */}
         <div className="flex justify-between items-center mb-8">

@@ -104,6 +104,8 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
               })}
             </div>
           )}
+
+          <div className="safe-spacer-bottom" />
         </div>
       </div>
     </div>

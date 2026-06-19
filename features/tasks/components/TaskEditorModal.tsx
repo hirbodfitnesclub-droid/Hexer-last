@@ -300,7 +300,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
         }`}
       >
         {/* Header - Fixed */}
-        <div className="p-4 sm:p-6 border-b border-white/5 flex justify-between items-center shrink-0">
+        <div className="p-4 sm:p-6 pt-safe border-b border-white/5 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-2">
             {mode === 'view' ? (
               <div className={`px-3 py-1 rounded-full text-xs font-bold border ${priorityConfig[formState.priority || Priority.Medium].badge}`}>
@@ -319,7 +319,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
         </div>
 
         {/* Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6 space-y-6 pb-24 sm:pb-6" dir="rtl">
+        <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6 space-y-6 pb-6" dir="rtl">
           {mode === 'view' ? (
             // --- VIEW MODE ---
             <div className="space-y-6">
@@ -627,7 +627,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
         </div>
 
         {/* Footer actions - Fixed shadow */}
-        <div className="p-4 sm:p-6 border-t border-slate-800/60 flex gap-3 shrink-0 bg-slate-900">
+        <div className="p-4 sm:p-6 pb-safe border-t border-slate-800/60 flex gap-3 shrink-0 bg-slate-900">
           <button 
             onClick={handleSave} 
             className="flex-1 bg-sky-600 hover:bg-sky-500 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-sky-950/15 text-sm"

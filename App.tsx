@@ -309,7 +309,7 @@ const MainApp: React.FC = () => {
   return (
     <div className="relative flex flex-col h-[100dvh]" id="main-app-container">
       <NetworkBanner />
-      <main className="flex-1 overflow-y-auto overflow-x-hidden pb-24" id="view-viewport">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden pb-bottom-nav" id="view-viewport">
         {renderContent()}
       </main>
       <ToastNotifications notifications={notifications} onRemove={removeNotification} />

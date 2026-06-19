@@ -335,6 +335,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                         <span>خروج از حساب</span>
                     </button>
                     
+                    <div className="safe-spacer-bottom" />
                 </div>
             </div>
             

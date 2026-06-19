@@ -62,11 +62,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userId, onComplete }) =>
       {/* Main Content Safe Frame */}
       <div
         id="onboarding-content-frame"
-        className="flex-1 flex flex-col justify-between w-full max-w-lg mx-auto px-6 py-6 overflow-y-auto"
-        style={{
-          paddingTop: 'calc(env(safe-area-inset-top) + 1.5rem)',
-          paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.5rem)'
-        }}
+        className="flex-1 flex flex-col justify-between w-full max-w-lg mx-auto px-6 py-6 overflow-y-auto pt-safe pb-safe-content"
       >
         {/* Loading Overlay state */}
         <AnimatePresence>

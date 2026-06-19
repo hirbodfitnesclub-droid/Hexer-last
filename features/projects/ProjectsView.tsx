@@ -58,7 +58,7 @@ export const ProjectsView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-full pb-32 bg-slate-950 text-white relative flex flex-col h-full" dir="rtl">
+    <div className="min-h-full bg-slate-950 text-white relative flex flex-col h-full" dir="rtl">
       {/* Header Section */}
       <header className="sticky top-0 pt-safe z-30 px-6 py-8 bg-slate-950/80 backdrop-blur-xl border-b border-white/5 shrink-0">
         <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
@@ -125,7 +125,7 @@ export const ProjectsView: React.FC = () => {
             onClick={e => e.stopPropagation()} 
             className="bg-slate-900 border-t sm:border border-slate-700/85 w-full max-w-lg rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col h-[100dvh] sm:h-auto animate-slide-up"
           >
-            <div className="p-5 border-b border-white/5 flex justify-between items-center bg-slate-900 shrink-0">
+            <div className="p-5 border-b border-white/5 flex justify-between items-center bg-slate-900 shrink-0 pt-safe">
               <h3 className="text-base font-bold text-white font-sans">{isAdding ? 'پروژه جدید' : 'ویرایش پروژه'}</h3>
               <button 
                 onClick={() => setEditingProject(null)} 
@@ -187,7 +187,7 @@ export const ProjectsView: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-5 border-t border-white/5 shrink-0 bg-slate-900 flex gap-3">
+            <div className="p-5 border-t border-white/5 shrink-0 bg-slate-900 flex gap-3 pb-safe">
               <button 
                 onClick={handleSaveProject} 
                 className="flex-1 py-3 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl transition-all text-sm shadow-md shadow-sky-950/15"

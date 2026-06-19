@@ -123,7 +123,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
         dir="rtl"
       >
         {/* Header — ثابت، shrink نمی‌شود */}
-        <div className="p-4 border-b border-neutral-900 flex items-center justify-between flex-shrink-0">
+        <div className="p-4 pt-safe border-b border-neutral-900 flex items-center justify-between flex-shrink-0">
           <div>
             <h2 className="text-lg font-black bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-150 to-sky-200">
               ارتقا بستر کاربری و اشتراک

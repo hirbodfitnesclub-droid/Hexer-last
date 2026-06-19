@@ -50,7 +50,7 @@ export const NotesView: React.FC = () => {
   }, [notes, searchQuery, projectMap]);
 
   return (
-    <div className="min-h-full pb-32 bg-zinc-950 text-white relative flex flex-col h-full" dir="rtl">
+    <div className="min-h-full bg-zinc-950 text-white relative flex flex-col h-full" dir="rtl">
       {/* Header Section */}
       <header className="sticky top-0 pt-safe z-30 px-6 py-8 bg-zinc-950/90 backdrop-blur-xl border-b border-white/5 shrink-0">
         <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
@@ -108,7 +108,7 @@ export const NotesView: React.FC = () => {
       {/* Floating Action Button */}
       <button 
         onClick={openModalForNew} 
-        className="fixed bottom-24 right-5 w-14 h-14 bg-gradient-to-tr from-purple-600 to-fuchsia-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-purple-500/20 hover:scale-105 transition-all duration-300 z-40"
+        className="fixed bottom-[calc(var(--bottom-nav-space)+var(--safe-area-inset-bottom)+1rem)] right-5 w-14 h-14 bg-gradient-to-tr from-purple-600 to-fuchsia-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-purple-500/20 hover:scale-105 transition-all duration-300 z-40"
         aria-label="New Note"
       >
         <PlusIcon className="w-7 h-7"/>

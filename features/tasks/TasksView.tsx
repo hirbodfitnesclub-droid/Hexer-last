@@ -191,7 +191,7 @@ export const TasksView: React.FC = () => {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 space-y-4 pb-32 pt-4 scroll-fade-edge">
+      <div className="flex-1 overflow-y-auto px-4 space-y-4 pb-4 pt-4 scroll-fade-edge">
         {groupedTasks.length > 0 ? (
           groupedTasks.map(group => {
             if (viewMode === 'project') {
@@ -324,7 +324,7 @@ export const TasksView: React.FC = () => {
       {/* Floating Add Button */}
       <button 
         onClick={handleAddNewTask} 
-        className="fixed bottom-24 right-5 w-14 h-14 bg-gradient-to-br from-sky-500 to-fuchsia-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-sky-500/20 hover:scale-105 transition-all duration-300 z-30" 
+        className="fixed bottom-[calc(var(--bottom-nav-space)+var(--safe-area-inset-bottom)+1rem)] right-5 w-14 h-14 bg-gradient-to-br from-sky-500 to-fuchsia-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-sky-500/20 hover:scale-105 transition-all duration-300 z-30" 
         aria-label="Add new task"
       >
         <PlusIcon className="w-7 h-7"/>

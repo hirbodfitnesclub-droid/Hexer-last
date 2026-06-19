@@ -12,6 +12,7 @@
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --bottom-nav-space: 5rem; /* افزوده شده در فاز J */
 }
 
 /* اساسی‌ترین تنظیمات ریشه برای جلوگیری از اسکرول پرشی و اوراسکرول در سافاری موبایل */
@@ -32,8 +33,7 @@ html {
   overscroll-behavior: contain;
 }
 
-/* 
-  غلبه بر رنگ پس‌زمینه سفید/آبی پیش‌فرض مرورگر در فیلدهای Autofill.
+/* غلبه بر رنگ پس‌زمینه سفید/آبی پیش‌فرض مرورگر در فیلدهای Autofill.
   بدون این سلکتورها، مرورگرها استایل سفید روی فیلدها اعمال کرده و متن‌ها را ناخوانا می‌کنند.
 */
 input:-webkit-autofill,
@@ -51,8 +51,30 @@ select:-webkit-autofill:focus {
   transition: background-color 5000s ease-in-out 0s;
 }
 
-/* کلاس کمکی برای فید (محو نرم) لبه‌های بالا و پایین نواحی اسکرول */
-.scroll-fade-edge {
-  mask-image: linear-gradient(to bottom, transparent, black 4%, black 96%, transparent);
-  -webkit-mask-image: linear-gradient(to bottom, transparent, black 4%, black 96%, transparent);
+/* ==========================================
+   کلاس‌های Safe Area و Bottom Nav (فاز J)
+   ========================================== */
+
+/* حریمِ بالا برای هدرهای sticky */
+.pt-safe { padding-top: calc(env(safe-area-inset-top, 0px) + 2rem) !important; }
+
+/* حریمِ پایین برای نوارهای عمل/footerِ ثابت */
+.pb-safe { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem) !important; }
+
+/* محتوای اسکرول‌شونده‌ی مودال/کشو که footerِ ثابت ندارد */
+.pb-safe-content { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1.5rem) !important; }
+
+/* فاصله‌ی صفحاتِ اسکرول‌شونده از BottomNavِ شناور */
+.pb-bottom-nav { padding-bottom: calc(var(--bottom-nav-space) + env(safe-area-inset-bottom, 0px) + 0.5rem) !important; }
+
+/* کلاس مخصوص خود نوار ناوبری برای تنفس راحت روی Home Indicator */
+.bottom-nav-inset { padding-bottom: env(safe-area-inset-bottom, 0px) !important; }
+
+/* حریم بزرگ برای فوترهای بزرگ یا صفحات خاص */
+.pb-safe-lg { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 2rem) !important; }
+
+/* دیو فاصله‌گذار برای دور زدن باگ Clip شدن پدینگ در سافاری (WebKit) */
+.safe-spacer-bottom {
+  height: calc(env(safe-area-inset-bottom, 0px) + 1.5rem) !important;
+  flex-shrink: 0 !important;
 }

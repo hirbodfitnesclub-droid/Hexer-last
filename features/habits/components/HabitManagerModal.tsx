@@ -94,7 +94,7 @@ export const HabitManagerModal: React.FC<HabitManagerModalProps> = ({
         )}
 
         {/* Header - Fixed */}
-        <div className="p-5 border-b border-white/5 flex justify-between items-center shrink-0" dir="rtl" id="modal-header">
+        <div className="p-5 pt-safe border-b border-white/5 flex justify-between items-center shrink-0" dir="rtl" id="modal-header">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-orange-500/10 rounded-xl text-orange-500 shrink-0">
               <FlameIcon className="w-5 h-5"/>
@@ -172,6 +172,8 @@ export const HabitManagerModal: React.FC<HabitManagerModalProps> = ({
               </div>
             </div>
           )}
+          
+          <div className="safe-spacer-bottom" />
         </div>
       </div>
     </div>

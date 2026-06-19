@@ -181,7 +181,7 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
         }`}
       >
         {/* 1. Header: Minimalist Actions */}
-        <div className="shrink-0 flex justify-between items-center px-6 py-4 sm:py-5 bg-zinc-950/80 backdrop-blur-md z-10 border-b border-white/5">
+        <div className="shrink-0 flex justify-between items-center px-6 py-4 sm:py-5 pt-safe bg-zinc-950/80 backdrop-blur-md z-10 border-b border-white/5">
           <button 
             onClick={handleClose} 
             className="group flex items-center gap-2 text-zinc-400 hover:text-white transition-colors"
@@ -232,7 +232,7 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
         </div>
 
         {/* 3. Metadata Footer: The Control Center */}
-        <div className="shrink-0 bg-zinc-900/80 backdrop-blur-2xl border-t border-white/5 p-4 sm:p-6 pb-20 sm:pb-6" dir="rtl">
+        <div className="shrink-0 bg-zinc-900/80 backdrop-blur-2xl border-t border-white/5 p-4 sm:p-6 pb-safe" dir="rtl">
           <div className="max-w-2xl mx-auto space-y-4 max-h-[35vh] overflow-y-auto pr-1">
             
             {/* TWO-WAY BIDIRECTIONAL TASKS LINKING SECTION */}
