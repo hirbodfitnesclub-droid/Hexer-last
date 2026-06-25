@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+  <title>HEXER OS — Cyber Lime</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap');
+
+    /* ========================================================
+       HEXER MASTER UI DESIGN SYSTEM (CYBER-LIME EXCLUSIVE)
+       ======================================================== */
+    :root {
+      --color-primary: #D8F066;
+      --color-primary-hover: #C1DB3C;
+      --text-on-primary: #000000;
+      
+      --radius-sm: 12px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --radius-pill: 9999px;
+
+      /* =======================================
+         LIGHT MODE TOKENS
+         ======================================= */
+      --bg-image: url('https://images.unsplash.com/photo-1511497584788-876760111969?q=80&w=2500&auto=format&fit=crop'); 
+      
+      --bg-app-glass: rgba(244, 245, 247, 0.6);
+      --bg-panel-glass: rgba(255, 255, 255, 0.7);
+      --bg-card: rgba(255, 255, 255, 0.85);
+      
+      --text-main: #111827;
+      --text-muted: #6B7280;
+      
+      --border-subtle: #E5E7EB;
+      --border-neon: transparent;
+      --input-focus-ring: #111827;
+      
+      --nav-active-bg: var(--color-primary);
+      --nav-active-text: var(--text-on-primary);
+      --nav-hover-bg: rgba(255, 255, 255, 0.6);
+      
+      --ink-bg: #16161A;
+      --ink-text: #FFFFFF;
+
+      --semantic-error: #EF4444;
+      --semantic-error-soft: rgba(239, 68, 68, 0.1);
+      --semantic-success: #10B981;
+      
+      --shadow-glass: 0 30px 60px -15px rgba(0, 0, 0, 0.15);
+      --shadow-card: 0 10px 25px rgba(0, 0, 0, 0.05);
+      --shadow-btn: none;
+    }
+
+    [data-theme="dark"], .dark {
+      /* =======================================
+         DARK MODE TOKENS
+         ======================================= */
+      --bg-image: url('https://images.unsplash.com/photo-1480497490787-505ec076689f?q=80&w=2500&auto=format&fit=crop'); 
+      
+      --bg-app-glass: rgba(18, 18, 20, 0.6);
+      --bg-panel-glass: rgba(30, 41, 59, 0.4);
+      --bg-card: rgba(30, 41, 59, 0.55);
+      
+      --text-main: #F9FAFB;
+      --text-muted: #9CA3AF;
+      
+      --border-subtle: #334155;
+      --border-neon: #D8F066;
+      --input-focus-ring: #D8F066;
+      
+      --nav-active-bg: rgba(216, 240, 102, 0.08);
+      --nav-active-text: var(--color-primary);
+      --nav-hover-bg: rgba(255, 255, 255, 0.05);
+      
+      --ink-bg: rgba(216, 240, 102, 0.08);
+      --ink-text: var(--color-primary);
+
+      --semantic-error: #FF6B6B;
+      --semantic-error-soft: rgba(255, 107, 107, 0.1);
+      --semantic-success: #22C55E;
+
+      --shadow-glass: none;
+      --shadow-card: none;
+      --shadow-btn: none;
+    }
+
+    /* === Core Setup === */
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0; padding: 0;
+      font-family: 'Vazirmatn', sans-serif;
+      color: var(--text-main);
+      overflow-x: hidden;
+      background-color: transparent; 
+    }
+
+    /* === Dynamic Nature Background === */
+    .bg-nature {
+      position: fixed; inset: 0; z-index: -1;
+      background-image: var(--bg-image);
+      background-size: cover;
+      background-position: center;
+      transition: background-image 0.8s ease-in-out;
+    }
+    
+    .bg-nature::after {
+      content: ''; position: absolute; inset: 0;
+      background: rgba(244, 245, 247, 0.1); 
+      transition: all 0.8s ease-in-out;
+    }
+    .dark .bg-nature::after {
+      background: rgba(12, 12, 14, 0.4); 
+    }
+
+    @media (max-width: 1023px) {
+      .bg-nature::after {
+        background: rgba(244, 245, 247, 0.35); 
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+      }
+      .dark .bg-nature::after {
+        background: rgba(12, 12, 14, 0.65); 
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+      }
+    }
+
+    /* === Structural Glass Components === */
+    .glass-app {
+      background: var(--bg-app-glass);
+      backdrop-filter: blur(12px); 
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-glass);
+      transition: all 0.4s ease;
+    }
+    
+    .glass-panel {
+      background: var(--bg-panel-glass);
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-card);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: all 0.4s ease;
+    }
+    
+    .glass-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-card);
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .glass-card:hover { transform: translateY(-2px); }
+
+    /* === Anchors & Tiles === */
+    .tile-ink {
+      background: var(--ink-bg);
+      color: var(--ink-text);
+      border: 1px solid var(--border-neon);
+      box-shadow: var(--shadow-card);
+      transition: all 0.4s ease;
+    }
+
+    .tile-lime {
+      background-color: var(--color-primary);
+      color: var(--text-on-primary) !important;
+      border: none;
+      box-shadow: var(--shadow-card);
+    }
+    .dark .tile-lime {
+      box-shadow: 0 0 25px rgba(216, 240, 102, 0.15); 
+    }
+
+    .nav-active {
+      background: var(--nav-active-bg);
+      color: var(--nav-active-text);
+      border: 1px solid var(--border-neon);
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+    
+    .dark .neon-glow {
+      box-shadow: 0 0 20px rgba(216, 240, 102, 0.15);
+    }
+
+    /* === Scrollbars === */
+    .soft-scroll::-webkit-scrollbar { width: 4px; }
+    .soft-scroll::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 99px; opacity: 0.3; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* === Utilities === */
+    .text-lime { color: var(--color-primary); }
+    .bg-lime { background-color: var(--color-primary); color: var(--text-on-primary) !important; }
+    .task-check.is-done { background: var(--color-primary); border-color: var(--color-primary); }
+    .task-check.is-done svg { color: var(--text-on-primary); }
+    .pb-safe { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)); }
+  </style>
+  <script>
+    if (localStorage.getItem('hexer-theme') === 'dark' || (!localStorage.getItem('hexer-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  </script>
+</head>
+<body class="antialiased min-h-screen text-[15px] selection:bg-[var(--color-primary)] selection:text-[var(--text-on-primary)]">
+
+  <div class="bg-nature"></div>
+
+  <!-- 
+    ========================================================
+    DESKTOP VIEW (Strict Non-Scroll Bounded App)
+    ======================================================== 
+  -->
+  <div class="hidden lg:flex items-center justify-center h-screen w-screen overflow-hidden fixed inset-0 z-10 px-10">
+    <main class="glass-app w-full max-w-[1280px] h-[92vh] max-h-[850px] rounded-[32px] p-4 flex gap-4 overflow-hidden relative">
+      
+      <!-- Column 1: Navigation Sidebar -->
+      <aside class="w-[240px] flex flex-col h-full shrink-0 overflow-hidden">
+        <div class="flex items-center gap-3 p-4 mb-2 shrink-0">
+          <div class="w-10 h-10 rounded-[var(--radius-md)] tile-ink flex items-center justify-center font-black text-xl">H</div>
+          <span class="font-black text-2xl tracking-tight">HEXER</span>
+        </div>
+
+        <nav class="flex-1 space-y-1 px-2 shrink-0">
+          <a href="#" class="nav-active flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)]">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            خانه
+          </a>
+          <a href="#" class="flex items-center gap-3 px-4 py-3 text-[var(--text-muted)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--text-main)] rounded-[var(--radius-md)] font-medium transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            کارها
+          </a>
+          <a href="#" class="flex items-center gap-3 px-4 py-3 text-[var(--text-muted)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--text-main)] rounded-[var(--radius-md)] font-medium transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+            یادداشت‌ها
+          </a>
+          <a href="#" class="flex items-center gap-3 px-4 py-3 text-[var(--text-muted)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--text-main)] rounded-[var(--radius-md)] font-medium transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+            پروژه‌ها
+          </a>
+        </nav>
+
+        <div class="mt-auto px-2 pb-2 shrink-0">
+          <div class="glass-card p-3.5 rounded-[var(--radius-md)] flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-full bg-lime flex items-center justify-center font-bold text-sm" style="color: var(--text-on-primary)">آ</div>
+              <div class="text-sm font-semibold">آرش</div>
+            </div>
+            <button class="theme-toggle w-8 h-8 rounded-full hover:bg-[var(--bg-app-glass)] text-[var(--text-muted)] flex items-center justify-center transition">
+              <svg class="w-4 h-4 theme-icon-light" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+              <svg class="w-4 h-4 theme-icon-dark hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Column 2: Command Center -->
+      <section class="flex-1 flex flex-col h-full gap-3 min-w-0 overflow-hidden">
+        
+        <div class="glass-panel p-5 h-[145px] rounded-[var(--radius-lg)] flex flex-col justify-between shrink-0">
+          <div class="flex justify-between items-center">
+            <div class="flex items-center gap-2">
+              <svg class="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2a1 1 0 01.928.629l1.83 4.4a1 1 0 00.57.57l4.4 1.83a1 1 0 010 1.842l-4.4 1.83a1 1 0 00-.57.57l-1.83 4.4a1 1 0 01-1.856 0l-1.83-4.4a1 1 0 00-.57-.57l-4.4-1.83a1 1 0 010-1.842l4.4-1.83a1 1 0 00.57-.57l1.83-4.4A1 1 0 0112 2zm6 11a1 1 0 01.916.604l.707 1.7a1 1 0 00.577.577l1.7.707a1 1 0 010 1.832l-1.7.707a1 1 0 00-.577.577l-.707 1.7a1 1 0 01-1.832 0l-.707-1.7a1 1 0 00-.577-.577l-1.7-.707a1 1 0 010-1.832l1.7-.707a1 1 0 00.577-.577l.707-1.7A1 1 0 0118 13zM6 13a1 1 0 01.916.604l.707 1.7a1 1 0 00.577.577l1.7.707a1 1 0 010 1.832l-1.7.707a1 1 0 00-.577.577l-.707 1.7a1 1 0 01-1.832 0l-.707-1.7a1 1 0 00-.577-.577l-1.7-.707a1 1 0 010-1.832l1.7-.707a1 1 0 00.577-.577l.707-1.7A1 1 0 016 13z" />
+              </svg>
+              <h1 class="text-[22px] font-black leading-tight">دستیار هوش مصنوعی</h1>
+            </div>
+          </div>
+          
+          <div class="relative group">
+            <div class="absolute inset-0 bg-[var(--color-primary)] opacity-0 dark:group-hover:opacity-10 blur-xl rounded-full transition duration-500"></div>
+            <div class="relative flex items-center bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-[var(--radius-pill)] p-1 shadow-[var(--shadow-card)] focus-within:border-[var(--input-focus-ring)] transition-all">
+              <input type="text" placeholder="بگو هرچه دل تنگت میخواهد(حرف بزن، تایپ کن یا حتی اسکرین بده)" 
+                     class="flex-1 bg-transparent border-none outline-none pr-4 pl-3.5 text-[14px] font-medium text-[var(--text-main)] placeholder-[var(--text-muted)] focus:ring-0">
+              <div class="flex items-center gap-2 px-2 shrink-0">
+                <!-- attachment icon -->
+                <svg class="w-4 h-4 text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer transition active:scale-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636l-3.536 3.536m0 0A3 3 0 1019.07 13.3l-5.657 5.657a5 5 0 11-7.071-7.071l6.01-6.01a7 7 0 10-9.9 9.9l3.536-3.536" />
+                </svg>
+                <!-- microphone icon -->
+                <svg class="w-4 h-4 text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer transition active:scale-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+                </svg>
+              </div>
+              <button class="px-5 py-2.5 bg-lime rounded-full text-xs font-bold transition-transform hover:scale-105 active:scale-95 shrink-0" style="box-shadow: var(--shadow-btn);">ارسال</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- The Advanced Productivity Chart -->
+        <div class="tile-ink rounded-[var(--radius-lg)] p-5 relative overflow-hidden flex gap-4 h-[200px] shrink-0">
+          <!-- Integrated Week & Month Container -->
+          <div class="w-[38%] bg-white/[0.05] dark:bg-white/[0.04] border border-white/10 rounded-[20px] p-3 flex flex-col justify-center gap-3.5 shrink-0 z-10">
+            <!-- Week Row -->
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white shrink-0">
+                  <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                  </svg>
+                </div>
+                <div class="flex flex-col text-right leading-tight">
+                  <span class="text-[11px] text-white/90 font-black">بهره‌وری</span>
+                  <span class="text-[9px] text-white/50 font-bold mt-0.5">هفته جاری</span>
+                </div>
+              </div>
+              <span class="text-[10px] font-black bg-[#E5F95C] text-black px-2.5 py-0.5 rounded-full">-۷٪</span>
+            </div>
+            
+            <!-- Minimal separator line -->
+            <div class="border-t border-white/[0.08]"></div>
+            
+            <!-- Month Row -->
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-full bg-lime/10 flex items-center justify-center text-lime shrink-0">
+                  <svg class="w-4 h-4 text-lime" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                  </svg>
+                </div>
+                <div class="flex flex-col text-right leading-tight">
+                  <span class="text-[11px] text-white/90 font-black">بهره‌وری</span>
+                  <span class="text-[9px] text-white/50 font-bold mt-0.5">ماه جاری</span>
+                </div>
+              </div>
+              <span class="text-[10px] font-black bg-[#D8F066] text-black px-2.5 py-0.5 rounded-full shadow-[0_2px_8px_rgba(216,240,102,0.3)]">+۱۸٪</span>
+            </div>
+          </div>
+
+          <!-- Chart on the right -->
+          <div class="flex-1 relative z-10 select-none h-full flex items-center justify-center">
+            <svg viewBox="0 0 280 120" preserveAspectRatio="none" class="w-full h-full overflow-visible">
+              <defs>
+                <linearGradient id="waveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#38bdf8" />
+                  <stop offset="100%" stop-color="#D8F066" />
+                </linearGradient>
+              </defs>
+              <rect x="1" y="45" width="22" height="50" rx="8" fill="rgba(255,255,255,0.9)" />
+              <rect x="43" y="25" width="22" height="70" rx="8" fill="rgba(255,255,255,0.9)" />
+              <rect x="85" y="55" width="22" height="40" rx="8" fill="rgba(255,255,255,0.9)" />
+              <rect x="127" y="35" width="22" height="60" rx="8" fill="rgba(255,255,255,0.9)" />
+              <rect x="169" y="5" width="22" height="90" rx="8" fill="rgba(255,255,255,0.9)" />
+              
+              <rect x="211" y="5" width="22" height="90" rx="8" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" stroke-dasharray="4 3" />
+              <rect x="211" y="65" width="22" height="30" rx="8" fill="rgba(255,255,255,0.9)" />
+              
+              <rect x="253" y="45" width="22" height="50" rx="8" fill="rgba(255,255,255,0.9)" />
+
+              <path d="M 0 80 Q 25 80 54 50 T 96 75 T 138 60 T 180 30 T 222 65 T 280 75" fill="none" stroke="url(#waveGrad)" stroke-width="3" stroke-linecap="round" />
+
+              <g fill="rgba(255,255,255,0.4)" font-size="10" font-weight="bold" text-anchor="middle">
+                 <text x="12" y="115">فر</text>
+                 <text x="54" y="115">ار</text>
+                 <text x="96" y="115">خر</text>
+                 <text x="138" y="115">تی</text>
+                 <text x="180" y="115">مر</text>
+                 <text x="222" y="115">شه</text>
+                 <text x="264" y="115">مه</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+
+        <div class="glass-panel flex-1 rounded-[var(--radius-lg)] p-6 flex flex-col min-h-0 bg-white/45 dark:bg-[var(--bg-panel-glass)]">
+          <div class="flex justify-between items-center mb-4 shrink-0">
+            <h2 class="font-bold text-lg">برنامه‌ی امروز</h2>
+            <span class="text-[11px] font-bold bg-[var(--bg-card)] px-3 py-1.5 rounded-full border border-[var(--border-subtle)]">۵ کار باقی‌مانده</span>
+          </div>
+          
+          <div class="flex-1 overflow-y-auto soft-scroll pr-2 flex flex-col">
+            <!-- Row 1: 09:00 -->
+            <div class="relative flex gap-3 items-stretch pb-3">
+              <!-- Right Column: Time -->
+              <div class="w-12 flex items-start justify-end pt-3 shrink-0 select-none">
+                <span class="font-mono font-bold text-xs text-[var(--text-muted)]">09:00</span>
+              </div>
+              <!-- Middle Column: Timeline Axis -->
+              <div class="relative flex flex-col items-center w-6 shrink-0">
+                <div class="absolute top-3 bottom-0 w-[1.5px] bg-[var(--border-subtle)]"></div>
+                <div class="absolute top-3 z-10 w-4 h-4 rounded-full bg-[var(--color-primary)] text-black flex items-center justify-center border-2 border-[var(--border-subtle)] shadow-sm">
+                  <div class="w-1.5 h-1.5 rounded-full bg-black"></div>
+                </div>
+              </div>
+              <!-- Left Column: Task Card -->
+              <div class="flex-1 glass-card p-3 rounded-[var(--radius-md)] flex items-center gap-3">
+                <button class="task-check w-5 h-5 shrink-0 rounded-full border-[1.5px] border-[var(--text-muted)] hover:border-[var(--text-main)] transition"></button>
+                <div class="flex-1">
+                  <div class="text-[14px] font-bold leading-none mb-1.5">تمرین ارائه‌ی پیچ استارتاپ</div>
+                  <div class="text-[10px] text-[var(--semantic-error)] font-bold px-2 py-0.5 rounded-[var(--radius-sm)] inline-block" style="background: var(--semantic-error-soft)">فوری • سررسید ظهر</div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Row 2: 12:30 -->
+            <div class="relative flex gap-3 items-stretch pb-3">
+              <!-- Right Column: Time -->
+              <div class="w-12 flex items-start justify-end pt-3 shrink-0 select-none">
+                <span class="font-mono font-bold text-xs text-[var(--text-muted)]">12:30</span>
+              </div>
+              <!-- Middle Column: Timeline Axis -->
+              <div class="relative flex flex-col items-center w-6 shrink-0">
+                <div class="absolute top-0 bottom-0 w-[1.5px] bg-[var(--border-subtle)]"></div>
+                <div class="absolute top-3 z-10 w-4 h-4 rounded-full bg-[var(--color-primary)] text-black flex items-center justify-center border-2 border-[var(--border-subtle)] shadow-sm">
+                  <div class="w-1.5 h-1.5 rounded-full bg-black"></div>
+                </div>
+              </div>
+              <!-- Left Column: Task Card -->
+              <div class="flex-1 glass-card p-3 rounded-[var(--radius-md)] flex items-center gap-3">
+                <button class="task-check w-5 h-5 shrink-0 rounded-full border-[1.5px] border-[var(--text-muted)] hover:border-[var(--text-main)] transition"></button>
+                <div class="flex-1">
+                  <div class="text-[14px] font-bold leading-none mb-1.5">جمع‌بندی تحقیق بازار</div>
+                  <div class="text-xs text-[var(--text-muted)] font-medium">پروژه: لانچ نسخه ۲</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 3: 15:00 -->
+            <div class="relative flex gap-3 items-stretch pb-3">
+              <!-- Right Column: Time -->
+              <div class="w-12 flex items-start justify-end pt-3 shrink-0 select-none">
+                <span class="font-mono font-bold text-xs text-[var(--text-muted)] opacity-50">15:00</span>
+              </div>
+              <!-- Middle Column: Timeline Axis -->
+              <div class="relative flex flex-col items-center w-6 shrink-0">
+                <div class="absolute top-0 bottom-0 w-[1.5px] bg-[var(--border-subtle)]"></div>
+                <div class="absolute top-3 z-10 w-4 h-4 rounded-full bg-[var(--semantic-success)] text-white flex items-center justify-center border-2 border-[var(--border-subtle)] shadow-sm">
+                  <svg class="w-2.5 h-2.5 stroke-[3px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                </div>
+              </div>
+              <!-- Left Column: Task Card -->
+              <div class="flex-1 glass-card p-3 rounded-[var(--radius-md)] flex items-center gap-3 opacity-60">
+                <button class="task-check is-done w-5 h-5 shrink-0 rounded-full border-[1.5px] flex items-center justify-center">
+                  <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>
+                </button>
+                <div class="flex-1">
+                  <div class="text-[14px] font-bold leading-none line-through text-[var(--text-muted)]">ایمیل به سرمایه‌گذار</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 4: 18:00 -->
+            <div class="relative flex gap-3 items-stretch">
+              <!-- Right Column: Time -->
+              <div class="w-12 flex items-start justify-end pt-3 shrink-0 select-none">
+                <span class="font-mono font-bold text-xs text-[var(--text-muted)]">18:00</span>
+              </div>
+              <!-- Middle Column: Timeline Axis -->
+              <div class="relative flex flex-col items-center w-6 shrink-0">
+                <div class="absolute top-0 h-[20px] w-[1.5px] bg-[var(--border-subtle)]"></div>
+                <div class="absolute top-3 z-10 w-4 h-4 rounded-full bg-[var(--color-primary)] text-black flex items-center justify-center border-2 border-[var(--border-subtle)] shadow-sm">
+                  <div class="w-1.5 h-1.5 rounded-full bg-black"></div>
+                </div>
+              </div>
+              <!-- Left Column: Task Card -->
+              <div class="flex-1 glass-card p-3 rounded-[var(--radius-md)] flex items-center gap-3">
+                <button class="task-check w-5 h-5 shrink-0 rounded-full border-[1.5px] border-[var(--text-muted)] hover:border-[var(--text-main)] transition"></button>
+                <div class="flex-1">
+                  <div class="text-[14px] font-bold leading-none mb-1.5">طراحی اسلاید ۳</div>
+                  <div class="text-xs text-[var(--text-muted)] font-medium">تسک روتین</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Column 3: Data Context (Strict heights to prevent scroll) -->
+      <aside class="w-[320px] flex flex-col h-full gap-3 shrink-0 overflow-hidden">
+        
+        <!-- NEW Dual-Brief Box: White (Right) & Lime (Left) -->
+        <div class="flex gap-3 shrink-0 h-[145px]">
+          <!-- Box 1: Weekly Status (Black Glass in Light, Default in Dark) -->
+          <div class="w-[110px] shrink-0 rounded-[var(--radius-lg)] p-3 flex flex-col items-center justify-between relative transition-all duration-200 hover:-translate-y-[2px] bg-[#111113]/85 backdrop-blur-xl border border-white/10 shadow-[0_15px_35px_rgba(0,0,0,0.25)] dark:bg-[var(--bg-card)] dark:border-[var(--border-subtle)] dark:shadow-none">
+            <h4 class="text-[11px] font-bold text-white/70 dark:text-[var(--text-muted)] text-center">وضعیت هفته</h4>
+            
+            <div class="relative w-[68px] h-[68px] shrink-0 my-1">
+              <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="35" fill="none" class="stroke-white/10 dark:stroke-[var(--border-subtle)]" stroke-width="14"/>
+                <circle class="ring-fill transition-all duration-1000 ease-out" cx="50" cy="50" r="35" fill="none" stroke="var(--color-primary)" stroke-width="14" stroke-linecap="round" stroke-dasharray="219.9" stroke-dashoffset="83.5"/>
+              </svg>
+              <div class="absolute inset-0 flex items-center justify-center text-[13px] font-black text-white dark:text-[var(--text-main)] mt-0.5">۶۲٪</div>
+            </div>
+
+            <button class="w-full max-w-[80px] text-[10px] font-bold py-1.5 rounded-full hover:scale-105 active:scale-95 transition shadow-sm bg-[var(--color-primary)] text-black dark:bg-[var(--ink-bg)] dark:text-[var(--ink-text)] dark:border dark:border-[var(--border-neon)]">مشاهده</button>
+          </div>
+
+          <!-- Box 2: Today at a Glance (Lime Dashboard UI) -->
+          <div class="tile-lime flex-1 rounded-[var(--radius-lg)] p-3 relative flex flex-col justify-between shadow-sm">
+            <div class="text-right z-10 pr-1">
+              <h3 class="font-black text-[13px] text-black">کارهای امروز در یک نگاه</h3>
+            </div>
+            
+            <div class="flex flex-col gap-1.5 z-10 mt-1">
+              <!-- Row 1 -->
+              <div class="flex items-center gap-1.5 w-full">
+                <div class="bg-[#16161A] text-white rounded-full h-[24px] flex-1 flex items-center px-3 justify-start text-[11px] font-bold">تعداد: ۷/۱۰</div>
+                <div class="border-[1.5px] border-dashed border-black/40 rounded-full h-[24px] w-[30%] shrink-0"></div>
+              </div>
+              <!-- Row 2 -->
+              <div class="flex items-center gap-1.5 w-full">
+                <div class="bg-[#16161A] text-white rounded-full h-[24px] flex-1 flex items-center px-3 justify-start text-[11px] font-bold">مهم: ۱/۳</div>
+                <div class="border-[1.5px] border-dashed border-black/40 rounded-full h-[24px] w-[50%] shrink-0"></div>
+              </div>
+              <!-- Row 3 -->
+              <div class="bg-[#16161A] rounded-full h-[24px] w-full flex items-center justify-between p-[2px]">
+                <div class="text-white text-[11px] font-bold pr-2.5">عقب افتاده: ۷</div>
+                <button class="text-white/80 hover:text-white hover:scale-110 active:scale-95 transition p-1 ml-1" title="مشاهده">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="flex items-center justify-start gap-3 z-10 mt-auto pt-1">
+              <div class="flex items-center gap-1">
+                <div class="w-2.5 h-2.5 rounded-full border-[1.5px] border-dashed border-black shrink-0"></div>
+                <span class="text-[9px] font-bold text-black/80">در حال انجام</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <div class="w-2.5 h-2.5 rounded-full bg-black shrink-0"></div>
+                <span class="text-[9px] font-bold text-black">انجام شده</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mini Calendar -->
+        <div class="glass-panel px-3.5 py-3 rounded-[var(--radius-lg)] shrink-0 h-[200px] flex flex-col justify-between">
+          <div>
+            <div class="flex justify-between items-center mb-2 px-1">
+              <h3 class="font-bold text-[12px] text-[var(--text-main)]">تقویمِ هفته</h3>
+              <span class="text-[9px] font-bold text-[var(--text-muted)]">خرداد ۱۴۰۴</span>
+            </div>
+            <div class="grid grid-cols-7 gap-1 sm:gap-1.5 items-center" id="weekcal-desk"></div>
+          </div>
+          <!-- Next week 7 smaller and faded capsules -->
+          <div class="border-t border-[var(--border-subtle)]/30 pt-2">
+            <div class="text-[9px] text-[var(--text-muted)] font-black mb-1.5 px-1">روزهای آینده</div>
+            <div class="grid grid-cols-7 gap-1 items-center" id="nextweekcal-desk"></div>
+          </div>
+        </div>
+
+        <!-- Compact Projects -->
+        <div class="tile-lime p-4 rounded-[var(--radius-lg)] h-[120px] shrink-0 flex flex-col justify-between">
+          <div>
+            <div class="flex justify-between items-center mb-2.5">
+              <h3 class="font-black text-[13px] text-[var(--text-on-primary)]">وضعیت پروژه‌ها</h3>
+              <button class="text-[10px] font-bold text-[var(--text-on-primary)] bg-black/10 px-3 py-1 rounded-full transition hover:bg-black/20">همه ↗</button>
+            </div>
+            <div class="space-y-2">
+              <div>
+                <div class="flex justify-between text-[11px] font-bold mb-1 text-[var(--text-on-primary)]"><span>لانچ نسخه ۲</span><span class="text-black/60 font-mono">۷۸٪</span></div>
+                <div class="h-1.5 rounded-full bg-black/10 overflow-hidden"><div class="h-full bg-[var(--text-on-primary)] rounded-full" style="width:78%"></div></div>
+              </div>
+              <div>
+                <div class="flex justify-between text-[11px] font-bold mb-1 text-[var(--text-on-primary)]"><span>بازطراحی سایت</span><span class="text-black/60 font-mono">۴۵٪</span></div>
+                <div class="h-1.5 rounded-full bg-black/10 overflow-hidden"><div class="h-full bg-[var(--text-on-primary)] rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)]" style="width:45%"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pomodoro / Deep Focus Tracker -->
+        <div class="bg-[#16161a] border border-white/10 text-white rounded-[var(--radius-lg)] p-4 relative overflow-hidden h-[160px] shrink-0 flex flex-col justify-between transition-all duration-300 hover:-translate-y-[2px] shadow-lg dark:border-[var(--border-neon)] dark:shadow-[0_0_20px_rgba(216,240,102,0.15)] mt-auto">
+          <!-- Abstract background halo -->
+          <div class="absolute inset-0 bg-gradient-to-tr from-[#16161a] via-black/20 to-white/5 opacity-40 pointer-events-none"></div>
+          <!-- Blur Glow Effect -->
+          <div class="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-white/10 dark:bg-white/5 rounded-full blur-3xl pointer-events-none"></div>
+          
+          <!-- Top Row -->
+          <div class="flex items-center justify-between z-10 shrink-0">
+            <div class="flex items-center gap-1.5 text-white/50 text-[11px] font-bold">
+              <svg class="w-3.5 h-3.5 text-lime" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <span class="tracking-wider text-[11px] font-black text-white">تمرکز عمیق</span>
+            </div>
+            <button class="bg-lime text-black hover:bg-lime/90 text-[11px] font-extrabold px-3 py-1 rounded-full active:scale-95 transition-transform">ورود</button>
+          </div>
+
+          <!-- Middle Row: Timer & Controls -->
+          <div class="flex items-center justify-between z-10 my-auto">
+            <span class="text-white text-3xl font-black font-mono tracking-widest tabular-nums leading-none">۲۵:۰۰</span>
+            
+            <div class="flex items-center gap-2">
+              <button class="w-8 h-8 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white/70 flex items-center justify-center transition active:scale-95">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+              </button>
+              <button class="w-8 h-8 rounded-full bg-lime text-black flex items-center justify-center transition hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(216,240,102,0.3)]">
+                <svg class="w-3.5 h-3.5 fill-current text-black" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Bottom Row: Task Dropdown -->
+          <div class="relative z-20 shrink-0">
+            <button id="pomo-dropdown-btn-desk" class="w-full h-[32px] rounded-full bg-white/5 border border-white/10 hover:bg-white/10 px-3.5 flex items-center justify-between text-[11px] font-bold text-white/90 transition active:scale-[0.99]">
+              <span id="selected-pomo-task-desk">انتخاب تسک</span>
+              <svg class="w-3.5 h-3.5 text-white/50 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"></path>
+              </svg>
+            </button>
+            
+            <div id="pomo-dropdown-menu-desk" class="hidden absolute bottom-full mb-1 right-0 left-0 bg-[#1e1e24] border border-white/10 rounded-[14px] shadow-2xl p-1 z-30 flex flex-col gap-0.5 overflow-hidden">
+              <button class="pomo-item text-right w-full px-3 py-2 text-[11px] font-bold rounded-[10px] hover:bg-white/5 text-white/90 transition-colors">تمرین ارائه‌ی پیچ استارتاپ</button>
+              <button class="pomo-item text-right w-full px-3 py-2 text-[11px] font-bold rounded-[10px] hover:bg-white/5 text-white/90 transition-colors">جمع‌بندی تحقیق بازار</button>
+              <button class="pomo-item text-right w-full px-3 py-2 text-[11px] font-bold rounded-[10px] hover:bg-white/5 text-white/90 transition-colors">طراحی اسلاید ۳</button>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+    </main>
+  </div>
+
+
+  <!-- 
+    ========================================================
+    MOBILE VIEW (Native Fluid Experience with Blurred BG)
+    ======================================================== 
+  -->
+  <div class="flex flex-col lg:hidden min-h-screen pb-safe relative z-10">
+    
+    <header class="pt-8 pb-4 px-5 sticky top-0 z-20 backdrop-blur-xl border-b border-[var(--border-subtle)]" style="background: var(--bg-app-glass)">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[12px] font-bold text-[var(--text-muted)] mb-0.5">سلام آرش 👋</div>
+          <div class="font-black text-[22px] tracking-tight">داشبورد</div>
+        </div>
+        <div class="flex items-center gap-3">
+          <button class="theme-toggle w-10 h-10 rounded-full glass-card flex items-center justify-center transition active:scale-95">
+             <svg class="w-5 h-5 theme-icon-light text-[var(--text-main)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+             <svg class="w-5 h-5 theme-icon-dark hidden text-[var(--text-main)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+          </button>
+          <div class="w-10 h-10 rounded-full bg-[var(--text-main)] text-[var(--bg-app-glass)] flex items-center justify-center font-bold text-sm">آ</div>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 px-5 flex flex-col gap-6 pt-5">
+      
+      <!-- تقویم هفته در موبایل -->
+      <div class="glass-panel rounded-[var(--radius-lg)] p-3.5">
+        <div class="flex justify-between items-center mb-2 px-1">
+          <h3 class="font-bold text-[14px] text-[var(--text-main)]">تقویمِ هفته</h3>
+          <span class="text-[10px] font-bold text-[var(--text-muted)] bg-[var(--bg-card)] px-2 py-1 rounded-md border border-[var(--border-subtle)]">خرداد ۱۴۰۴</span>
+        </div>
+        <div class="grid grid-cols-7 gap-1 sm:gap-1.5 items-center py-2" id="weekcal-mob"></div>
+      </div>
+
+      <div class="glass-card rounded-[var(--radius-pill)] p-1.5 flex items-center border-[var(--border-subtle)] focus-within:border-[var(--input-focus-ring)] transition">
+        <input type="text" placeholder="بگو هرچه دل تنگت میخواهد(حرف بزن، تایپ کن یا حتی اسکرین بده)" class="flex-1 bg-transparent border-none outline-none pr-4 pl-3 text-[14px] font-medium text-[var(--text-main)] placeholder-[var(--text-muted)]">
+        <div class="flex items-center gap-2 px-2 shrink-0">
+          <!-- attachment icon -->
+          <svg class="w-4 h-4 text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer transition active:scale-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636l-3.536 3.536m0 0A3 3 0 1019.07 13.3l-5.657 5.657a5 5 0 11-7.071-7.071l6.01-6.01a7 7 0 10-9.9 9.9l3.536-3.536" />
+          </svg>
+          <!-- microphone icon -->
+          <svg class="w-4 h-4 text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer transition active:scale-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+          </svg>
+        </div>
+        <button class="w-10 h-10 rounded-full bg-lime flex items-center justify-center shrink-0 active:scale-90 transition">
+          <svg class="w-4 h-4 text-[var(--text-on-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"></path></svg>
+        </button>
+      </div>
+
+      <!-- Mobile Dual-Brief Box (Synced with Desktop) -->
+      <div class="flex gap-3 shrink-0 h-[145px]">
+        
+        <div class="w-[105px] shrink-0 rounded-[var(--radius-lg)] p-3 flex flex-col items-center justify-between relative transition-all duration-200 bg-[#111113]/85 backdrop-blur-xl border border-white/10 shadow-[0_15px_35px_rgba(0,0,0,0.25)] dark:bg-[var(--bg-card)] dark:border-[var(--border-subtle)] dark:shadow-none">
+          <h4 class="text-[12px] font-bold text-white/70 dark:text-[var(--text-muted)] text-center">وضعیت هفته</h4>
+          <div class="relative w-[68px] h-[68px] shrink-0 my-1">
+            <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="35" fill="none" class="stroke-white/10 dark:stroke-[var(--border-subtle)]" stroke-width="14"/>
+              <circle class="ring-fill transition-all duration-1000 ease-out" cx="50" cy="50" r="35" fill="none" stroke="var(--color-primary)" stroke-width="14" stroke-linecap="round" stroke-dasharray="219.9" stroke-dashoffset="83.5"/>
+            </svg>
+            <div class="absolute inset-0 flex items-center justify-center text-[13px] font-black text-white dark:text-[var(--text-main)] mt-0.5">۶۲٪</div>
+          </div>
+          <button class="w-full max-w-[80px] text-[10px] font-bold py-1.5 rounded-full hover:scale-105 active:scale-95 transition shadow-sm bg-[var(--color-primary)] text-black dark:bg-[var(--ink-bg)] dark:text-[var(--ink-text)] dark:border dark:border-[var(--border-neon)]">مشاهده</button>
+        </div>
+
+        <div class="tile-lime flex-1 rounded-[var(--radius-lg)] p-3 relative flex flex-col justify-between shadow-sm">
+          <div class="text-right z-10 pr-1">
+            <h3 class="font-black text-[13px] text-black">کارهای امروز در یک نگاه</h3>
+          </div>
+          
+          <div class="flex flex-col gap-1.5 z-10 mt-1">
+            <!-- Row 1 -->
+            <div class="flex items-center gap-1.5 w-full">
+              <div class="bg-[#16161A] text-white rounded-full h-[24px] flex-1 flex items-center px-3 justify-start text-[11px] font-bold">تعداد: ۷/۱۰</div>
+              <div class="border-[1.5px] border-dashed border-black/40 rounded-full h-[24px] w-[30%] shrink-0"></div>
+            </div>
+            <!-- Row 2 -->
+            <div class="flex items-center gap-1.5 w-full">
+              <div class="bg-[#16161A] text-white rounded-full h-[24px] flex-1 flex items-center px-3 justify-start text-[11px] font-bold">مهم: ۱/۳</div>
+              <div class="border-[1.5px] border-dashed border-black/40 rounded-full h-[24px] w-[50%] shrink-0"></div>
+            </div>
+            <!-- Row 3 -->
+            <div class="bg-[#16161A] rounded-full h-[24px] w-full flex items-center justify-between p-[2px]">
+              <div class="text-white text-[11px] font-bold pr-2.5">عقب افتاده: ۷</div>
+              <button class="text-white/80 hover:text-white hover:scale-110 active:scale-95 transition p-1 ml-1" title="مشاهده">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Legend -->
+          <div class="flex items-center justify-start gap-3 z-10 mt-auto pt-1">
+            <div class="flex items-center gap-1">
+              <div class="w-2.5 h-2.5 rounded-full border-[1.5px] border-dashed border-black shrink-0"></div>
+              <span class="text-[9px] font-bold text-black/80">در حال انجام</span>
+            </div>
+            <div class="flex items-center gap-1">
+              <div class="w-2.5 h-2.5 rounded-full bg-black shrink-0"></div>
+              <span class="text-[9px] font-bold text-black">انجام شده</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="glass-panel rounded-[var(--radius-lg)] p-5 bg-white/45 dark:bg-[var(--bg-panel-glass)] h-[320px] flex flex-col">
+        <div class="flex justify-between items-center mb-5 shrink-0">
+          <h2 class="font-bold text-[16px]">برنامه‌ی امروز</h2>
+          <button class="text-[12px] font-bold text-[var(--color-primary)] bg-[var(--ink-bg)] px-3 py-1 rounded-full border border-[var(--border-neon)]">همه ↗</button>
+        </div>
+        
+        <div class="flex flex-col flex-1 overflow-y-auto soft-scroll pl-2">
+          <!-- Row 1: 09:00 -->
+          <div class="relative flex gap-3 items-stretch pb-3">
+            <!-- Right Column: Time -->
+            <div class="w-12 flex items-start justify-end pt-3 shrink-0 select-none">
+              <span class="font-mono font-bold text-xs text-[var(--text-muted)]">09:00</span>
+            </div>
+            <!-- Middle Column: Timeline Axis -->
+            <div class="relative flex flex-col items-center w-6 shrink-0">
+              <div class="absolute top-3 bottom-0 w-[1.5px] bg-[var(--border-subtle)]"></div>
+              <div class="absolute top-3 z-10 w-4 h-4 rounded-full bg-[var(--color-primary)] text-black flex items-center justify-center border-2 border-[var(--border-subtle)] shadow-sm">
+                <div class="w-1.5 h-1.5 rounded-full bg-black"></div>
+              </div>
+            </div>
+            <!-- Left Column: Task Card -->
+            <div class="flex-1 glass-card p-3 rounded-[var(--radius-md)] flex items-center gap-3">
+              <button class="task-check w-5 h-5 shrink-0 rounded-full border-[1.5px] border-[var(--text-muted)] hover:border-[var(--text-main)] transition"></button>
+              <div class="flex-1 min-w-0">
+                <div class="text-[11px] font-bold leading-none">تمرین ارائه‌ی پیچ استارتاپ</div>
+              </div>
+              <svg class="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+              </svg>
+            </div>
+          </div>
+          
+          <!-- Row 2: 12:30 -->
+          <div class="relative flex gap-3 items-stretch pb-3">
+            <!-- Right Column: Time -->
+            <div class="w-12 flex items-start justify-end pt-3 shrink-0 select-none">
+              <span class="font-mono font-bold text-xs text-[var(--text-muted)]">12:30</span>
+            </div>
+            <!-- Middle Column: Timeline Axis -->
+            <div class="relative flex flex-col items-center w-6 shrink-0">
+              <div class="absolute top-0 bottom-0 w-[1.5px] bg-[var(--border-subtle)]"></div>
+              <div class="absolute top-3 z-10 w-4 h-4 rounded-full bg-[var(--color-primary)] text-black flex items-center justify-center border-2 border-[var(--border-subtle)] shadow-sm">
+                <div class="w-1.5 h-1.5 rounded-full bg-black"></div>
+              </div>
+            </div>
+            <!-- Left Column: Task Card -->
+            <div class="flex-1 glass-card p-3 rounded-[var(--radius-md)] flex items-center gap-3">
+              <button class="task-check w-5 h-5 shrink-0 rounded-full border-[1.5px] border-[var(--text-muted)] hover:border-[var(--text-main)] transition"></button>
+              <div class="flex-1 min-w-0">
+                <div class="text-[11px] font-bold leading-none">جمع‌بندی تحقیق بازار</div>
+              </div>
+              <svg class="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+              </svg>
+            </div>
+          </div>
+
+          <!-- Row 3: 15:00 -->
+          <div class="relative flex gap-3 items-stretch pb-3">
+            <!-- Right Column: Time -->
+            <div class="w-12 flex items-start justify-end pt-3 shrink-0 select-none">
+              <span class="font-mono font-bold text-xs text-[var(--text-muted)] opacity-50">15:00</span>
+            </div>
+            <!-- Middle Column: Timeline Axis -->
+            <div class="relative flex flex-col items-center w-6 shrink-0">
+              <div class="absolute top-0 bottom-0 w-[1.5px] bg-[var(--border-subtle)]"></div>
+              <div class="absolute top-3 z-10 w-4 h-4 rounded-full bg-[var(--semantic-success)] text-white flex items-center justify-center border-2 border-[var(--border-subtle)] shadow-sm">
+                <svg class="w-2.5 h-2.5 stroke-[3px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+              </div>
+            </div>
+            <!-- Left Column: Task Card -->
+            <div class="flex-1 glass-card p-3 rounded-[var(--radius-md)] flex items-center gap-3 opacity-60">
+              <button class="task-check is-done w-5 h-5 shrink-0 rounded-full border-[1.5px] flex items-center justify-center">
+                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>
+              </button>
+              <div class="flex-1 min-w-0">
+                <div class="text-[11px] font-bold leading-none line-through text-[var(--text-muted)]">ایمیل به سرمایه‌گذار</div>
+              </div>
+              <svg class="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+              </svg>
+            </div>
+          </div>
+
+          <!-- Row 4: 18:00 -->
+          <div class="relative flex gap-3 items-stretch">
+            <!-- Right Column: Time -->
+            <div class="w-12 flex items-start justify-end pt-3 shrink-0 select-none">
+              <span class="font-mono font-bold text-xs text-[var(--text-muted)]">18:00</span>
+            </div>
+            <!-- Middle Column: Timeline Axis -->
+            <div class="relative flex flex-col items-center w-6 shrink-0">
+              <div class="absolute top-0 h-[20px] w-[1.5px] bg-[var(--border-subtle)]"></div>
+              <div class="absolute top-3 z-10 w-4 h-4 rounded-full bg-[var(--color-primary)] text-black flex items-center justify-center border-2 border-[var(--border-subtle)] shadow-sm">
+                <div class="w-1.5 h-1.5 rounded-full bg-black"></div>
+              </div>
+            </div>
+            <!-- Left Column: Task Card -->
+            <div class="flex-1 glass-card p-3 rounded-[var(--radius-md)] flex items-center gap-3">
+              <button class="task-check w-5 h-5 shrink-0 rounded-full border-[1.5px] border-[var(--text-muted)] hover:border-[var(--text-main)] transition"></button>
+              <div class="flex-1 min-w-0">
+                <div class="text-[11px] font-bold leading-none">طراحی اسلاید ۳</div>
+              </div>
+              <svg class="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- پروژه‌ها در موبایل (Now Lime) -->
+      <div class="tile-lime p-5 rounded-[var(--radius-lg)] shrink-0">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-bold text-[14px] text-[var(--text-on-primary)]">وضعیت پروژه‌ها</h3>
+          <button class="text-[11px] font-bold text-[var(--text-on-primary)] bg-black/10 px-2 py-1 rounded-md transition hover:bg-black/20">همه ↗</button>
+        </div>
+        <div class="space-y-4">
+          <div>
+            <div class="flex justify-between text-[12px] font-bold mb-1.5 text-[var(--text-on-primary)]"><span>لانچ نسخه ۲</span><span class="text-black/60 font-mono">۷۸٪</span></div>
+            <div class="h-1.5 rounded-full bg-black/10 overflow-hidden"><div class="h-full bg-[var(--text-on-primary)] rounded-full" style="width:78%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-[12px] font-bold mb-1.5 text-[var(--text-on-primary)]"><span>بازطراحی سایت</span><span class="text-black/60 font-mono">۴۵٪</span></div>
+            <div class="h-1.5 rounded-full bg-black/10 overflow-hidden"><div class="h-full bg-[var(--text-on-primary)] rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)]" style="width:45%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tile-ink rounded-[var(--radius-lg)] p-5 relative overflow-hidden flex flex-col h-[220px]">
+        <!-- Integrated Week & Month Capsule Row for Mobile -->
+        <div class="bg-white/[0.05] border border-white/10 rounded-[16px] p-2 flex items-center justify-between gap-3 mb-3 z-10 shrink-0">
+          <!-- Week -->
+          <div class="flex items-center gap-1.5 flex-1 justify-start">
+            <div class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-white shrink-0">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+            </div>
+            <div class="flex flex-col text-right leading-none">
+              <span class="text-[9px] text-white/90 font-black">هفته جاری</span>
+              <span class="text-[10px] text-[#E5F95C] font-bold mt-0.5">-۷٪</span>
+            </div>
+          </div>
+          <!-- Divider -->
+          <div class="w-px h-6 bg-white/[0.08]"></div>
+          <!-- Month -->
+          <div class="flex items-center gap-1.5 flex-1 justify-end">
+            <div class="flex flex-col text-left leading-none">
+              <span class="text-[9px] text-white/90 font-black text-left">ماه جاری</span>
+              <span class="text-[10px] text-[#D8F066] font-bold mt-0.5 text-left">+۱۸٪</span>
+            </div>
+            <div class="w-6 h-6 rounded-full bg-lime/10 flex items-center justify-center text-lime shrink-0">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path d="M4.5 15.75l7.5-7.5 7.5 7.5"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="w-full flex-1 relative z-10 select-none h-full flex items-center justify-center">
+          <svg viewBox="0 0 280 120" preserveAspectRatio="none" class="w-full h-full overflow-visible">
+            <defs>
+              <linearGradient id="waveGradMob" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#38bdf8" />
+                <stop offset="100%" stop-color="#D8F066" />
+              </linearGradient>
+            </defs>
+            <rect x="1" y="45" width="22" height="50" rx="8" fill="rgba(255,255,255,0.9)" />
+            <rect x="43" y="25" width="22" height="70" rx="8" fill="rgba(255,255,255,0.9)" />
+            <rect x="85" y="55" width="22" height="40" rx="8" fill="rgba(255,255,255,0.9)" />
+            <rect x="127" y="35" width="22" height="60" rx="8" fill="rgba(255,255,255,0.9)" />
+            <rect x="169" y="5" width="22" height="90" rx="8" fill="rgba(255,255,255,0.9)" />
+            
+            <rect x="211" y="5" width="22" height="90" rx="8" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" stroke-dasharray="4 3" />
+            <rect x="211" y="65" width="22" height="30" rx="8" fill="rgba(255,255,255,0.9)" />
+            
+            <rect x="253" y="45" width="22" height="50" rx="8" fill="rgba(255,255,255,0.9)" />
+
+            <path d="M 0 80 Q 25 80 54 50 T 96 75 T 138 60 T 180 30 T 222 65 T 280 75" fill="none" stroke="url(#waveGradMob)" stroke-width="3" stroke-linecap="round" />
+
+            <g fill="rgba(255,255,255,0.4)" font-size="10" font-weight="bold" text-anchor="middle">
+               <text x="12" y="115">فر</text>
+               <text x="54" y="115">ار</text>
+               <text x="96" y="115">خر</text>
+               <text x="138" y="115">تی</text>
+               <text x="180" y="115">مر</text>
+               <text x="222" y="115">شه</text>
+               <text x="264" y="115">مه</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Pomodoro / Deep Focus Tracker Mobile -->
+      <div class="bg-[#16161a] border border-white/10 text-white rounded-[var(--radius-lg)] p-4 relative overflow-hidden h-[160px] shrink-0 flex flex-col justify-between transition-all duration-300 hover:-translate-y-[2px] shadow-lg dark:border-[var(--border-neon)] dark:shadow-[0_0_20px_rgba(216,240,102,0.15)] mb-4">
+        <!-- Abstract background -->
+        <div class="absolute inset-0 bg-gradient-to-tr from-[#16161a] via-black/20 to-white/5 opacity-40 pointer-events-none"></div>
+        <!-- Blur Glow Effect -->
+        <div class="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-white/10 dark:bg-white/5 rounded-full blur-3xl pointer-events-none"></div>
+        
+        <!-- Top Row -->
+        <div class="flex items-center justify-between z-10 shrink-0">
+          <div class="flex items-center gap-1.5 text-white/50 text-[11px] font-bold">
+            <svg class="w-3.5 h-3.5 text-lime" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span class="tracking-wider text-[11px] font-black text-white">تمرکز عمیق</span>
+          </div>
+          <button class="bg-lime text-black hover:bg-lime/90 text-[11px] font-extrabold px-3 py-1 rounded-full active:scale-95 transition-transform">ورود</button>
+        </div>
+
+        <!-- Middle Row -->
+        <div class="flex items-center justify-between z-10 my-auto">
+          <span class="text-white text-3xl font-black font-mono tracking-widest tabular-nums leading-none">۲۵:۰۰</span>
+          
+          <div class="flex items-center gap-2">
+            <button class="w-8 h-8 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white/70 flex items-center justify-center transition active:scale-95">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+            </button>
+            <button class="w-8 h-8 rounded-full bg-lime text-black flex items-center justify-center transition hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(216,240,102,0.3)]">
+              <svg class="w-3.5 h-3.5 fill-current text-black" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Bottom Row -->
+        <div class="relative z-20 shrink-0">
+          <button id="pomo-dropdown-btn-mob" class="w-full h-[32px] rounded-full bg-white/5 border border-white/10 hover:bg-white/10 px-3.5 flex items-center justify-between text-[11px] font-bold text-white/90 transition active:scale-[0.99]">
+            <span id="selected-pomo-task-mob">انتخاب تسک</span>
+            <svg class="w-3.5 h-3.5 text-white/50 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"></path>
+            </svg>
+          </button>
+          
+          <div id="pomo-dropdown-menu-mob" class="hidden absolute bottom-full mb-1 right-0 left-0 bg-[#1e1e24] border border-white/10 rounded-[14px] shadow-2xl p-1 z-30 flex flex-col gap-0.5 overflow-hidden">
+            <button class="pomo-item text-right w-full px-3 py-2 text-[11px] font-bold rounded-[10px] hover:bg-white/5 text-white/90 transition-colors">تمرین ارائه‌ی پیچ استارتاپ</button>
+            <button class="pomo-item text-right w-full px-3 py-2 text-[11px] font-bold rounded-[10px] hover:bg-white/5 text-white/90 transition-colors">جمع‌بندی تحقیق بازار</button>
+            <button class="pomo-item text-right w-full px-3 py-2 text-[11px] font-bold rounded-[10px] hover:bg-white/5 text-white/90 transition-colors">طراحی اسلاید ۳</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <nav class="fixed bottom-0 inset-x-0 z-30 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 pointer-events-none">
+      <div class="max-w-[360px] mx-auto h-[64px] glass-app rounded-full grid grid-cols-5 items-center pointer-events-auto px-1 relative border border-[var(--border-subtle)] shadow-[0_20px_40px_rgba(0,0,0,0.2)]">
+        
+        <button class="flex flex-col items-center justify-center gap-1 text-[var(--text-main)] h-full">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+        </button>
+        
+        <button class="flex flex-col items-center justify-center gap-1 text-[var(--text-muted)] h-full">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </button>
+        
+        <div class="relative flex justify-center h-full">
+          <button class="absolute -top-5 w-[56px] h-[56px] rounded-full bg-lime text-[var(--text-on-primary)] flex items-center justify-center shadow-lg border-[4px] border-[var(--bg-card)] hover:scale-105 active:scale-95 transition-transform">
+             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
+          </button>
+        </div>
+
+        <button class="flex flex-col items-center justify-center gap-1 text-[var(--text-muted)] h-full">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+        </button>
+
+        <button class="flex flex-col items-center justify-center gap-1 text-[var(--text-muted)] h-full">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+        </button>
+
+      </div>
+    </nav>
+  </div>
+
+  <script>
+    const toFa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+
+    const tickClock = () => {
+      const el = document.getElementById('clock-desk');
+      if (el) el.textContent = new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+    };
+    tickClock(); setInterval(tickClock, 10000);
+
+    const renderCal = (id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      let html = '';
+      const today = new Date();
+      
+      for (let i = -3; i <= 3; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() + i);
+        
+        const dayNameRaw = d.toLocaleDateString('fa-IR', { weekday: 'long' });
+        const shortNames = {
+          'شنبه': 'شنبه',
+          'یکشنبه': 'یک',
+          'دوشنبه': 'دو',
+          'سه‌شنبه': 'سه',
+          'چهارشنبه': 'چهار',
+          'پنجشنبه': 'پنج',
+          'جمعه': 'جمعه'
+        };
+        const dayName = shortNames[dayNameRaw] || dayNameRaw;
+        const dayNum = toFa(d.toLocaleDateString('fa-IR', { day: 'numeric' }));
+        const isActive = i === 0;
+
+        if (isActive) {
+          html += `
+            <button class="active-day w-full flex flex-col items-center justify-between p-1 rounded-[16px] sm:rounded-[20px] transition-all duration-300 h-[70px] sm:h-[75px] 
+                           bg-[var(--color-primary)] border border-transparent shadow-[0_4px_10px_rgba(0,0,0,0.1)] 
+                           dark:shadow-[0_0_15px_rgba(212,255,0,0.15)] 
+                           scale-105 z-10 group relative">
+              <span class="text-[7px] sm:text-[8px] md:text-[9px] font-bold mt-1 text-black truncate w-full text-center">${dayName}</span>
+              <div class="w-full flex-1 flex flex-col items-center justify-center rounded-[12px] mt-1 
+                           bg-black/10 backdrop-blur-sm">
+                <span class="text-[14px] sm:text-[15px] md:text-[17px] font-black leading-none text-black">${dayNum}</span>
+                <div class="w-1.5 h-1.5 rounded-full mt-1 bg-black"></div>
+              </div>
+            </button>
+          `;
+        } else {
+          html += `
+            <button class="w-full flex flex-col items-center justify-between p-1 rounded-[14px] sm:rounded-[18px] transition-all duration-300 h-[60px] sm:h-[65px] 
+                           bg-[var(--bg-card)] border border-[var(--border-subtle)] 
+                           hover:bg-black/5 dark:hover:bg-white/5 group">
+              <span class="text-[7px] sm:text-[8px] md:text-[9px] font-medium mt-1 text-[var(--text-muted)] group-hover:text-[var(--text-main)] transition-colors truncate w-full text-center">${dayName}</span>
+              <div class="w-full flex-1 flex flex-col items-center justify-center rounded-[10px] sm:rounded-[12px] mt-1 bg-transparent">
+                <span class="text-[12px] sm:text-[13px] md:text-[15px] font-bold leading-none text-[var(--text-main)] opacity-70 group-hover:opacity-100 transition-opacity">${dayNum}</span>
+              </div>
+            </button>
+          `;
+        }
+      }
+      el.innerHTML = html;
+    };
+
+    const renderNextCal = (id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      let html = '';
+      const today = new Date();
+      
+      for (let i = 4; i <= 10; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() + i);
+        
+        const dayNameRaw = d.toLocaleDateString('fa-IR', { weekday: 'long' });
+        const shortNames = {
+          'شنبه': 'شنبه',
+          'یکشنبه': 'یک',
+          'دوشنبه': 'دو',
+          'سه‌شنبه': 'سه',
+          'چهارشنبه': 'چهار',
+          'پنجشنبه': 'پنج',
+          'جمعه': 'جمعه'
+        };
+        const dayName = (shortNames[dayNameRaw] || dayNameRaw).slice(0, 3);
+        const dayNum = toFa(d.toLocaleDateString('fa-IR', { day: 'numeric' }));
+        
+        html += `
+          <div class="flex flex-col items-center justify-between p-0.5 rounded-[8px] transition-all duration-300 h-[42px] 
+                         bg-[var(--bg-card)]/40 border border-[var(--border-subtle)]/30 opacity-40 hover:opacity-80">
+            <span class="text-[7px] font-bold text-[var(--text-muted)] scale-90 truncate w-full text-center leading-none mt-0.5">${dayName}</span>
+            <span class="text-[10px] font-black leading-none mb-0.5 text-[var(--text-main)]">${dayNum}</span>
+          </div>
+        `;
+      }
+      el.innerHTML = html;
+    };
+
+    renderCal('weekcal-desk');
+    renderCal('weekcal-mob');
+    renderNextCal('nextweekcal-desk');
+
+    document.addEventListener('click', e => {
+      const btn = e.target.closest('.task-check');
+      if (!btn) return;
+      e.stopPropagation();
+      const done = btn.classList.toggle('is-done');
+      const container = btn.closest('.flex');
+      const textNode = container.querySelector('.text-\\[15px\\], .text-\\[14px\\]');
+      if (done) {
+        btn.innerHTML = '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>';
+        container.classList.add('opacity-50');
+        if(textNode) textNode.classList.add('line-through', 'text-[var(--text-muted)]');
+      } else {
+        btn.innerHTML = '';
+        container.classList.remove('opacity-50');
+        if(textNode) textNode.classList.remove('line-through', 'text-[var(--text-muted)]');
+      }
+    });
+
+    const toggleTheme = () => {
+      const root = document.documentElement;
+      const isDark = root.classList.contains('dark');
+      if (isDark) {
+        root.classList.remove('dark'); root.removeAttribute('data-theme'); localStorage.setItem('hexer-theme', 'light');
+      } else {
+        root.classList.add('dark'); root.setAttribute('data-theme', 'dark'); localStorage.setItem('hexer-theme', 'dark');
+      }
+      document.querySelectorAll('.theme-icon-light').forEach(el => el.classList.toggle('hidden', !isDark));
+      document.querySelectorAll('.theme-icon-dark').forEach(el => el.classList.toggle('hidden', isDark));
+    };
+
+    document.querySelectorAll('.theme-toggle').forEach(btn => btn.addEventListener('click', toggleTheme));
+
+    // Pomodoro Dropdown JS (Desktop & Mobile)
+    const initPomoDropdown = (btnId, menuId, selectId) => {
+      const btn = document.getElementById(btnId);
+      const menu = document.getElementById(menuId);
+      const select = document.getElementById(selectId);
+      if (!btn || !menu || !select) return;
+      
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = !menu.classList.contains('hidden');
+        // Close all dropdowns first
+        document.querySelectorAll('[id^="pomo-dropdown-menu"]').forEach(m => m.classList.add('hidden'));
+        document.querySelectorAll('[id^="pomo-dropdown-btn"] svg').forEach(svg => svg.classList.remove('rotate-180'));
+        
+        if (!isOpen) {
+          menu.classList.remove('hidden');
+          btn.querySelector('svg').classList.add('rotate-180');
+        }
+      });
+      
+      menu.querySelectorAll('.pomo-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          select.textContent = item.textContent;
+          menu.classList.add('hidden');
+          btn.querySelector('svg').classList.remove('rotate-180');
+        });
+      });
+    };
+    
+    initPomoDropdown('pomo-dropdown-btn-desk', 'pomo-dropdown-menu-desk', 'selected-pomo-task-desk');
+    initPomoDropdown('pomo-dropdown-btn-mob', 'pomo-dropdown-menu-mob', 'selected-pomo-task-mob');
+    
+    // Close dropdowns on outside click
+    document.addEventListener('click', () => {
+      document.querySelectorAll('[id^="pomo-dropdown-menu"]').forEach(m => m.classList.add('hidden'));
+      document.querySelectorAll('[id^="pomo-dropdown-btn"] svg').forEach(svg => svg.classList.remove('rotate-180'));
+    });
+
+    const isDark = document.documentElement.classList.contains('dark');
+    document.querySelectorAll('.theme-icon-light').forEach(el => el.classList.toggle('hidden', isDark));
+    document.querySelectorAll('.theme-icon-dark').forEach(el => el.classList.toggle('hidden', !isDark));
+  </script>
+</body>
+</html>
