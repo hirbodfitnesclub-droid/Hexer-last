@@ -16,6 +16,10 @@
 - **env هدف:** کلاینت `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` · توابع `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `ZIBAL_MERCHANT`, `ZIBAL_CALLBACK_URL`.
 - **توابع ابری (Edge Functions) و امنیت:** علاوه بر توابع AI کاربر، یک تابع به نام `admin-api` وجود دارد که از طریق کلید `service_role` (بایپس کامل RLS) و احراز هویت سفارشی (هدر `x-admin-secret`) با دیتابیس ارتباط برقرار میکند. قوانین RLS موجود روی جداول نباید به گونهای تغییر کنند که عملکرد این Gateway ادمین را مختل کنند.
 
+- **زیرساختهای رزرو شده از فاز L:**
+  ۱. فایلهای مایگریشن `48_daily_brief.sql` و `49_related_knowledge.sql` و آپدیتِ `50_fix_semantic_knowledge.sql` دیپلوی شدهاند (دریافت پارامتر تاریخ و فیلتر تسکهای حذفشده آماده است).
+  ۲. تابع لبه (Edge Function) مربوط به بریف روزانه در مسیر `supabase/functions/daily-brief/` به همراه پرامپتهایش ساخته و دیپلوی شده است و نباید دوباره نوشته شود.
+
 > فایل‌های SQL موجود با پیشوند `00`–`12` هستند. **فایل‌های جدیدِ این ریفکتور با پیشوند `20`+ ساخته می‌شوند تا تداخل نکنند.**
 
 ---
@@ -947,40 +951,77 @@ H7a اولین تسک، ایزوله، روی کامیت مجزا. در صورت
 - **خط لوله‌ی امبدینگ:** Trigger‌های `enqueue_vectorize()` (AFTER INSERT/UPDATE روی tasks/notes/projects) درخواستِ ناهمگامِ `pg_net` به Edge `vectorize` می‌زنند؛ آنجا با مدلِ `google/gemini-embedding-2` (۷۶۸ بُعد، OpenRouter) امبدینگ ساخته و در ستونِ `embedding` ذخیره می‌شود. **این مسیر دست‌نخورده می‌ماند.**
 - **مصرف‌کنندگانِ `hybrid_search`:** (۱) `ai-assistant/lib/rag-context.ts` با `p_match_count=15`؛ (۲) `ai-assistant/lib/action-processor.ts` در اکشنِ `SUGGEST_LINK` با `p_match_count=5`. ورودیِ هیچ‌کدام امروز پیش‌پردازشِ Regex/فیلتر ندارد.
 
-## ۱۲.۱. افزوده‌های اسکیما (Schema Δ — فقط در `supabase/sql/43_fulltext_hybrid_search.sql`)
+## ۱۲.۱. افزوده‌های اسکیما (Schema Δ �## ۱۴.ب. idempotency سمت سرور (RPC Δ + Service Δ)
+**فایلِ SQL جدید (idempotent، append-only): `supabase/sql/47_offline_idempotency.sql`**
+- **حذف گام اورلود (Overload):** قبل از هر `CREATE OR REPLACE FUNCTION` استفاده از گام صریح `DROP FUNCTION IF EXISTS` با امضای دقیق برای حذف توابع قدیمیِ ۷ و ۴ آرگومانی الزامی است تا از تعارض و بروز خطای «function is not unique» در Edge Function یا کلاینت جلوگیری شود.
+- **ترتیب پارامترها (تصحیح باگ اسپک):** پارامتر `p_id UUID DEFAULT NULL` باید **آخرین** پارامتر در زمان تعریف تابع باشد، نه اولین پارامتر. در غیر این صورت به دلیل قوانین PostgreSQL پس از پارامترهای دارای DEFAULT نمی‌توان پارامتر بدون DEFAULT تعریف کرد و کرش رخ می‌دهد.
+- **الگوی بدنه (امنیت حریم خصوصی):** الگوی `IF NOT FOUND / RETURNING *` کاملاً حذف شده و با الگوی زیر جایگزین می‌شود:
+  `INSERT … ON CONFLICT (id) DO NOTHING;` 
+  سپس:
+  `RETURN QUERY SELECT * FROM public.tasks WHERE id = v_id AND user_id = auth.uid();`
+- **توجیهِ امنیتیِ «چرا DO NOTHING و نه DO UPDATE در SECURITY DEFINER»:** توابع این بخش از نوع `SECURITY DEFINER` هستند و RLS را دور می‌زنند. اگر از `ON CONFLICT DO UPDATE ... RETURNING *` استفاده کنیم، یک مهاجم سایبری می‌تواند `p_id` را برابر با شناسه یک تسک یا نوت متعلق به کاربر دیگری بفرستد و سرور مقدار آن را آپدیت کرده و به مهاجم برگرداند (نشتِ شدیدِ داده/IDOR). با استفاده از `DO NOTHING` به همراه `SELECT ... WHERE user_id = auth.uid()`، شناسه جعلی کاربر دیگر از فیلتر عبور نکرده و صفر رکورد برگشت داده می‌شود که امنیت کامل را برقرار می‌سازد.
 
-**گام ۱ — تابعِ نرمال‌سازیِ فارسیِ `IMMUTABLE`** (پایه‌ی انطباقِ ایندکس و کوئری):
+**SQLِ verbatim برای داکس:**
 ```sql
-CREATE OR REPLACE FUNCTION public.hexer_fa_normalize(p_input text)
-RETURNS text
-LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
-  SELECT lower(
-    regexp_replace(
-      translate(
-        COALESCE(p_input, ''),
-        -- ی/ك عربی → فارسی ، حذف اعراب و کشیده، نیم‌فاصله → فاصله
-        E'\u064A\u0643\u0640\u200C\u064B\u064C\u064D\u064E\u064F\u0650\u0651\u0652',
-        E'\u06CC\u06A9  '
-      ),
-      '\s+', ' ', 'g'
+-- supabase/sql/47_offline_idempotency.sql — این بلاکها را عیناً کپی کن.
+-- DROP لازم است تا overloadِ قدیمی حذف و فراخوانیِ named-arg مبهم نشود.
+DROP FUNCTION IF EXISTS public.create_task_with_tags(text, text, uuid, timestamptz, text, text[], jsonb);
+CREATE OR REPLACE FUNCTION public.create_task_with_tags(
+    p_title TEXT,
+    p_description TEXT DEFAULT NULL,
+    p_project_id UUID DEFAULT NULL,
+    p_due_date TIMESTAMPTZ DEFAULT NULL,
+    p_priority TEXT DEFAULT 'medium',
+    p_tags TEXT[] DEFAULT '{}',
+    p_checklist JSONB DEFAULT '[]'::jsonb,
+    p_id UUID DEFAULT NULL            -- ← آخرین پارامتر، با DEFAULT
+)
+RETURNS SETOF public.tasks AS $$
+DECLARE
+    v_id UUID := COALESCE(p_id, gen_random_uuid());
+BEGIN
+    INSERT INTO public.tasks (
+        id, user_id, project_id, title, description, priority, due_date, tags, checklist, created_at, updated_at
     )
-  );
-$$;
+    VALUES (
+        v_id, auth.uid(), p_project_id, p_title, p_description, p_priority, p_due_date, p_tags, p_checklist, now(), now()
+    )
+    ON CONFLICT (id) DO NOTHING;
+    -- همیشه ردیفِ خودِ کاربر را برگردان (هم insertِ تازه, هم وجودِ قبلی). scope به auth.uid() = امنیت.
+    RETURN QUERY
+        SELECT * FROM public.tasks WHERE id = v_id AND user_id = auth.uid();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP FUNCTION IF EXISTS public.create_note_with_tags(text, text, uuid, text[]);
+CREATE OR REPLACE FUNCTION public.create_note_with_tags(
+    p_title TEXT,
+    p_content TEXT DEFAULT NULL,
+    p_project_id UUID DEFAULT NULL,
+    p_tags TEXT[] DEFAULT '{}',
+    p_id UUID DEFAULT NULL            -- ← آخرین پارامتر، با DEFAULT
+)
+RETURNS SETOF public.notes AS $$
+DECLARE
+    v_id UUID := COALESCE(p_id, gen_random_uuid());
+BEGIN
+    INSERT INTO public.notes (
+        id, user_id, project_id, title, content, tags, created_at, updated_at
+    )
+    VALUES (
+        v_id, auth.uid(), p_project_id, p_title, p_content, p_tags, now(), now()
+    )
+    ON CONFLICT (id) DO NOTHING;
+    RETURN QUERY
+        SELECT * FROM public.notes WHERE id = v_id AND user_id = auth.uid();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 ```
-> قاعده: چون این تابع در ستونِ `GENERATED` استفاده می‌شود، **باید `IMMUTABLE` بماند** (`translate`/`regexp_replace`/`lower` همگی immutable‌اند). هر تغییرِ بعدیِ منطقِ نرمال‌سازی نیازمندِ مهاجرتِ جدید و بازسازیِ ستون است.
 
-**گام ۲ — ستونِ تولیدشده‌ی `search_vector` (وزن‌دار، `'simple'`)** روی هر سه جدول:
-```sql
-ALTER TABLE public.tasks    ADD COLUMN IF NOT EXISTS search_vector tsvector
-  GENERATED ALWAYS AS (
-    setweight(to_tsvector('simple', hexer_fa_normalize(title)), 'A') ||
-    setweight(to_tsvector('simple', hexer_fa_normalize(COALESCE(description,''))), 'B') ||
-    setweight(to_tsvector('simple', hexer_fa_normalize(COALESCE(array_to_string(tags,' '),''))), 'C')
-  ) STORED;
-
-ALTER TABLE public.notes    ADD COLUMN IF NOT EXISTS search_vector tsvector
-  GENERATED ALWAYS AS (
-    setweight(to_tsvector('simple', hexer_fa_normalize(title)), 'A') ||
+**Service Δ:**
+- `services/taskService.ts` و `services/noteService.ts`: `create*` یک `id` می‌گیرند (یا از `payload.id`) و در `rpcParams` به‌صورتِ `p_id` می‌فرستند.
+- `services/projectService.ts` و `services/habitService.ts`: برای پروژه‌ها و عادات، استفاده از `{ ignoreDuplicates: true }` مجاز نیست و باید به صورت `.upsert([{ id, ...row, user_id }], { onConflict: 'id' }).select().single()` (DO UPDATE) نوشته شوند. دلیلِ آن این است که با ignoreDuplicates:true (یعنی ON CONFLICT DO NOTHING)، در صورت رخداد تعارض، رکوردی برگردانده نشده و در نتیجه متد `.select().single()` با خطا کرش می‌کند. از آنجا که پروژه‌ها و عادات تریگرِ برداری‌سازی (vectorize) ندارند، استفاده از DO UPDATE کاملاً امن و بی‌آسیب است. این کلاینت SECURITY DEFINER نیست، لذا RLS از نشتِ بین‌کاربری به طور کامل محافظت می‌کند (شناسه جعلی متعلق به سایر کاربران خطا انداخته و نشت ایجاد نمی‌کند).
+- `update*`/`delete*` بدونِ تغییر: update طبیعتاً ایدمپوتنت (LWW، هم‌راستا با `useRealtimeSync.handleUpdates`)، delete طبیعتاً ایدمپوتنت (حذفِ ردیفِ غایب = ۰ ردیف، بدونِ خطا).ormalize(title)), 'A') ||
     setweight(to_tsvector('simple', hexer_fa_normalize(COALESCE(content,''))), 'B') ||
     setweight(to_tsvector('simple', hexer_fa_normalize(COALESCE(array_to_string(tags,' '),''))), 'C')
   ) STORED;
@@ -1186,7 +1227,23 @@ DROP INDEX IF EXISTS public.idx_notes_content_trgm;
 - **UX:** `NetworkBanner` (`fixed top-4`) + دکمه‌ی دستیِ `flushOutbox`؛ `ToastNotifications` با نوع‌های `'success'|'error'`، auto-dismiss پس از ۵ ثانیه (در `useDataManager.addNotification`).
 
 ## ۱۴.الف. سنگِ‌بنا — UUID کلاینت به‌عنوان کلید اصلیِ واقعی
-- **فایلِ جدید `utils/uuid.ts`:** تابعِ `export const newId = (): string => …` که `crypto.randomUUID()` را در صورتِ دسترس‌پذیری برمی‌گرداند و در غیرِ این صورت UUID v4 را از `crypto.getRandomValues(new Uint8Array(16))` می‌سازد (تنظیمِ نسخه/variant بیت‌ها). بدونِ وابستگیِ خارجی.
+- **فایلِ جدید `utils/uuid.ts`:** این فایل را عیناً کپی کن؛ هیچ خطی را تغییر نده/بازنویسی نکن.
+```typescript
+// utils/uuid.ts  —  این فایل را عیناً کپی کن؛ هیچ خطی را تغییر نده/بازنویسی نکن.
+export function newId(): string {
+  const c = (typeof globalThis !== 'undefined' ? globalThis.crypto : undefined) as Crypto | undefined;
+  if (c && typeof c.randomUUID === 'function') return c.randomUUID();
+  if (!c || typeof c.getRandomValues !== 'function') {
+    throw new Error('[uuid] Secure crypto API unavailable; cannot generate a safe id.');
+  }
+  const b = c.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6] & 0x0f) | 0x40; // version 4
+  b[8] = (b[8] & 0x3f) | 0x80; // variant 10xx
+  const h = Array.from(b, x => x.toString(16).padStart(2, '0'));
+  return `${h[0]}${h[1]}${h[2]}${h[3]}-${h[4]}${h[5]}-${h[6]}${h[7]}-${h[8]}${h[9]}-${h[10]}${h[11]}${h[12]}${h[13]}${h[14]}${h[15]}`;
+}
+```
+*تصحیح بومی:* بیتهای version/variant روی یکتایی اثر ندارند؛ ریسکِ واقعی، رشتهی نامعتبر (حذفِ صفرِ ابتدایی) است که با padStart(2,'0') ساختاری رفع شده.
 - در `useDataManager`، هر `'temp-' + Date.now()` با `newId()` جایگزین می‌شود. این UUID:
   - شناسه‌ی موجودیتِ optimistic در state و snapshot است،
   - در `payload`/فراخوانیِ سرویس به‌عنوانِ id به سرور فرستاده می‌شود،
@@ -1195,25 +1252,81 @@ DROP INDEX IF EXISTS public.idx_notes_content_trgm;
 
 ## ۱۴.ب. idempotency سمت سرور (RPC Δ + Service Δ)
 **فایلِ SQL جدید (idempotent، append-only): `supabase/sql/47_offline_idempotency.sql`**
-- بازتعریفِ `create_task_with_tags` با افزودنِ پارامترِ **اولِ defaulted** `p_id UUID DEFAULT NULL` (سایر پارامترها بدونِ تغییرِ ترتیب). الگوی بدنه:
+- بازتعریفِ `create_task_with_tags` با افزودنِ پارامترِ **آخرِ defaulted** `p_id UUID DEFAULT NULL` (سایر پارامترها بدونِ تغییرِ ترتیب). گامِ صریحِ `DROP FUNCTION IF EXISTS` با امضای دقیق پیش از `CREATE` الزامی است تا از ایجاد overloadهای تکراری و بروز خطای «function is not unique» جلوگیری شود.
+- الگوی بدنه تابع:
   ```sql
   -- v_id := COALESCE(p_id, gen_random_uuid())
-  RETURN QUERY
   INSERT INTO public.tasks (id, user_id, project_id, title, description, priority, due_date, tags, checklist, created_at, updated_at)
   VALUES (v_id, auth.uid(), p_project_id, p_title, p_description, p_priority, p_due_date, p_tags, p_checklist, now(), now())
-  ON CONFLICT (id) DO NOTHING
-  RETURNING *;
-  IF NOT FOUND THEN
-    RETURN QUERY SELECT * FROM public.tasks WHERE id = v_id AND user_id = auth.uid();
-  END IF;
+  ON CONFLICT (id) DO NOTHING;
+  -- همیشه ردیفِ خودِ کاربر را برگردان
+  RETURN QUERY SELECT * FROM public.tasks WHERE id = v_id AND user_id = auth.uid();
   ```
-  → فراخوانیِ N بار = دقیقاً یک ردیف، و همیشه همان ردیف برگردانده می‌شود.
-- بازتعریفِ مشابهِ `create_note_with_tags` با `p_id UUID DEFAULT NULL`.
-- `SECURITY DEFINER SET search_path = public` و امضای backward-compatible حفظ می‌شوند (Edge Functionِ AI که `p_id` نمی‌فرستد، با `gen_random_uuid()` کار می‌کند).
+  *توجیه امنیتی (حیاتی):* این تابع `SECURITY DEFINER` است و RLS را دور می‌زند. اگر `DO UPDATE ... RETURNING *` بزنیم، مهاجم می‌تواند `p_id` را برابرِ `id`ِ ردیفِ کاربرِ دیگر بسازد و آن ردیف به او برگردد (نشتِ داده/IDOR). با `DO NOTHING` و سپس فیلترِ صریحِ `user_id = auth.uid()`، مهاجم ردیفِ دزدیده‌شده را نخواهد دید (صفر رکورد بازمی‌گردد).
+- برای `create_note_with_tags` نیز ساختار به همین ترتیب و با `p_id UUID DEFAULT NULL` به عنوان آخرین پارامتر و استفاده از `DO NOTHING` به همراه `DROP FUNCTION` با امضای دقیق برای لغو overloadهای قبلی بازنویسی می‌شود.
+
+**پیاده‌سازی مرجع Verbatim SQL:**
+```sql
+-- supabase/sql/47_offline_idempotency.sql — این بلاکها را عیناً کپی کن.
+-- DROP لازم است تا overloadِ قدیمی حذف و فراخوانیِ named-arg مبهم نشود.
+DROP FUNCTION IF EXISTS public.create_task_with_tags(text, text, uuid, timestamptz, text, text[], jsonb);
+CREATE OR REPLACE FUNCTION public.create_task_with_tags(
+    p_title TEXT,
+    p_description TEXT DEFAULT NULL,
+    p_project_id UUID DEFAULT NULL,
+    p_due_date TIMESTAMPTZ DEFAULT NULL,
+    p_priority TEXT DEFAULT 'medium',
+    p_tags TEXT[] DEFAULT '{}',
+    p_checklist JSONB DEFAULT '[]'::jsonb,
+    p_id UUID DEFAULT NULL            -- ← آخرین پارامتر، با DEFAULT
+)
+RETURNS SETOF public.tasks AS $$
+DECLARE
+    v_id UUID := COALESCE(p_id, gen_random_uuid());
+BEGIN
+    INSERT INTO public.tasks (
+        id, user_id, project_id, title, description, priority, due_date, tags, checklist, created_at, updated_at
+    )
+    VALUES (
+        v_id, auth.uid(), p_project_id, p_title, p_description, p_priority, p_due_date, p_tags, p_checklist, now(), now()
+    )
+    ON CONFLICT (id) DO NOTHING;
+    -- همیشه ردیفِ خودِ کاربر را برگردان (هم insertِ تازه، هم وجودِ قبلی). scope به auth.uid() = امنیت.
+    RETURN QUERY
+        SELECT * FROM public.tasks WHERE id = v_id AND user_id = auth.uid();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP FUNCTION IF EXISTS public.create_note_with_tags(text, text, uuid, text[]);
+CREATE OR REPLACE FUNCTION public.create_note_with_tags(
+    p_title TEXT,
+    p_content TEXT DEFAULT NULL,
+    p_project_id UUID DEFAULT NULL,
+    p_tags TEXT[] DEFAULT '{}',
+    p_id UUID DEFAULT NULL            -- ← آخرین پارامتر، با DEFAULT
+)
+RETURNS SETOF public.notes AS $$
+DECLARE
+    v_id UUID := COALESCE(p_id, gen_random_uuid());
+BEGIN
+    INSERT INTO public.notes (
+        id, user_id, project_id, title, content, tags, created_at, updated_at
+    )
+    VALUES (
+        v_id, auth.uid(), p_project_id, p_title, p_content, p_tags, now(), now()
+    )
+    ON CONFLICT (id) DO NOTHING;
+    RETURN QUERY
+        SELECT * FROM public.notes WHERE id = v_id AND user_id = auth.uid();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+```
 
 **Service Δ:**
-- `services/taskService.ts` و `services/noteService.ts`: `create*` یک `id` می‌گیرند (یا از `payload.id`) و در `rpcParams` به‌صورتِ `p_id` می‌فرستند.
-- `services/projectService.ts` و `services/habitService.ts`: `.insert([...])` → `.upsert([{ id, ...row, user_id }], { onConflict: 'id', ignoreDuplicates: true }).select()`. (با `ignoreDuplicates:true` تریگرِ `UPDATE`ـیِ vectorize دوباره شلیک نمی‌شود.)
+- `services/taskService.ts` و `services/noteService.ts`: `create*` یک `id` می‌گیرند (یا از `payload.id`) و در `rpcParams` به‌صورتِ `p_id` در آخرین پارامتر می‌فرستند.
+- `services/projectService.ts` و `services/habitService.ts`: تریگر vectorize بر روی این جداول وجود ندارد، لذا برای جلوگیری از کرش کردن متد `.single()` در صورت بروز conflict، نباید از `ignoreDuplicates: true` استفاده شود. در عوض از upsert پیش‌فرض با `onConflict: 'id'` به این صورت استفاده می‌شود:
+  `.upsert([{ id, ...row, user_id }], { onConflict: 'id' }).select().single()`
+  تغییرات به ساختار `DO UPDATE` تبدیل شده تا همواره رکورد به‌روز یا درج‌شده با موفقیت برگشته و خطای RLS نیز امنیت میان‌کاربری را تضمین کند.
 - `update*`/`delete*` بدونِ تغییر: update طبیعتاً ایدمپوتنت (LWW، هم‌راستا با `useRealtimeSync.handleUpdates`)، delete طبیعتاً ایدمپوتنت (حذفِ ردیفِ غایب = ۰ ردیف، بدونِ خطا).
 
 ## ۱۴.ج. تکمیلِ عادت: SET به‌جای FLIP
