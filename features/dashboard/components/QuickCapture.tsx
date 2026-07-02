@@ -31,18 +31,18 @@ export const QuickCapture: React.FC = () => {
 
   return (
     <WidgetContainer>
-      <h2 className="text-lg font-bold text-white mb-3">ثبت سریع</h2>
+      <h2 className="text-lg font-bold text-[var(--text-main)] mb-3">ثبت سریع</h2>
       <textarea
         value={input}
         onChange={e => setInput(e.target.value)}
         placeholder="یک ایده، فکر یا وظیفه را سریع ثبت کن..."
-        className="w-full bg-gray-800/70 p-3 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 h-20 resize-none transition-all duration-300 border border-white/5 focus:border-purple-500"
+        className="w-full bg-[var(--bg-card)] p-3 rounded-lg text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] h-20 resize-none transition-all duration-300 border border-[var(--border-subtle)] focus:border-[var(--input-focus-ring)]"
       />
       <div className="grid grid-cols-2 gap-3 mt-3">
         <button 
           onClick={() => handleAction('task')} 
           disabled={!input.trim()} 
-          className="flex items-center justify-center gap-2 w-full p-2.5 bg-sky-600/80 rounded-lg text-white font-semibold hover:bg-sky-600 transition-colors disabled:bg-gray-600 disabled:opacity-50 cursor-pointer"
+          className="flex items-center justify-center gap-2 w-full p-2.5 bg-primary rounded-lg text-[var(--text-on-primary)] font-semibold hover:bg-[var(--color-primary-hover)] transition-colors disabled:opacity-40 cursor-pointer"
         >
           <ListChecksIcon className="w-5 h-5"/> 
           <span>ثبت کار</span>
@@ -50,7 +50,7 @@ export const QuickCapture: React.FC = () => {
         <button 
           onClick={() => handleAction('note')} 
           disabled={!input.trim()} 
-          className="flex items-center justify-center gap-2 w-full p-2.5 bg-purple-600/80 rounded-lg text-white font-semibold hover:bg-purple-600 transition-colors disabled:bg-gray-600 disabled:opacity-50 cursor-pointer"
+          className="flex items-center justify-center gap-2 w-full p-2.5 bg-[var(--bg-card)] backdrop-blur-xl text-[var(--text-main)] border border-[var(--border-subtle)] rounded-lg font-semibold hover:bg-[var(--nav-hover-bg)] transition-colors disabled:opacity-40 cursor-pointer"
         >
           <NotebookIcon className="w-5 h-5"/> 
           <span>ثبت یادداشت</span>

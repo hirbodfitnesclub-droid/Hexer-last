@@ -199,7 +199,7 @@
     .pb-safe { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)); }
   </style>
   <script>
-    if (localStorage.getItem('hexer-theme') === 'dark' || (!localStorage.getItem('hexer-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    if (localStorage.getItem('hexer-theme') === 'dark') {
       document.documentElement.classList.add('dark');
       document.documentElement.setAttribute('data-theme', 'dark');
     }

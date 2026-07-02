@@ -52,12 +52,12 @@ export const ProjectDetailsModal: React.FC<ProjectDetailsModalProps> = ({
       className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold border-b-2 transition-all ${
         isActive 
           ? `${colors.text} border-current` 
-          : 'text-zinc-500 border-transparent hover:text-zinc-300'
+          : 'text-[var(--text-muted)] border-transparent hover:text-[var(--text-main)]'
       }`}
     >
       {icon}
       <span>{label}</span>
-      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono ${isActive ? `${colors.bg} ${colors.text}` : 'bg-zinc-800 text-zinc-500'}`}>
+      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono ${isActive ? `${colors.bg} ${colors.text}` : 'bg-[var(--bg-base)] text-[var(--text-muted)]'}`}>
         {count}
       </span>
     </button>
@@ -66,32 +66,32 @@ export const ProjectDetailsModal: React.FC<ProjectDetailsModalProps> = ({
   const ItemRow: React.FC<{ onClick: () => void; children: React.ReactNode; icon: React.ReactNode }> = ({ onClick, children, icon }) => (
     <button 
       onClick={onClick} 
-      className="w-full group flex items-center gap-3 p-3 rounded-xl text-xs text-right text-zinc-200 bg-zinc-900/45 hover:bg-zinc-900 border border-white/5 hover:border-zinc-800 transition-colors"
+      className="w-full group flex items-center gap-3 p-3 rounded-xl text-xs text-right text-[var(--text-main)] bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--border-subtle)] hover:bg-[var(--nav-hover-bg)] hover:border-[var(--border-neon)] transition-colors"
     >
       {icon}
       <span className="flex-1 truncate font-medium">{children}</span>
-      <PencilIcon className="w-3.5 h-3.5 text-zinc-600 group-hover:text-sky-450 transition-colors" />
+      <PencilIcon className="w-3.5 h-3.5 text-[var(--text-muted)] group-hover:text-[var(--color-primary)] transition-colors" />
     </button>
   );
 
   return (
     <div 
       onClick={onClose} 
-      className="fixed inset-0 bg-black/75 backdrop-blur-md z-[70] flex justify-center items-end sm:items-center p-0 sm:p-4"
+      className="fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-md z-[70] flex justify-center items-end sm:items-center p-0 sm:p-4"
       role="dialog"
       aria-modal="true"
     >
       <div 
         onClick={e => e.stopPropagation()} 
-        className="bg-slate-900 border-t sm:border border-slate-700/80 w-full max-w-2xl flex flex-col h-[100dvh] sm:h-[85vh] sm:rounded-2xl shadow-2xl overflow-hidden"
+        className="bg-[var(--bg-card)] border-t sm:border border-[var(--border-subtle)] w-full max-w-2xl flex flex-col h-[100dvh] sm:h-[85vh] sm:rounded-2xl shadow-2xl overflow-hidden"
       >
-        <header className={`relative p-5 pt-safe border-b border-white/5 bg-gradient-to-br ${colors.gradient} to-transparent shrink-0 text-right`} dir="rtl">
+        <header className={`relative p-5 pt-safe border-b border-[var(--border-subtle)] bg-gradient-to-br ${colors.gradient} to-transparent shrink-0 text-right`} dir="rtl">
           <div className="flex items-center gap-4">
             <div className={`w-11 h-11 rounded-xl ${colors.solidBg} flex items-center justify-center shrink-0`}>
               <BriefcaseIcon className="w-6 h-6 text-white/95" />
             </div>
             <div>
-              <h2 className="text-lg font-extrabold text-white font-sans">{project.title}</h2>
+              <h2 className="text-lg font-extrabold text-[var(--text-main)] font-sans">{project.title}</h2>
               <div className={`inline-flex mt-1.5 px-2 py-0.5 text-[9px] font-bold rounded-md ${priorityInfo.bg} ${priorityInfo.text}`}>
                 اولویت: {priorityInfo.label}
               </div>
@@ -99,13 +99,13 @@ export const ProjectDetailsModal: React.FC<ProjectDetailsModalProps> = ({
           </div>
           <button 
             onClick={onClose} 
-            className="absolute top-4 left-4 p-1.5 text-zinc-500 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-colors shrink-0"
+            className="absolute top-4 left-4 p-1.5 text-[var(--text-muted)] hover:text-[var(--text-main)] bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 rounded-xl transition-colors shrink-0"
           >
             <XIcon className="w-5 h-5" />
           </button>
         </header>
 
-        <nav className="shrink-0 border-b border-white/5 px-2 sm:px-4 bg-slate-900" dir="rtl">
+        <nav className="shrink-0 border-b border-[var(--border-subtle)] px-2 sm:px-4 bg-transparent" dir="rtl">
           <div className="flex items-center">
             <TabButton label="نمای کلی" count={0} icon={<LayoutGridIcon className="w-4 h-4"/>} isActive={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
             <TabButton label="کارها" count={projectTasks.length} icon={<ListChecksIcon className="w-4 h-4"/>} isActive={activeTab === 'tasks'} onClick={() => setActiveTab('tasks')} />
@@ -113,40 +113,40 @@ export const ProjectDetailsModal: React.FC<ProjectDetailsModalProps> = ({
           </div>
         </nav>
         
-        <div className="flex-1 overflow-y-auto min-h-0 p-5 sm:p-6 bg-slate-950/20" dir="rtl">
+        <div className="flex-1 overflow-y-auto min-h-0 p-5 sm:p-6 bg-transparent" dir="rtl">
           {activeTab === 'overview' && (
             <div className="space-y-6">
-              <div className="p-4 bg-zinc-900/40 border border-white/5 rounded-2xl">
-                <div className="flex justify-between items-center text-[10px] font-bold text-zinc-500 mb-2">
+              <div className="p-4 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl">
+                <div className="flex justify-between items-center text-[10px] font-bold text-[var(--text-muted)] mb-2">
                   <span>پیشرفت پروژه</span>
-                  <span className="font-semibold text-zinc-350">{progress}%</span>
+                  <span className="font-semibold text-[var(--text-main)]">{progress}%</span>
                 </div>
-                <div className="w-full bg-zinc-950 rounded-full h-2 overflow-hidden">
+                <div className="w-full bg-[var(--bg-base)] rounded-full h-2 overflow-hidden">
                   <div 
                     className={`${colors.solidBg} h-full rounded-full transition-all duration-500`} 
                     style={{ width: `${progress}%` }}
                   ></div>
                 </div>
-                <div className="grid grid-cols-3 gap-4 mt-5 pt-5 border-t border-white/5">
+                <div className="grid grid-cols-3 gap-4 mt-5 pt-5 border-t border-[var(--border-subtle)]">
                   <div className="text-center">
-                    <p className="text-xl font-black text-white font-mono">{activeTasks.length}</p>
-                    <p className="text-[10px] text-zinc-550 font-bold mt-0.5">کار فعال</p>
+                    <p className="text-xl font-black text-[var(--text-main)] font-mono">{activeTasks.length}</p>
+                    <p className="text-[10px] text-[var(--text-muted)] font-bold mt-0.5">کار فعال</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xl font-black text-white font-mono">{completedTasks.length}</p>
-                    <p className="text-[10px] text-zinc-550 font-bold mt-0.5">انجام شده</p>
+                    <p className="text-xl font-black text-[var(--text-main)] font-mono">{completedTasks.length}</p>
+                    <p className="text-[10px] text-[var(--text-muted)] font-bold mt-0.5">انجام شده</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xl font-black text-white font-mono">{projectNotes.length}</p>
-                    <p className="text-[10px] text-zinc-550 font-bold mt-0.5">یادداشت</p>
+                    <p className="text-xl font-black text-[var(--text-main)] font-mono">{projectNotes.length}</p>
+                    <p className="text-[10px] text-[var(--text-muted)] font-bold mt-0.5">یادداشت</p>
                   </div>
                 </div>
               </div>
               
               {project.description && (
                 <div className="space-y-2">
-                  <h3 className="text-xs font-bold text-zinc-400">توضیحات</h3>
-                  <p className="text-xs text-zinc-300 bg-zinc-900/30 border border-white/5 p-4 rounded-xl leading-relaxed whitespace-pre-wrap text-right font-medium">
+                  <h3 className="text-xs font-bold text-[var(--text-muted)]">توضیحات</h3>
+                  <p className="text-xs text-[var(--text-main)] bg-[var(--bg-card)] border border-[var(--border-subtle)] p-4 rounded-xl leading-relaxed whitespace-pre-wrap text-right font-medium">
                     {project.description}
                   </p>
                 </div>
@@ -156,7 +156,7 @@ export const ProjectDetailsModal: React.FC<ProjectDetailsModalProps> = ({
 
           {activeTab === 'tasks' && (
             <div className="space-y-4">
-              <h3 className="text-xs font-bold text-zinc-400 mb-2">کارهای فعال ({activeTasks.length})</h3>
+              <h3 className="text-xs font-bold text-[var(--text-muted)] mb-2">کارهای فعال ({activeTasks.length})</h3>
               {activeTasks.length > 0 ? (
                 <div className="space-y-2.5">
                   {activeTasks.map(t => {
@@ -174,14 +174,14 @@ export const ProjectDetailsModal: React.FC<ProjectDetailsModalProps> = ({
                   })}
                 </div>
               ) : (
-                <p className="text-zinc-550 text-xs text-center py-6 font-bold">هیچ کار فعالی برای این پروژه وجود ندارد.</p>
+                <p className="text-[var(--text-muted)] text-xs text-center py-6 font-bold">هیچ کار فعالی برای این پروژه وجود ندارد.</p>
               )}
              
               {completedTasks.length > 0 && (
                 <div className="pt-2">
                   <button 
                     onClick={() => setShowCompleted(!showCompleted)} 
-                    className="w-full flex justify-between items-center px-1 py-2 text-xs text-zinc-500 hover:text-zinc-300 transition-colors font-bold"
+                    className="w-full flex justify-between items-center px-1 py-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors font-bold"
                   >
                     <span>انجام‌شده ({completedTasks.length})</span>
                     <ChevronDownIcon className={`w-4 h-4 transition-transform duration-350 ${!showCompleted ? '' : 'rotate-180'}`} />
@@ -206,7 +206,7 @@ export const ProjectDetailsModal: React.FC<ProjectDetailsModalProps> = ({
 
           {activeTab === 'notes' && (
             <div className="space-y-2.5">
-              <h3 className="text-xs font-bold text-zinc-400 mb-2">یادداشت‌های مرتبط ({projectNotes.length})</h3>
+              <h3 className="text-xs font-bold text-[var(--text-muted)] mb-2">یادداشت‌های مرتبط ({projectNotes.length})</h3>
               {projectNotes.length > 0 ? (
                 <div className="space-y-2.5">
                   {projectNotes.map(n => (
@@ -220,7 +220,7 @@ export const ProjectDetailsModal: React.FC<ProjectDetailsModalProps> = ({
                   ))}
                 </div>
               ) : (
-                <p className="text-zinc-550 text-xs text-center py-6 font-bold">هیچ یادداشتی برای این پروژه ثبت نشده است.</p>
+                <p className="text-[var(--text-muted)] text-xs text-center py-6 font-bold">هیچ یادداشتی برای این پروژه ثبت نشده است.</p>
               )}
             </div>
           )}

@@ -310,15 +310,15 @@ const AuthComponent: React.FC = () => {
   };
 
   return (
-    <div dir="rtl" className="flex items-center justify-center min-h-screen bg-gray-950 p-4">
+    <div dir="rtl" className="flex items-center justify-center min-h-screen bg-[var(--bg-base)] p-4">
       {/* Keyboard-friendly scroll container for Mobile PWAs with exact z-index safety */}
-      <div id="auth-card-container" className="w-full max-w-sm mx-auto bg-gray-900/40 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 shadow-2xl max-h-[96dvh] overflow-y-auto space-y-6">
+      <div id="auth-card-container" className="w-full max-w-sm mx-auto bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-2xl p-6 shadow-2xl max-h-[96dvh] overflow-y-auto space-y-6">
         
         {/* Title Block */}
         <div className="text-center space-y-2">
-          <img src="/icon-192.png" alt="Hexer App Logo" className="w-16 h-16 mx-auto rounded-2xl object-cover shadow-lg border border-white/5" referrerPolicy="no-referrer" />
-          <h1 className="text-xl font-bold text-white tracking-tight">به Hexer خوش اومدی</h1>
-          <p className="text-xs text-gray-400">
+          <img src="/icon-192.png" alt="Hexer App Logo" className="w-16 h-16 mx-auto rounded-2xl object-cover shadow-lg border border-[var(--border-subtle)]" referrerPolicy="no-referrer" />
+          <h1 className="text-xl font-bold text-[var(--text-main)] tracking-tight">به Hexer خوش اومدی</h1>
+          <p className="text-xs text-[var(--text-muted)]">
             {mode === 'login' && 'وارد حساب کاربری خود شوید'}
             {mode === 'signup' && step === 'input' && 'یک حساب کاربری جدید ایجاد کنید'}
             {mode === 'signup' && step === 'verify' && 'کد تایید فرستاده شده را وارد کنید'}
@@ -330,14 +330,14 @@ const AuthComponent: React.FC = () => {
 
         {/* Message and Error Toasts */}
         {error && (
-          <div className="flex items-start gap-2 bg-red-950/40 border border-red-800/50 p-3 rounded-lg text-xs text-red-300">
-            <WarningIcon className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2 bg-[var(--semantic-error-soft)] border border-[var(--semantic-error)]/20 p-3 rounded-lg text-xs text-[var(--semantic-error)]">
+            <WarningIcon className="w-4 h-4 text-[var(--semantic-error)] shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
         )}
         {message && (
-          <div className="flex items-start gap-2 bg-emerald-950/40 border border-emerald-800/50 p-3 rounded-lg text-xs text-emerald-300">
-            <CheckIcon className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2 bg-primary/10 border border-primary/20 p-3 rounded-lg text-xs text-primary">
+            <CheckIcon className="w-4 h-4 text-primary shrink-0 mt-0.5" />
             <span>{message}</span>
           </div>
         )}
@@ -347,7 +347,7 @@ const AuthComponent: React.FC = () => {
           <form onSubmit={handleInitialSubmit} className="space-y-4">
             {/* Phone input */}
             <div>
-              <label htmlFor="phone" className="text-xs font-semibold text-gray-300 block mb-1.5">شماره موبایل</label>
+              <label htmlFor="phone" className="text-xs font-semibold text-[var(--text-muted)] block mb-1.5">شماره موبایل</label>
               <input
                 id="phone"
                 type="tel"
@@ -358,7 +358,7 @@ const AuthComponent: React.FC = () => {
                 onChange={(e) => setPhone(e.target.value)}
                 required
                 disabled={loading}
-                className="w-full bg-gray-800/70 border border-gray-700/60 rounded-xl px-4 py-2.5 text-center text-white text-sm font-mono placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500/80 transition-all"
+                className="w-full bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] rounded-xl px-4 py-2.5 text-center text-[var(--text-main)] text-sm font-mono placeholder-[var(--text-muted)]/50 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                 placeholder="09123456789"
               />
             </div>
@@ -366,7 +366,7 @@ const AuthComponent: React.FC = () => {
             {/* Password input (only shown for login / signup) */}
             {mode !== 'forgot' && (
               <div>
-                <label htmlFor="auth-password" className="text-xs font-semibold text-gray-300 block mb-1.5">رمز عبور</label>
+                <label htmlFor="auth-password" className="text-xs font-semibold text-[var(--text-muted)] block mb-1.5">رمز عبور</label>
                 <input
                   id="auth-password"
                   type="password"
@@ -375,7 +375,7 @@ const AuthComponent: React.FC = () => {
                   required
                   disabled={loading}
                   minLength={8}
-                  className="w-full bg-gray-800/70 border border-gray-700/60 rounded-xl px-4 py-2.5 text-center text-white text-sm font-mono placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500/80 transition-all"
+                  className="w-full bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] rounded-xl px-4 py-2.5 text-center text-[var(--text-main)] text-sm font-mono placeholder-[var(--text-muted)]/50 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                   placeholder="رمز عبور (حداقل ۸ کاراکتر)"
                 />
               </div>
@@ -385,10 +385,10 @@ const AuthComponent: React.FC = () => {
               id="auth-submit-btn"
               type="submit"
               disabled={loading}
-              className="w-full bg-sky-500 hover:bg-sky-600 active:bg-sky-700 text-white font-semibold text-sm py-2.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
+              className="w-full bg-primary text-[var(--text-on-primary)] hover:opacity-90 font-semibold text-sm py-2.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4 shadow-md"
             >
               {loading ? (
-                <div className="animate-spin rounded-full h-4.5 w-4.5 border-t-2 border-b-2 border-white"></div>
+                <div className="animate-spin rounded-full h-4.5 w-4.5 border-t-2 border-b-2 border-[var(--text-on-primary)]"></div>
               ) : (
                 <>
                   {mode === 'login' && 'ورود به حساب'}
@@ -404,9 +404,9 @@ const AuthComponent: React.FC = () => {
         {step === 'verify' && (
           <form onSubmit={handleVerifySubmit} className="space-y-4">
             <div className="text-center">
-              <span className="text-xs text-gray-400">کد ارسال شده به شماره </span>
-              <span className="text-xs text-sky-400 font-mono font-bold">{phone}</span>
-              <span className="text-xs text-gray-400"> را وارد نمایید:</span>
+              <span className="text-xs text-[var(--text-muted)]">کد ارسال شده به شماره </span>
+              <span className="text-xs text-primary font-mono font-bold">{phone}</span>
+              <span className="text-xs text-[var(--text-muted)]"> را وارد نمایید:</span>
             </div>
 
             <div>
@@ -420,18 +420,18 @@ const AuthComponent: React.FC = () => {
                 onChange={(e) => setVerificationCode(e.target.value)}
                 required
                 disabled={loading}
-                className="w-full bg-gray-800/70 border border-gray-700/60 rounded-xl px-4 py-3 text-center text-white text-lg font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-sky-500/80 transition-all placeholder:text-gray-600"
+                className="w-full bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-center text-[var(--text-main)] text-lg font-mono tracking-widest focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:[var(--text-muted)]/30"
                 placeholder="──────"
                 autoFocus
               />
             </div>
 
-            <div className="flex items-center justify-between text-xs text-gray-400">
+            <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
               <button
                 type="button"
                 onClick={() => setStep('input')}
                 disabled={loading}
-                className="hover:text-white flex items-center gap-1 transition-colors"
+                className="hover:text-[var(--text-main)] flex items-center gap-1 transition-colors"
               >
                 <ChevronRightIcon className="w-4 h-4" />
                 <span>ویرایش شماره</span>
@@ -439,7 +439,7 @@ const AuthComponent: React.FC = () => {
 
               {timer > 0 ? (
                 <div className="flex items-center gap-1 opacity-85">
-                  <ClockIcon className="w-3.5 h-3.5 text-sky-400 animate-pulse" />
+                  <ClockIcon className="w-3.5 h-3.5 text-primary animate-pulse" />
                   <span>ارسال مجدد ({timer} ثانیه)</span>
                 </div>
               ) : (
@@ -447,7 +447,7 @@ const AuthComponent: React.FC = () => {
                   type="button"
                   onClick={handleResendOtp}
                   disabled={loading}
-                  className="text-sky-400 hover:text-sky-300 font-medium transition-colors"
+                  className="text-primary hover:opacity-80 font-medium transition-colors"
                 >
                   ارسال مجدد کد تایید
                 </button>
@@ -458,10 +458,10 @@ const AuthComponent: React.FC = () => {
               id="verify-submit-btn"
               type="submit"
               disabled={loading}
-              className="w-full bg-sky-500 hover:bg-sky-600 active:bg-sky-700 text-white font-semibold text-sm py-2.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full bg-primary text-[var(--text-on-primary)] hover:opacity-90 font-semibold text-sm py-2.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md"
             >
               {loading ? (
-                <div className="animate-spin rounded-full h-4.5 w-4.5 border-t-2 border-b-2 border-white"></div>
+                <div className="animate-spin rounded-full h-4.5 w-4.5 border-t-2 border-b-2 border-[var(--text-on-primary)]"></div>
               ) : (
                 'تایید کد'
               )}
@@ -473,7 +473,7 @@ const AuthComponent: React.FC = () => {
         {step === 'new_password' && (
           <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
             <div>
-              <label htmlFor="new-password-field" className="text-xs font-semibold text-gray-300 block mb-1.5">رمز عبور جدید</label>
+              <label htmlFor="new-password-field" className="text-xs font-semibold text-[var(--text-muted)] block mb-1.5">رمز عبور جدید</label>
               <input
                 id="new-password-field"
                 type="password"
@@ -482,13 +482,13 @@ const AuthComponent: React.FC = () => {
                 required
                 disabled={loading}
                 minLength={8}
-                className="w-full bg-gray-800/70 border border-gray-700/60 rounded-xl px-4 py-2.5 text-center text-white text-sm font-mono placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500/80 transition-all"
+                className="w-full bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] rounded-xl px-4 py-2.5 text-center text-[var(--text-main)] text-sm font-mono placeholder-[var(--text-muted)]/50 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                 placeholder="رمز عبور (حداقل ۸ کاراکتر)"
               />
             </div>
 
             <div>
-              <label htmlFor="new-password-confirm" className="text-xs font-semibold text-gray-300 block mb-1.5">تکرار رمز عبور جدید</label>
+              <label htmlFor="new-password-confirm" className="text-xs font-semibold text-[var(--text-muted)] block mb-1.5">تکرار رمز عبور جدید</label>
               <input
                 id="new-password-confirm"
                 type="password"
@@ -497,7 +497,7 @@ const AuthComponent: React.FC = () => {
                 required
                 disabled={loading}
                 minLength={8}
-                className="w-full bg-gray-800/70 border border-gray-700/60 rounded-xl px-4 py-2.5 text-center text-white text-sm font-mono placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500/80 transition-all"
+                className="w-full bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] rounded-xl px-4 py-2.5 text-center text-[var(--text-main)] text-sm font-mono placeholder-[var(--text-muted)]/50 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                 placeholder="رمز عبور (حداقل ۸ کاراکتر)"
               />
             </div>
@@ -506,10 +506,10 @@ const AuthComponent: React.FC = () => {
               id="new-password-submit-btn"
               type="submit"
               disabled={loading}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-sm py-2.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full bg-primary text-[var(--text-on-primary)] hover:opacity-90 font-semibold text-sm py-2.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md"
             >
               {loading ? (
-                <div className="animate-spin rounded-full h-4.5 w-4.5 border-t-2 border-b-2 border-white"></div>
+                <div className="animate-spin rounded-full h-4.5 w-4.5 border-t-2 border-b-2 border-[var(--text-on-primary)]"></div>
               ) : (
                 'ذخیره و ورود'
               )}
@@ -519,28 +519,28 @@ const AuthComponent: React.FC = () => {
 
         {/* Footer Navigation Switchers */}
         {step === 'input' && (
-          <div className="text-xs text-center text-gray-400 space-y-1.5 pt-2 border-t border-white/5">
+          <div className="text-xs text-center text-[var(--text-muted)] space-y-1.5 pt-2 border-t border-[var(--border-subtle)]">
             {mode === 'login' ? (
               <>
                 <p>
                   یافت نشد؟{' '}
-                  <button type="button" onClick={() => toggleMode('signup')} className="font-semibold text-sky-400 hover:underline">
+                  <button type="button" onClick={() => toggleMode('signup')} className="font-semibold text-primary hover:underline">
                     ثبت‌نام کنید
                   </button>
                 </p>
-                <button type="button" onClick={() => toggleMode('forgot')} className="text-xs text-gray-500 hover:text-white transition-colors">
+                <button type="button" onClick={() => toggleMode('forgot')} className="text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors">
                   فراموشی رمز عبور؟
                 </button>
               </>
             ) : mode === 'signup' ? (
               <p>
                 حساب کاربری دارید؟{' '}
-                <button type="button" onClick={() => toggleMode('login')} className="font-semibold text-sky-400 hover:underline">
+                <button type="button" onClick={() => toggleMode('login')} className="font-semibold text-primary hover:underline">
                   وارد شوید
                 </button>
               </p>
             ) : (
-              <button type="button" onClick={() => toggleMode('login')} className="font-semibold text-sky-400 hover:underline flex items-center justify-center gap-1 mx-auto">
+              <button type="button" onClick={() => toggleMode('login')} className="font-semibold text-primary hover:underline flex items-center justify-center gap-1 mx-auto">
                 <span>بازگشت به ورود</span>
               </button>
             )}

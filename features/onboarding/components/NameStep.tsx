@@ -32,21 +32,21 @@ export const NameStep: React.FC<NameStepProps> = ({ onSubmit }) => {
       {/* Icon Badge with soft gradient */}
       <div
         id="name-step-icon-badge"
-        className="w-16 h-16 rounded-2xl bg-neutral-800 border border-neutral-700 flex items-center justify-center shadow-md mb-6"
+        className="w-16 h-16 rounded-2xl bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--border-subtle)] flex items-center justify-center shadow-md mb-6"
       >
-        <UserIcon className="w-8 h-8 text-neutral-400" />
+        <UserIcon className="w-8 h-8 text-primary" />
       </div>
 
       <div id="name-step-header" className="text-center space-y-2 mb-8">
-        <h2
+         <h2
           id="name-step-title"
-          className="text-2xl font-black text-white leading-tight tracking-tight"
+          className="text-2xl font-black text-[var(--text-main)] leading-tight tracking-tight"
         >
           سلام! 👋
         </h2>
         <p
           id="name-step-subtitle"
-          className="text-sm text-neutral-400 leading-relaxed max-w-xs mx-auto"
+          className="text-sm text-[var(--text-muted)] leading-relaxed max-w-xs mx-auto"
         >
           هکسر قراره دستیارِ شخصیت باشه؛ پس اول با هم آشنا بشیم.
         </p>
@@ -61,7 +61,7 @@ export const NameStep: React.FC<NameStepProps> = ({ onSubmit }) => {
           <label
             id="first-name-label"
             htmlFor="first-name-input"
-            className="text-xs font-bold text-neutral-400 block pr-1"
+            className="text-xs font-bold text-[var(--text-muted)] block pr-1"
           >
             نام
           </label>
@@ -74,7 +74,7 @@ export const NameStep: React.FC<NameStepProps> = ({ onSubmit }) => {
               if (error) setError('');
             }}
             placeholder="مثلاً: سینا"
-            className="w-full h-12 px-4 rounded-2xl bg-neutral-900 border border-neutral-800 text-white placeholder-neutral-600 focus:outline-none focus:border-neutral-700 focus:ring-1 focus:ring-neutral-700 text-sm transition-all duration-200"
+            className="w-full h-12 px-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] text-[var(--text-main)] placeholder-muted/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-sm transition-all duration-200"
           />
         </div>
 
@@ -82,9 +82,9 @@ export const NameStep: React.FC<NameStepProps> = ({ onSubmit }) => {
           <label
             id="last-name-label"
             htmlFor="last-name-input"
-            className="text-xs font-bold text-neutral-400 block pr-1"
+            className="text-xs font-bold text-[var(--text-muted)] block pr-1"
           >
-            نام خانوادگی <span className="text-[10px] text-neutral-500 font-normal mr-1">(اختیاری)</span>
+            نام خانوادگی <span className="text-[10px] text-[var(--text-muted)] opacity-70 font-normal mr-1">(اختیاری)</span>
           </label>
           <input
             id="last-name-input"
@@ -95,7 +95,7 @@ export const NameStep: React.FC<NameStepProps> = ({ onSubmit }) => {
               if (error) setError('');
             }}
             placeholder="مثلاً: رادمان"
-            className="w-full h-12 px-4 rounded-2xl bg-neutral-900 border border-neutral-800 text-white placeholder-neutral-600 focus:outline-none focus:border-neutral-700 focus:ring-1 focus:ring-neutral-700 text-sm transition-all duration-200"
+            className="w-full h-12 px-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] text-[var(--text-main)] placeholder-muted/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-sm transition-all duration-200"
           />
         </div>
 
@@ -108,7 +108,7 @@ export const NameStep: React.FC<NameStepProps> = ({ onSubmit }) => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="text-red-500 text-xs font-bold text-right pr-1"
+              className="text-[var(--semantic-error)] text-xs font-bold text-right pr-1"
             >
               {error}
             </motion.div>
@@ -122,8 +122,8 @@ export const NameStep: React.FC<NameStepProps> = ({ onSubmit }) => {
           disabled={!isFormValid}
           className={`w-full h-12 rounded-2xl font-black text-sm transition-all duration-300 active:scale-95 flex items-center justify-center ${
             isFormValid
-              ? 'bg-white text-black hover:bg-neutral-200 shadow-md shadow-white/5'
-              : 'bg-neutral-900 text-neutral-600 border border-neutral-800 cursor-not-allowed'
+              ? 'bg-primary text-[var(--text-on-primary)] hover:opacity-90 shadow-md'
+              : 'bg-black/5 dark:bg-white/5 text-[var(--text-muted)]/50 border border-[var(--border-subtle)]/50 cursor-not-allowed'
           }`}
         >
           بریم مرحله بعد

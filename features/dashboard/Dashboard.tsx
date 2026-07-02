@@ -1,33 +1,30 @@
 import React, { useMemo, useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import { isSameTehranDay } from '../../utils/dateUtils';
-import ProfileModal from '../../components/ProfileModal';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { WeeklyReportModal } from './components/WeeklyReportModal';
+import { OverdueTasksModal } from './components/OverdueTasksModal';
 
 // Feature subcomponents
 import { DashboardHeader } from './components/DashboardHeader';
 import { WeekCalendar } from './components/WeekCalendar';
 import { TodaysPlan } from './components/TodaysPlan';
-import { TodaysNotes } from './components/TodaysNotes';
-import { QuickCapture } from './components/QuickCapture';
 import { StatsOverview } from './components/StatsOverview';
-import { HabitTracker } from './components/HabitTracker';
 import { KeyProjects } from './components/KeyProjects';
+import { ProductivityChart } from './components/ProductivityChart';
+import { FocusTimer } from './components/FocusTimer';
+import { AiComposerPanel } from './components/AiComposerPanel';
 
 const Dashboard: React.FC = () => {
-  const { user, signOut } = useAuth();
   const {
     tasks,
     selectedDate,
     setSelectedDate,
-    subscription,
-    profile,
-    onTriggerUpgrade,
   } = useData();
 
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [isOverdueOpen, setIsOverdueOpen] = useState(false);
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   // Calculate selected day's progress for the Header Ring
   const selectedDayProgressStats = useMemo(() => {
@@ -42,51 +39,61 @@ const Dashboard: React.FC = () => {
   }, [tasks, selectedDate]);
 
   return (
-    <div className="pb-2">
-      {/* Sticky Header with Smart Profile Ring (synced to selectedDate progress) */}
-      <DashboardHeader 
-        onOpenProfile={() => setIsProfileOpen(true)} 
-        todayProgress={selectedDayProgressStats.progress}
-        hasTasksToday={selectedDayProgressStats.hasTasks}
-      />
-      
-      {/* Scrollable Content Container with Top Padding for Separation */}
-      <div className="px-4 sm:px-6 max-w-7xl mx-auto space-y-6 pt-5">
-        <WeekCalendar selectedDate={selectedDate} onDateChange={setSelectedDate} />
-        
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* Main Column (Right) */}
-          <div className="lg:col-span-3 space-y-6">
-            <TodaysPlan />
-            <TodaysNotes />
-            <QuickCapture />
-          </div>
-
-          {/* Side Column (Left) */}
-          <div className="lg:col-span-2 space-y-6">
-            <StatsOverview onOpenWeeklyReport={() => setIsReportOpen(true)} />
-            <HabitTracker />
+    <div className="h-full pb-2">
+      {isDesktop ? (
+        <div className="flex gap-4 h-full" id="desktop-dashboard">
+          {/* ستون ۲: مرکز فرمان (انعطاف‌پذیر، دارای اسکرول داخلی) */}
+          <section className="flex-1 flex flex-col gap-4 min-w-0 h-full">
+            <AiComposerPanel />
+            <ProductivityChart />
+            {/* TodaysPlan تنها کامپوننتی است که کشسان و دارای اسکرول داخلی است */}
+            <div className="flex-1 min-h-0">
+              <TodaysPlan onOpenOverdueModal={() => setIsOverdueOpen(true)} />
+            </div>
+          </section>
+          {/* ستون ۳: بافتار داده (اسکرول داخلی کل ستون برای ایمنیِ زوم) */}
+          <aside className="w-[320px] shrink-0 flex flex-col gap-4 h-full overflow-y-auto soft-scroll pb-2 pr-1">
+            <StatsOverview 
+              onOpenWeeklyReport={() => setIsReportOpen(true)} 
+              onOpenOverdueModal={() => setIsOverdueOpen(true)} 
+            />
+            <WeekCalendar selectedDate={selectedDate} onDateChange={setSelectedDate} />
             <KeyProjects />
-          </div>
+            <FocusTimer />
+          </aside>
         </div>
-      </div>
-
-      <ProfileModal 
-        isOpen={isProfileOpen} 
-        onClose={() => setIsProfileOpen(false)} 
-        user={user} 
-        signOut={signOut} 
-        subscription={subscription}
-        profile={profile}
-        onTriggerUpgrade={onTriggerUpgrade}
-      />
+      ) : (
+        <div className="flex flex-col gap-6 px-5 pt-0 pb-bottom-nav" id="mobile-dashboard">
+          <DashboardHeader 
+            onOpenProfile={() => window.dispatchEvent(new CustomEvent('hexer:open-profile'))} 
+            todayProgress={selectedDayProgressStats.progress}
+            hasTasksToday={selectedDayProgressStats.hasTasks}
+          />
+          <WeekCalendar selectedDate={selectedDate} onDateChange={setSelectedDate} />
+          <AiComposerPanel />
+          <StatsOverview 
+            onOpenWeeklyReport={() => setIsReportOpen(true)} 
+            onOpenOverdueModal={() => setIsOverdueOpen(true)} 
+          />
+          <TodaysPlan onOpenOverdueModal={() => setIsOverdueOpen(true)} />
+          <ProductivityChart />
+          <KeyProjects />
+          <FocusTimer />
+        </div>
+      )}
 
       <WeeklyReportModal 
         isOpen={isReportOpen} 
         onClose={() => setIsReportOpen(false)} 
+      />
+
+      <OverdueTasksModal 
+        isOpen={isOverdueOpen} 
+        onClose={() => setIsOverdueOpen(false)} 
       />
     </div>
   );
 };
 
 export default Dashboard;
+

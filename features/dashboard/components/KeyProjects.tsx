@@ -1,21 +1,7 @@
 import React, { useMemo } from 'react';
 import { useData } from '../../../contexts/DataContext';
 import { Priority } from '../../../types';
-import { WidgetContainer } from './WidgetContainer';
-
-const getColorClass = (color: string) => {
-  switch (color?.toLowerCase()) {
-    case 'indigo': return 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]';
-    case 'purple': return 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]';
-    case 'pink': return 'bg-pink-500 shadow-[0_0_8px_rgba(244,114,182,0.5)]';
-    case 'red': return 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]';
-    case 'yellow': return 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.5)]';
-    case 'green': return 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]';
-    case 'blue': return 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]';
-    case 'sky': return 'bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.5)]';
-    default: return 'bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.5)]';
-  }
-};
+import { FolderGit2Icon, ArrowLeftIcon } from '../../../components/icons';
 
 export const KeyProjects: React.FC = () => {
   const { projects, tasks } = useData();
@@ -28,33 +14,63 @@ export const KeyProjects: React.FC = () => {
         const completed = projectTasks.filter(t => t.status === 'done').length;
         const progress = projectTasks.length > 0 ? Math.round((completed / projectTasks.length) * 100) : 0;
         return { ...p, progress, remaining: projectTasks.length - completed };
-      })
-      .slice(0, 3);
+      });
   }, [projects, tasks]);
-  
-  if (highPriorityProjects.length === 0) return null;
+
+  // If there are no high priority projects, show the empty state
+  if (highPriorityProjects.length === 0) {
+    return (
+      <div className="tile-lime min-h-[200px] p-4 rounded-[var(--radius-lg)] flex flex-col justify-between shadow-sm" id="key-projects-panel-empty">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <FolderGit2Icon className="w-5 h-5 text-[var(--text-on-primary)]" />
+            <h2 className="text-xs font-black text-[var(--text-on-primary)]">پروژه کلیدی</h2>
+          </div>
+          <span className="text-[10px] font-bold text-[var(--text-on-primary)] bg-black/10 px-2 py-0.5 rounded-full">غیرفعال</span>
+        </div>
+        <div className="my-auto text-center">
+          <p className="text-xs font-medium text-[var(--text-on-primary)]">پروژه با اولویت بالا یافت نشد.</p>
+        </div>
+        <div className="flex justify-end">
+          <ArrowLeftIcon className="w-4 h-4 text-[var(--text-on-primary)]" />
+        </div>
+      </div>
+    );
+  }
+
+  const project = highPriorityProjects[0];
 
   return (
-    <WidgetContainer>
-      <h2 className="text-lg font-bold text-white mb-4">پروژه‌های کلیدی</h2>
-      <div className="space-y-4">
-        {highPriorityProjects.map(p => (
-          <div key={p.id} className="group">
-            <div className="flex justify-between items-center mb-1.5">
-              <span className="font-semibold text-sm text-gray-200 group-hover:text-white transition-colors">
-                {p.title}
-              </span>
-              <span className="text-xs font-mono text-gray-400">{p.progress}%</span>
-            </div>
-            <div className="w-full bg-gray-700/50 rounded-full h-1.5 overflow-hidden">
-              <div 
-                className={`h-1.5 rounded-full transition-all duration-500 ${getColorClass(p.color)}`} 
-                style={{ width: `${p.progress}%` }}
-              ></div>
-            </div>
-          </div>
-        ))}
+    <div className="tile-lime min-h-[200px] p-4 rounded-[var(--radius-lg)] flex flex-col justify-between shadow-sm" id="key-projects-panel">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <FolderGit2Icon className="w-5 h-5 text-[var(--text-on-primary)]" />
+          <h2 className="text-xs font-black text-[var(--text-on-primary)]">پروژه کلیدی</h2>
+        </div>
+        <span className="text-[10px] font-bold text-[var(--text-on-primary)] bg-black/10 px-2 py-0.5 rounded-full">فعال</span>
       </div>
-    </WidgetContainer>
+      
+      <div className="my-2 text-right">
+        <h3 className="font-semibold text-sm text-[var(--text-on-primary)] truncate max-w-[90%]">
+          {project.title}
+        </h3>
+        <p className="text-[10px] text-[var(--text-on-primary)] opacity-80 mt-1">
+          کارهای باقی‌مانده: {project.remaining}
+        </p>
+      </div>
+
+      <div className="group mt-auto">
+        <div className="flex justify-between items-center mb-1.5">
+          <span className="text-[10px] font-bold text-[var(--text-on-primary)]">پیشرفت پروژه</span>
+          <span className="text-xs font-mono font-bold text-[var(--text-on-primary)]">{project.progress}%</span>
+        </div>
+        <div className="h-2 rounded-full bg-black/10 overflow-hidden">
+          <div 
+            className="h-full bg-[var(--text-on-primary)] rounded-full transition-all duration-500" 
+            style={{ width: `${project.progress}%` }}
+          ></div>
+        </div>
+      </div>
+    </div>
   );
 };

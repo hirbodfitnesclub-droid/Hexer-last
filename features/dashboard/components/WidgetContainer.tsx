@@ -9,7 +9,7 @@ interface WidgetProps {
 export const WidgetContainer: React.FC<WidgetProps> = ({ children, className, id }) => (
   <div 
     id={id}
-    className={`bg-gray-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-4 sm:p-5 shadow-2xl shadow-black/30 transition-all duration-300 ${className || ''}`}
+    className={`bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-[var(--radius-lg)] p-4 sm:p-5 ${className || ''}`}
   >
     {children}
   </div>

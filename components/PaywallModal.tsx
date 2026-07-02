@@ -26,6 +26,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
     } catch (err: any) {
       console.error('Checkout failed:', err);
       setError(err?.message || 'خطا در ثبت درخواست پرداخت. لطفا دوباره تلاش کنید.');
+    } finally {
       setLoadingPlan(null);
     }
   };
@@ -37,7 +38,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
       price: 'رایگان',
       period: '۳ روزه',
       quota: '۳۰ درخواست اولیه',
-      model: 'Gemini 3.1 Lite',
+      model: 'Hexer Ai',
       features: [
         'دسترسی رایگان ۳ روزه تستی',
         '۳۰ درخواست اولیه',
@@ -45,9 +46,9 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
         'بدون محدودیت روزانه درخواست'
       ],
       popular: false,
-      color: 'border-neutral-800 bg-neutral-900/30 text-neutral-400',
+      color: 'border-[var(--border-subtle)] bg-[var(--bg-card)]/50 text-[var(--text-muted)]',
       tag: 'تست رایگان',
-      tagColor: 'bg-neutral-800 text-neutral-400'
+      tagColor: 'bg-[var(--nav-hover-bg)] text-[var(--text-muted)]'
     },
     {
       code: 'starter',
@@ -55,7 +56,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
       price: '۹۹,۰۰۰',
       period: '۳۰ روزه',
       quota: '۳۰۰ درخواست هوشمند',
-      model: 'Gemini 3.1 Lite',
+      model: 'Hexer Ai',
       features: [
         'دسترسی ۳۰ روزه پایدار تمدیدپذیر',
         '۳۰۰ درخواست هوشمند ماهانه',
@@ -63,9 +64,9 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
         'تعریف نامحدود یادداشت‌ها و کارها'
       ],
       popular: false,
-      color: 'border-zinc-800 bg-neutral-900/40 text-white hover:border-zinc-700',
+      color: 'border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-main)] hover:border-primary/40',
       tag: 'اقتصادی',
-      tagColor: 'bg-zinc-800 text-zinc-300'
+      tagColor: 'bg-[var(--nav-hover-bg)] text-[var(--text-main)]'
     },
     {
       code: 'plus',
@@ -73,7 +74,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
       price: '۱۹۹,۰۰۰',
       period: '۳۰ روزه',
       quota: '۷۰۰ درخواست هوشمند',
-      model: 'Gemini 3.1 Lite',
+      model: 'Hexer Ai',
       features: [
         'دسترسی ۳۰ روزه پایدار تمدیدپذیر',
         '۷۰۰ درخواست هوشمند ماهانه',
@@ -81,9 +82,9 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
         'بارگذاری مستقیم تصاویر و صوت'
       ],
       popular: true,
-      color: 'border-[#00d2ff]/30 bg-neutral-900/60 text-white ring-1 ring-[#00d2ff]/10 shadow-[0_0_30px_rgba(0,210,255,0.03)]',
+      color: 'border-primary/40 bg-[var(--bg-card)] text-[var(--text-main)] ring-1 ring-primary/20 shadow-[0_0_20px_rgb(var(--color-primary-rgb)/0.15)]',
       tag: 'پیشنهاد هکسر ⚡',
-      tagColor: 'bg-[#00d2ff] text-neutral-950 font-black'
+      tagColor: 'bg-primary text-[var(--text-on-primary)] font-black'
     },
     {
       code: 'pro',
@@ -91,7 +92,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
       price: '۳۶۹,۰۰۰',
       period: '۳۰ روزه',
       quota: '۱,۳۰۰ درخواست هوشمند',
-      model: 'Gemini 3.1 Lite',
+      model: 'Hexer Ai',
       features: [
         'دسترسی ۳۰ روزه ممتاز و نامحدود',
         '۱,۳۰۰ درخواست هوشمند ماهانه',
@@ -99,61 +100,61 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
         'پشتیبانی VIP و پردازش کارهای سنگین'
       ],
       popular: false,
-      color: 'border-fuchsia-500/30 bg-neutral-900/50 text-white ring-1 ring-fuchsia-500/10 shadow-[0_0_40px_rgba(217,70,239,0.05)]',
+      color: 'border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-main)] hover:border-primary/40',
       tag: 'کاربر پرو (Pro) 👑',
-      tagColor: 'bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white font-black'
+      tagColor: 'bg-primary/20 text-primary font-black'
     }
   ];
 
   return (
-    <div className="fixed inset-0 bg-neutral-950/95 backdrop-blur-xl flex flex-col justify-start z-[100] overflow-y-auto px-5 py-6 pt-safe font-sans">
+    <div className="fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-md flex items-end sm:items-center justify-center z-[100] p-0 sm:p-4 font-sans">
       
       {/* Absolute floating luxury ambient backdrops */}
-      <div className="absolute top-[-10%] right-[-10%] w-[100vw] h-[100vw] rounded-full bg-indigo-500/5 blur-[130px] pointer-events-none"></div>
-      <div className="absolute top-[40%] left-[-20%] w-[100vw] h-[100vw] rounded-full bg-pink-500/5 blur-[130px] pointer-events-none"></div>
+      <div className="absolute top-[-10%] right-[-10%] w-[100vw] h-[100vw] rounded-full bg-primary/5 blur-[130px] pointer-events-none"></div>
+      <div className="absolute top-[40%] left-[-20%] w-[100vw] h-[100vw] rounded-full bg-primary/5 blur-[130px] pointer-events-none"></div>
 
-      <div className="w-full max-w-md mx-auto relative z-10 flex flex-col min-h-full justify-between pb-safe-content">
+      <div className="w-full sm:max-w-xl bg-[var(--bg-card)] border-[var(--border-subtle)] sm:border rounded-t-3xl sm:rounded-2xl shadow-2xl relative z-10 flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto p-6 scrollbar-thin">
         
         {/* Header Navigation Area */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-8 flex-shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-neutral-900 flex items-center justify-center border border-neutral-800">
-              <SparklesIcon className="w-3.5 h-3.5 text-fuchsia-400" />
+            <div className="w-7 h-7 rounded-lg bg-[var(--bg-card)] flex items-center justify-center border border-[var(--border-subtle)]">
+              <SparklesIcon className="w-3.5 h-3.5 text-primary" />
             </div>
-            <span className="text-[10px] uppercase tracking-widest font-mono text-neutral-500">Premium Upgrade Portal</span>
+            <span className="text-[10px] uppercase tracking-widest font-mono text-[var(--text-muted)]">Premium Upgrade Portal</span>
           </div>
           <button 
             onClick={onClose} 
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-white border border-neutral-800 transition-all duration-300"
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--bg-card)] hover:bg-[var(--nav-hover-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-subtle)] transition-all duration-300"
           >
             <XIcon className="w-4 h-4" />
           </button>
         </div>
 
         {/* Text Area */}
-        <div className="text-right mb-6" dir="rtl">
-          <h2 className="text-2xl font-black text-white leading-tight">
-            بررسی <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00d2ff] via-indigo-400 to-fuchsia-500">طرح‌های پریمیوم</span> هکسر
+        <div className="text-right mb-6 flex-shrink-0" dir="rtl">
+          <h2 className="text-2xl font-black text-[var(--text-main)] leading-tight">
+            بررسی <span className="text-primary">طرح‌های پریمیوم</span> هکسر
           </h2>
-          <p className="text-xs text-neutral-400 mt-2 font-medium">
+          <p className="text-xs text-[var(--text-muted)] mt-2 font-medium">
             سهمیه هوش مصنوعی خود را شارژ کن تا بدون وقفه و در اوج سرعت، کارهات رو به بهینه‌ترین شکل مدیریت کنی.
           </p>
           
           {message && (
-            <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-200 text-xs font-semibold">
+            <div className="mt-4 p-3 bg-[var(--semantic-error-soft)] border border-[var(--semantic-error)]/20 rounded-xl text-[var(--semantic-error)] text-xs font-semibold">
               {message}
             </div>
           )}
         </div>
 
         {error && (
-          <div className="mb-6 p-3 bg-red-600/20 border border-red-500/30 text-red-100 rounded-xl text-xs font-bold text-center">
+          <div className="mb-6 p-3 bg-[var(--semantic-error-soft)] border border-[var(--semantic-error)]/30 text-[var(--semantic-error)] rounded-xl text-xs font-bold text-center flex-shrink-0">
             {error}
           </div>
         )}
 
         {/* Vertical Stack: Cards optimized specifically for Mobile viewport */}
-        <div className="space-y-4 mb-8">
+        <div className="space-y-4 mb-8 flex-1">
           {plans.map((p) => {
             const isActive = currentPlanCode === p.code;
             const isLoading = loadingPlan === p.code;
@@ -175,7 +176,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
                     {p.tag}
                   </span>
                   {isActive && (
-                    <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md font-extrabold">
+                    <span className="text-[10px] text-success bg-success/10 border border-success/20 px-2 py-0.5 rounded-md font-extrabold">
                       طرح فعلی شما
                     </span>
                   )}
@@ -183,25 +184,25 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
 
                 <div className="flex justify-between items-baseline mb-4">
                   <div>
-                    <h3 className="text-base font-black text-white">{p.name}</h3>
-                    <p className="text-[10px] text-neutral-500 font-mono mt-1">
+                    <h3 className="text-base font-black text-[var(--text-main)]">{p.name}</h3>
+                    <p className="text-[10px] text-[var(--text-muted)] font-mono mt-1">
                       {p.quota} — {p.model}
                     </p>
                   </div>
                   <div className="text-left">
-                    <span className="text-xl font-black text-white">{p.price}</span>
-                    {p.code !== 'free' && <span className="text-[9px] text-neutral-400 mr-0.5">/ {p.period}</span>}
+                    <span className="text-xl font-black text-[var(--text-main)]">{p.price}</span>
+                    {p.code !== 'free' && <span className="text-[9px] text-[var(--text-muted)] mr-0.5">/ {p.period}</span>}
                   </div>
                 </div>
 
                 {/* Condensed bullet points so it fits brilliantly on mobile layout */}
                 <ul className="space-y-2.5 mb-5 select-none">
                   {p.features.map((feat, idx) => (
-                    <li key={idx} className="flex items-center gap-2 text-xs text-neutral-300">
-                      <div className="w-4 h-4 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                        <CheckIcon className="w-2.5 h-2.5 text-emerald-400" />
+                    <li key={idx} className="flex items-center gap-2 text-xs text-[var(--text-main)]">
+                      <div className="w-4 h-4 rounded-full bg-success/10 flex items-center justify-center">
+                        <CheckIcon className="w-2.5 h-2.5 text-success" />
                       </div>
-                      <span className="font-medium">{feat}</span>
+                      <span className="font-medium opacity-90">{feat}</span>
                     </li>
                   ))}
                 </ul>
@@ -212,12 +213,12 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
                   onClick={() => handleSelectPlan(p.code)}
                   className={`w-full py-3 px-4 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
                     isActive 
-                      ? 'bg-emerald-600/10 text-emerald-400 border border-emerald-500/20 cursor-not-allowed'
+                      ? 'bg-success/10 text-success border border-success/20 cursor-not-allowed'
                       : p.code === 'free'
-                      ? 'bg-neutral-900 text-neutral-600 border border-neutral-800/50 cursor-not-allowed text-[10px]'
+                      ? 'bg-[var(--bg-card)] text-[var(--text-muted)] border border-[var(--border-subtle)] cursor-not-allowed text-[10px]'
                       : p.popular
-                      ? 'bg-[#00d2ff] hover:bg-[#00c0eb] text-neutral-950 shadow-lg shadow-[#00d2ff]/10 active:scale-95'
-                      : 'bg-neutral-800 hover:bg-neutral-750 text-white active:scale-95 border border-neutral-700/40'
+                      ? 'bg-primary hover:bg-[var(--color-primary-hover)] text-[var(--text-on-primary)] shadow-md shadow-primary/15 active:scale-95'
+                      : 'bg-[var(--bg-card)] hover:bg-[var(--nav-hover-bg)] text-[var(--text-main)] active:scale-95 border border-[var(--border-subtle)]'
                   } disabled:opacity-40 disabled:scale-100`}
                 >
                   {isLoading ? (
@@ -236,7 +237,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
         </div>
 
         {/* Footer Disclaimer */}
-        <p className="text-center text-[9px] text-neutral-600 mt-2 font-medium" dir="rtl">
+        <p className="text-center text-[9px] text-[var(--text-muted)] mt-2 font-medium flex-shrink-0" dir="rtl">
           پرداخت از درگاه امن شتابی زیبال با کلیه کارت‌های بانکی کشور انجام می‌شود.
         </p>
       </div>
@@ -245,3 +246,4 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
 };
 
 export default PaywallModal;
+

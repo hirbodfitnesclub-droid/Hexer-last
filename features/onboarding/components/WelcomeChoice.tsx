@@ -21,23 +21,21 @@ export const WelcomeChoice: React.FC<WelcomeChoiceProps> = ({
       {/* Smart Welcome Icon with ambient background glow/shadow */}
       <div
         id="welcome-choice-icon-badge"
-        className="w-20 h-20 rounded-3xl bg-neutral-900 border border-neutral-800 flex items-center justify-center shadow-lg mb-8 p-1.5"
+        className="w-20 h-20 rounded-3xl bg-primary/15 border border-primary/30 flex items-center justify-center shadow-lg mb-8"
       >
-        <div className="w-full h-full bg-neutral-950 rounded-2xl flex items-center justify-center">
-          <BotIcon className="w-10 h-10 text-sky-400" />
-        </div>
+        <BotIcon className="w-10 h-10 text-primary" />
       </div>
 
       <div id="welcome-text-container" className="space-y-4 mb-10">
         <h2
           id="welcome-choice-title"
-          className="text-2xl font-black text-white leading-tight tracking-tight"
+          className="text-2xl font-black text-[var(--text-main)] leading-tight tracking-tight"
         >
           سلام {name}!
         </h2>
         <p
           id="welcome-choice-body"
-          className="text-sm text-neutral-400 leading-relaxed max-w-xs mx-auto font-medium"
+          className="text-sm text-[var(--text-muted)] leading-relaxed max-w-xs mx-auto font-medium"
         >
           میخوای تو چندتا اسلایدِ خیلی کوتاه، قلقِ کار با هکسر و رهایی از شلوغیِ ذهن رو بهت بگیم؟
         </p>
@@ -49,9 +47,9 @@ export const WelcomeChoice: React.FC<WelcomeChoiceProps> = ({
           id="see-walkthrough-btn"
           type="button"
           onClick={onSeeWalkthrough}
-          className="w-full h-12 rounded-2xl bg-gradient-to-r from-sky-400 to-indigo-500 hover:opacity-90 active:scale-95 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-sky-500/10 transition-all duration-200"
+          className="w-full h-12 rounded-2xl bg-primary hover:opacity-90 active:scale-95 text-[var(--text-on-primary)] font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/10 transition-all duration-200"
         >
-          <SparklesIcon className="w-4 h-4 text-white" />
+          <SparklesIcon className="w-4 h-4 text-[var(--text-on-primary)]" />
           <span>پایه‌ام، بریم! ✨</span>
         </button>
 
@@ -60,7 +58,7 @@ export const WelcomeChoice: React.FC<WelcomeChoiceProps> = ({
           id="skip-to-app-btn"
           type="button"
           onClick={onSkip}
-          className="w-full h-12 rounded-2xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 hover:text-white font-bold text-sm flex items-center justify-center transition-all duration-200 active:scale-95"
+          className="w-full h-12 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-[var(--nav-hover-bg)] border border-[var(--border-subtle)] text-[var(--text-main)] font-bold text-sm flex items-center justify-center transition-all duration-200 active:scale-95"
         >
           <span>بیخیال، میخوام برم تو اپ</span>
         </button>

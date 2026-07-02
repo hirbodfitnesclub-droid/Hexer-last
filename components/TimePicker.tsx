@@ -7,6 +7,15 @@ interface TimePickerProps {
   onChange: (time: string) => void;
 }
 
+const SelectWrapper: React.FC<{children: React.ReactNode}> = ({children}) => (
+    <div className="relative flex-1">
+        {children}
+        <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+            <ChevronDownIcon className="w-4 h-4" />
+        </div>
+    </div>
+);
+
 const TimePicker: React.FC<TimePickerProps> = ({ value, onChange }) => {
   const [hour, setHour] = useState('12');
   const [minute, setMinute] = useState('00');
@@ -39,15 +48,6 @@ const TimePicker: React.FC<TimePickerProps> = ({ value, onChange }) => {
   const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
   // 00, 05, 10, ... 55
   const minutes = Array.from({ length: 12 }, (_, i) => (i * 5).toString().padStart(2, '0'));
-
-  const SelectWrapper: React.FC<{children: React.ReactNode}> = ({children}) => (
-      <div className="relative flex-1">
-          {children}
-          <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-              <ChevronDownIcon className="w-4 h-4" />
-          </div>
-      </div>
-  )
 
   return (
     <div className="flex gap-2 w-full items-center" dir="ltr">

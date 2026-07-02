@@ -50,20 +50,23 @@ export const NotesView: React.FC = () => {
   }, [notes, searchQuery, projectMap]);
 
   return (
-    <div className="min-h-full bg-zinc-950 text-white relative flex flex-col h-full" dir="rtl">
+    <div className="min-h-full text-[var(--text-main)] relative flex flex-col h-full" dir="rtl">
       {/* Header Section */}
-      <header className="sticky top-0 pt-safe z-30 px-6 py-8 bg-zinc-950/90 backdrop-blur-xl border-b border-white/5 shrink-0">
+      <header 
+        className="sticky top-0 pt-safe z-30 px-6 py-8 backdrop-blur-xl border-b border-[var(--border-subtle)] shrink-0"
+        style={{ background: 'var(--bg-app-glass)' }}
+      >
         <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="text-right">
-            <h1 className="text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-purple-200 to-purple-400">
+            <h1 className="text-3xl font-black tracking-tight text-[var(--text-main)]">
               یادداشت‌ها
             </h1>
-            <p className="text-zinc-500 text-xs mt-1 font-bold font-sans">فضایی زیبا برای ایده‌ها و خلاقیت‌های شما</p>
+            <p className="text-[var(--text-muted)] text-xs mt-1 font-bold font-sans">فضایی زیبا برای ایده‌ها و خلاقیت‌های شما</p>
           </div>
           
           {/* Search Input */}
           <div className="relative w-full md:w-96 group">
-            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-zinc-600 group-focus-within:text-purple-400 transition-colors">
+            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-[var(--text-muted)] group-focus-within:text-[var(--color-primary)] transition-colors">
               <SearchIcon className="w-4 h-4" />
             </div>
             <input 
@@ -71,7 +74,7 @@ export const NotesView: React.FC = () => {
               placeholder="جستجو در موضوعات یا برچسب‌ها..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 text-zinc-200 placeholder-zinc-600 rounded-2xl py-2.5 pr-10 pl-4 outline-none focus:border-purple-500/50 transition-all font-medium text-xs text-right"
+              className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[var(--text-main)] placeholder-[var(--text-muted)] rounded-2xl py-2.5 pr-10 pl-4 outline-none focus:border-[var(--input-focus-ring)] transition-all font-medium text-xs text-right"
             />
           </div>
         </div>
@@ -92,13 +95,13 @@ export const NotesView: React.FC = () => {
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="flex flex-col items-center justify-center py-20 text-center text-[var(--text-muted)]">
             <div className="relative mb-6">
-              <div className="absolute inset-0 bg-purple-500/10 blur-3xl rounded-full"></div>
-              <HashIcon className="relative w-14 h-14 text-zinc-800" />
+              <div className="absolute inset-0 bg-primary/10 blur-3xl rounded-full"></div>
+              <HashIcon className="relative w-14 h-14 text-[var(--text-muted)] opacity-35" />
             </div>
-            <h3 className="text-sm font-bold text-zinc-400 mb-1">هنوز خالیست</h3>
-            <p className="text-xs text-zinc-600 max-w-xs leading-relaxed font-semibold">
+            <h3 className="text-sm font-bold text-[var(--text-muted)] mb-1">هنوز خالیست</h3>
+            <p className="text-xs text-[var(--text-muted)] opacity-60 max-w-xs leading-relaxed font-semibold">
               ذهن شما پر از ایده‌های درخشان است. اولین یادداشت خود را ثبت کنید.
             </p>
           </div>
@@ -108,7 +111,7 @@ export const NotesView: React.FC = () => {
       {/* Floating Action Button */}
       <button 
         onClick={openModalForNew} 
-        className="fixed bottom-[calc(var(--bottom-nav-space)+var(--safe-area-inset-bottom)+1rem)] right-5 w-14 h-14 bg-gradient-to-tr from-purple-600 to-fuchsia-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-purple-500/20 hover:scale-105 transition-all duration-300 z-40"
+        className="fixed bottom-[calc(var(--bottom-nav-space)+var(--safe-area-inset-bottom)+1rem)] right-5 w-14 h-14 bg-lime text-[var(--text-on-primary)] rounded-full flex items-center justify-center shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)] hover:scale-105 transition-all duration-300 z-40"
         aria-label="New Note"
       >
         <PlusIcon className="w-7 h-7"/>

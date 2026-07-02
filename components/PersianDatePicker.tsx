@@ -8,6 +8,15 @@ interface PersianDatePickerProps {
   onChange: (isoDate: string) => void;
 }
 
+const SelectWrapper: React.FC<{children: React.ReactNode}> = ({children}) => (
+    <div className="relative flex-1">
+        {children}
+        <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+            <ChevronDownIcon className="w-4 h-4" />
+        </div>
+    </div>
+);
+
 const PersianDatePicker: React.FC<PersianDatePickerProps> = ({ value, onChange }) => {
   const [selectedYear, setSelectedYear] = useState(1403);
   const [selectedMonth, setSelectedMonth] = useState(1);
@@ -48,15 +57,6 @@ const PersianDatePicker: React.FC<PersianDatePickerProps> = ({ value, onChange }
   const currentYear = toJalaali(new Date()).jy;
   const years = Array.from({ length: 15 }, (_, i) => currentYear - 2 + i); 
   const days = Array.from({ length: getDaysInPersianMonth(selectedYear, selectedMonth) }, (_, i) => i + 1);
-
-  const SelectWrapper: React.FC<{children: React.ReactNode}> = ({children}) => (
-      <div className="relative flex-1">
-          {children}
-          <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-              <ChevronDownIcon className="w-4 h-4" />
-          </div>
-      </div>
-  )
 
   return (
     <div className="flex gap-2 w-full direction-rtl">

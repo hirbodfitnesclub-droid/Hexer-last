@@ -30,12 +30,12 @@ export const HabitForm: React.FC<HabitFormProps> = ({ habit, onSave, onCancel, i
   return (
     <form onSubmit={handleSubmit} className="space-y-5 text-right font-sans" dir="rtl" id="habit-form">
       <div>
-        <label className="block text-[11px] font-bold text-zinc-400 mb-2">عنوان عادت روزمره</label>
+        <label className="block text-[11px] font-bold text-[var(--text-muted)] mb-2">عنوان عادت روزمره</label>
         <input
           value={name}
           onChange={e => setName(e.target.value)}
           placeholder="مثلاً: ورزش صبحگاهی یا نوشتن روزانه..."
-          className="w-full bg-zinc-950 border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-orange-500 font-semibold transition-all text-right"
+          className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary font-semibold transition-all text-right"
           required
           autoFocus
         />
@@ -43,46 +43,45 @@ export const HabitForm: React.FC<HabitFormProps> = ({ habit, onSave, onCancel, i
       
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-[11px] font-bold text-zinc-400 mb-2">تعداد در روز</label>
+          <label className="block text-[11px] font-bold text-[var(--text-muted)] mb-2">تعداد در روز</label>
           <input
             type="number"
             min="1"
             value={targetCount}
             onChange={e => setTargetCount(Math.max(1, parseInt(e.target.value) || 1))}
-            className="w-full bg-zinc-955 border border-white/5 rounded-xl px-4 py-3 text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-orange-500 text-right font-mono"
-            style={{ backgroundColor: '#09090b' }} // override custom config if needed, using tailwind classes is better though
+            className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-xs font-bold text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary text-right font-mono"
           />
         </div>
         <div>
-          <label className="block text-[11px] font-bold text-zinc-400 mb-2">تکرار دوره‌ای</label>
+          <label className="block text-[11px] font-bold text-[var(--text-muted)] mb-2">تکرار دوره‌ای</label>
           <div className="relative">
             <select 
               value={frequency}
               onChange={e => setFrequency(e.target.value)}
-              className="w-full bg-zinc-950 border border-white/5 rounded-xl px-4 py-3 text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-orange-500 appearance-none text-right cursor-pointer"
+              className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-xs font-bold text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary appearance-none text-right cursor-pointer"
             >
-              <option value="daily" className="bg-zinc-950 text-white">روزانه</option>
-              <option value="weekly" className="bg-zinc-950 text-white">هفتگی</option>
+              <option value="daily" className="bg-[var(--bg-card)] text-[var(--text-main)]">روزانه</option>
+              <option value="weekly" className="bg-[var(--bg-card)] text-[var(--text-main)]">هفتگی</option>
             </select>
           </div>
         </div>
       </div>
 
       <div>
-        <label className="block text-[11px] font-bold text-zinc-400 mb-2">توضیحات و ایجاد انگیزه (اختیاری)</label>
+        <label className="block text-[11px] font-bold text-[var(--text-muted)] mb-2">توضیحات و ایجاد انگیزه (اختیاری)</label>
         <textarea
           value={description}
           onChange={e => setDescription(e.target.value)}
           placeholder="انگیزه یا هدف خود از انجام مرتب این کار را بنویسید..."
           rows={4}
-          className="w-full bg-zinc-950 border border-white/5 rounded-xl px-4 py-3 text-xs text-white placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-orange-500 transition-all resize-none min-h-[100px] leading-relaxed"
+          className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-xs text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary transition-all resize-none min-h-[100px] leading-relaxed"
         />
       </div>
 
       <div className="pt-4 flex gap-3 shrink-0">
         <button 
           type="submit"
-          className="flex-1 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 hover:opacity-95 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-orange-950/15 text-sm cursor-pointer"
+          className="flex-1 bg-lime hover:opacity-90 text-[var(--text-on-primary)] py-3 rounded-xl font-bold transition-all text-sm cursor-pointer"
           disabled={!name.trim()}
         >
           {isNew ? 'ایجاد عادت جدید' : 'ذخیره تغییرات نهایی'}
@@ -91,7 +90,7 @@ export const HabitForm: React.FC<HabitFormProps> = ({ habit, onSave, onCancel, i
           <button 
             type="button"
             onClick={onCancel} 
-            className="px-5 py-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 rounded-xl font-bold transition-colors text-sm border border-white/5 cursor-pointer"
+            className="px-5 py-3 bg-[var(--bg-card)] hover:bg-[var(--nav-hover-bg)] text-[var(--text-main)] rounded-xl font-bold transition-colors text-sm border border-[var(--border-subtle)] cursor-pointer"
           >
             انصراف
           </button>

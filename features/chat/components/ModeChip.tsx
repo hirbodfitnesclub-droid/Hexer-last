@@ -14,8 +14,8 @@ export const ModeChip: React.FC<ModeChipProps> = ({ mode, currentMode, label, ic
     onClick={() => onClick(mode)}
     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
       currentMode === mode 
-        ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/25 ring-2 ring-sky-400/50 scale-[1.03] z-[2]' 
-        : 'bg-neutral-900 border border-neutral-800 text-zinc-400 hover:bg-neutral-800 hover:text-white'
+        ? 'bg-primary text-[var(--text-on-primary)] shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)] ring-2 ring-primary/50 scale-[1.03] z-[2]' 
+        : 'glass-card border-subtle text-[var(--text-muted)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--text-main)]'
     }`}
   >
     {icon}

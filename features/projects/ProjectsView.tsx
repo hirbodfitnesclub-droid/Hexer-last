@@ -58,20 +58,20 @@ export const ProjectsView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-full bg-slate-950 text-white relative flex flex-col h-full" dir="rtl">
+    <div className="min-h-full text-[var(--text-main)] relative flex flex-col h-full" dir="rtl">
       {/* Header Section */}
-      <header className="sticky top-0 pt-safe z-30 px-6 py-8 bg-slate-950/80 backdrop-blur-xl border-b border-white/5 shrink-0">
+      <header className="sticky top-0 pt-safe z-30 px-6 py-8 backdrop-blur-xl border-b border-[var(--border-subtle)] shrink-0" style={{ background: 'var(--bg-app-glass)' }}>
         <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="text-right">
-            <h1 className="text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-200 to-sky-300">
+            <h1 className="text-3xl font-black tracking-tight text-[var(--text-main)]">
               پروژه‌ها
             </h1>
-            <p className="text-zinc-500 text-xs mt-1 font-bold font-sans">ایجاد تعادل و مدیریت اهداف بزرگ زندگی</p>
+            <p className="text-[var(--text-muted)] text-xs mt-1 font-bold font-sans">ایجاد تعادل و مدیریت اهداف بزرگ زندگی</p>
           </div>
           
           <button 
             onClick={openAddModal} 
-            className="flex items-center gap-2 px-6 py-2.5 bg-sky-600 hover:bg-sky-500 rounded-xl text-white font-bold text-xs transition-all shadow-lg shadow-sky-950/20 w-fit shrink-0 self-start md:self-auto"
+            className="flex items-center gap-2 px-6 py-2.5 bg-lime hover:bg-[var(--color-primary-hover)] rounded-xl text-[var(--text-on-primary)] font-bold text-xs transition-all shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)] w-fit shrink-0 self-start md:self-auto"
           >
             <PlusIcon className="w-5 h-5 animate-pulse" />
             <span>پروژه جدید</span>
@@ -99,14 +99,14 @@ export const ProjectsView: React.FC = () => {
           </div>
         ) : (
           <div className="text-center py-20 flex flex-col items-center">
-            <BriefcaseIcon className="w-14 h-14 mx-auto text-zinc-800 mb-4" />
-            <h3 className="text-sm font-bold text-zinc-400">پروژه‌ای پیدا نشد</h3>
-            <p className="text-xs text-zinc-650 mt-2 max-w-sm leading-relaxed font-semibold">
+            <BriefcaseIcon className="w-14 h-14 mx-auto text-[var(--text-muted)] opacity-30 mb-4" />
+            <h3 className="text-sm font-bold text-[var(--text-muted)]">پروژه‌ای پیدا نشد</h3>
+            <p className="text-xs text-[var(--text-muted)] opacity-60 mt-2 max-w-sm leading-relaxed font-semibold">
               شما می‌توانید اهداف و کارهای بزرگ را تحت قالب پروژه‌ها دسته‌بندی و مدیریت کنید تا ذهن ساختاریافته‌تری داشته باشید.
             </p>
             <button 
               onClick={openAddModal} 
-              className="mt-6 flex items-center gap-2 px-5 py-2.5 bg-sky-600 rounded-xl text-white font-bold text-xs hover:bg-sky-500 transition-colors shadow-lg shadow-sky-950/20"
+              className="mt-6 flex items-center gap-2 px-5 py-2.5 bg-lime rounded-xl text-[var(--text-on-primary)] font-bold text-xs hover:bg-[var(--color-primary-hover)] transition-colors shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)]"
             >
               <PlusIcon className="w-4 h-4" />
               <span>ساخت اولین پروژه</span>
@@ -118,18 +118,18 @@ export const ProjectsView: React.FC = () => {
       {/* --- Inline elegant Edit/Add Project Modal --- */}
       {editingProject && (
         <div 
-          className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex justify-center items-end sm:items-center p-0 sm:p-4 animate-fade-in" 
+          className="fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-md z-[60] flex justify-center items-end sm:items-center p-0 sm:p-4 transition-opacity duration-300" 
           onClick={() => setEditingProject(null)}
         >
           <div 
             onClick={e => e.stopPropagation()} 
-            className="bg-slate-900 border-t sm:border border-slate-700/85 w-full max-w-lg rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col h-[100dvh] sm:h-auto animate-slide-up"
+            className="bg-[var(--bg-card)] border-t sm:border border-[var(--border-subtle)] w-full max-w-lg rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col h-[100dvh] sm:h-auto animate-slide-up"
           >
-            <div className="p-5 border-b border-white/5 flex justify-between items-center bg-slate-900 shrink-0 pt-safe">
-              <h3 className="text-base font-bold text-white font-sans">{isAdding ? 'پروژه جدید' : 'ویرایش پروژه'}</h3>
+            <div className="p-5 border-b border-[var(--border-subtle)] flex justify-between items-center bg-transparent shrink-0 pt-safe">
+              <h3 className="text-base font-bold text-[var(--text-main)] font-sans">{isAdding ? 'پروژه جدید' : 'ویرایش پروژه'}</h3>
               <button 
                 onClick={() => setEditingProject(null)} 
-                className="p-2 text-zinc-500 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
+                className="p-2 text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"
               >
                 <XIcon className="w-5 h-5" />
               </button>
@@ -141,7 +141,7 @@ export const ProjectsView: React.FC = () => {
                 value={editingProject.title || ''} 
                 onChange={e => setEditingProject(s => s ? { ...s, title: e.target.value } : null)} 
                 placeholder="عنوان پروژه..." 
-                className="w-full bg-zinc-900 border border-zinc-800 px-4 py-3 rounded-xl text-sm font-semibold text-white placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all text-right" 
+                className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] px-4 py-3 rounded-xl text-sm font-semibold text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)] transition-all text-right" 
                 autoFocus
               />
               <textarea 
@@ -149,26 +149,26 @@ export const ProjectsView: React.FC = () => {
                 onChange={e => setEditingProject(s => s ? { ...s, description: e.target.value } : null)} 
                 placeholder="توضیحات و اهداف پروژه..." 
                 rows={4} 
-                className="w-full bg-zinc-900 border border-zinc-800 px-4 py-3 rounded-xl text-xs text-white placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-sky-500 min-h-[100px] resize-none transition-all text-right leading-relaxed" 
+                className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] px-4 py-3 rounded-xl text-xs text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)] min-h-[100px] resize-none transition-all text-right leading-relaxed" 
               />
               
               <div className="space-y-1.5 pt-2">
-                <span className="text-[11px] font-bold text-zinc-400">اولویت پروژه:</span>
+                <span className="text-[11px] font-bold text-[var(--text-muted)]">اولویت پروژه:</span>
                 <select 
                   value={editingProject.priority} 
                   onChange={e => setEditingProject(s => s ? { ...s, priority: e.target.value as Priority } : null)} 
-                  className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs font-bold text-zinc-200 focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all text-right cursor-pointer"
+                  className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] p-3 rounded-xl text-xs font-bold text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)] transition-all text-right cursor-pointer"
                 >
                   {Object.values(Priority).map(p => {
                     const label = priorityClasses[p]?.label || p;
-                    return <option key={p} value={p} className="bg-slate-900">{label}</option>;
+                    return <option key={p} value={p} className="bg-[var(--bg-base)] text-[var(--text-main)]">{label}</option>;
                   })}
                 </select>
               </div>
 
               <div className="space-y-3 pt-4">
-                <span className="text-[11px] font-bold text-zinc-400 block">رنگ شناسه پروژه:</span>
-                <div className="flex items-center gap-3 bg-zinc-950/30 p-3 rounded-xl border border-white/5 justify-center">
+                <span className="text-[11px] font-bold text-[var(--text-muted)] block">رنگ شناسه پروژه:</span>
+                <div className="flex items-center gap-3 bg-black/10 dark:bg-white/5 p-3 rounded-xl border border-[var(--border-subtle)] justify-center">
                   {Object.keys(colorClasses).map(color => (
                     <button 
                       key={color} 
@@ -187,10 +187,10 @@ export const ProjectsView: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-5 border-t border-white/5 shrink-0 bg-slate-900 flex gap-3 pb-safe">
+            <div className="p-5 border-t border-[var(--border-subtle)] shrink-0 bg-transparent flex gap-3 pb-safe">
               <button 
                 onClick={handleSaveProject} 
-                className="flex-1 py-3 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl transition-all text-sm shadow-md shadow-sky-950/15"
+                className="flex-1 py-3 bg-lime hover:bg-[var(--color-primary-hover)] text-[var(--text-on-primary)] font-bold rounded-xl transition-all text-sm shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)]"
               >
                 {isAdding ? 'اضافه کردن پروژه جدید' : 'ذخیره نهایی تغییرات'}
               </button>

@@ -54,16 +54,16 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
   if (proposals.length === 0) return null;
 
   return (
-    <div className="mt-4 bg-gray-900/60 border border-white/10 rounded-2xl p-4 w-full">
+    <div className="mt-4 glass-card border-subtle rounded-2xl p-4 w-full">
       <div className="flex justify-between items-center mb-3">
-        <h4 className="text-sm font-bold text-sky-400 flex items-center gap-1.5">
+        <h4 className="text-sm font-bold text-primary flex items-center gap-1.5">
           <ListChecksIcon className="w-4 h-4" />
           پیشنهادات استخراج‌شده توسط هوش مصنوعی
         </h4>
         {pendingProposals.length > 0 && (
           <button
             onClick={onApproveAll}
-            className="text-xs bg-sky-500 hover:bg-sky-600 font-bold px-3 py-1.5 rounded-lg text-white transition-all shadow-lg shadow-sky-500/15"
+            className="text-xs bg-lime hover:bg-[var(--color-primary-hover)] font-bold px-3 py-1.5 rounded-lg text-[var(--text-on-primary)] transition-all shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)]"
           >
             تأیید همه پیشنهادات
           </button>
@@ -82,21 +82,21 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
               key={prop.id} 
               className={`p-3.5 rounded-xl border transition-all ${
                 isApproved 
-                  ? 'bg-green-500/5 border-green-500/20' 
+                  ? 'bg-primary/5 border-[var(--border-neon)]' 
                   : isRejected 
-                    ? 'bg-red-500/5 border-red-500/20 opacity-50' 
-                    : 'bg-gray-800/80 border-white/5 hover:border-white/10'
+                    ? 'bg-[var(--semantic-error-soft)] border-error/20 opacity-50' 
+                    : 'glass-card border-subtle hover:border-primary/30'
               }`}
             >
               <div className="flex justify-between items-start mb-2">
                 <div className="flex items-center gap-2">
-                  <div className={`p-1.5 rounded-lg ${prop.kind === 'task' ? 'bg-green-500/10 text-green-400' : 'bg-purple-500/10 text-purple-400'}`}>
+                  <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
                     {prop.kind === 'task' ? <ListChecksIcon className="w-4 h-4"/> : <NotebookIcon className="w-4 h-4"/>}
                   </div>
-                  <span className="text-xs font-bold text-gray-400">
+                  <span className="text-xs font-bold text-muted">
                     {prop.kind === 'task' ? 'تسک پیشنهادی' : 'یادداشت پیشنهادی'}
                   </span>
-                  <span className="text-[10px] text-gray-500 bg-white/5 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] text-muted bg-white/5 px-1.5 py-0.5 rounded">
                     اطمینان: {Math.round(prop.confidence * 100)}٪
                   </span>
                 </div>
@@ -105,21 +105,21 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => handleStartEdit(prop)}
-                      className="p-1 text-gray-400 hover:text-white hover:bg-white/5 rounded-md transition-colors"
+                      className="p-1 text-muted hover:text-main hover:bg-white/5 rounded-md transition-colors"
                       title="ویرایش پیش‌نویس"
                     >
                       <PencilIcon className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => onApproveProposal(prop.id)}
-                      className="p-1 text-green-400 hover:bg-green-500/10 rounded-md transition-colors"
+                      className="p-1 text-primary hover:bg-primary/10 rounded-md transition-colors"
                       title="تأیید و ساخت"
                     >
                       <CheckIcon className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => onRejectProposal(prop.id)}
-                      className="p-1 text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
+                      className="p-1 text-error hover:bg-error/10 rounded-md transition-colors"
                       title="حذف پیشنهاد"
                     >
                       <XIcon className="w-4 h-4" />
@@ -129,7 +129,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
 
                 {!isPending && (
                   <span className={`text-xs font-bold px-2 py-0.5 rounded ${
-                    isApproved ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-500'
+                    isApproved ? 'bg-primary/10 text-primary' : 'bg-[var(--semantic-error-soft)] text-error'
                   }`}>
                     {isApproved ? 'تأیید شد' : 'رد شد'}
                   </span>
@@ -140,32 +140,32 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                 // Edit mode
                 <div className="space-y-3 mt-2 text-right" dir="rtl">
                   <div>
-                    <label className="text-[10px] text-gray-400 font-medium block mb-1">عنوان</label>
+                    <label className="text-[10px] text-muted font-medium block mb-1">عنوان</label>
                     <input
                       type="text"
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
-                      className="w-full bg-gray-900 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-sky-500"
+                      className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg p-2 text-sm text-main focus:outline-none focus:border-[var(--input-focus-ring)]"
                     />
                   </div>
 
                   {prop.kind === 'task' ? (
                     <>
                       <div>
-                        <label className="text-[10px] text-gray-400 font-medium block mb-1">توضیحات</label>
+                        <label className="text-[10px] text-muted font-medium block mb-1">توضیحات</label>
                         <textarea
                           value={editDesc}
                           onChange={(e) => setEditDesc(e.target.value)}
-                          className="w-full bg-gray-900 border border-white/10 rounded-lg p-2 text-sm text-white min-h-[50px] focus:outline-none focus:border-sky-500"
+                          className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg p-2 text-sm text-main min-h-[50px] focus:outline-none focus:border-[var(--input-focus-ring)]"
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className="text-[10px] text-gray-400 font-medium block mb-1">اولویت</label>
+                          <label className="text-[10px] text-muted font-medium block mb-1">اولویت</label>
                           <select
                             value={editPriority}
                             onChange={(e) => setEditPriority(e.target.value as any)}
-                            className="w-full bg-gray-900 border border-white/10 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                            className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg p-2 text-xs text-main focus:outline-none focus:border-[var(--input-focus-ring)]"
                           >
                             <option value="low">کم</option>
                             <option value="medium">متوسط</option>
@@ -173,33 +173,33 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                           </select>
                         </div>
                         <div>
-                          <label className="text-[10px] text-gray-400 font-medium block mb-1">تاریخ سررسید</label>
+                          <label className="text-[10px] text-muted font-medium block mb-1">تاریخ سررسید</label>
                           <input
                             type="date"
                             value={editDueDate}
                             onChange={(e) => setEditDueDate(e.target.value)}
-                            className="w-full bg-gray-900 border border-white/10 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                            className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg p-2 text-xs text-main focus:outline-none focus:border-[var(--input-focus-ring)]"
                           />
                         </div>
                       </div>
                     </>
                   ) : (
                     <div>
-                      <label className="text-[10px] text-gray-400 font-medium block mb-1">محتوا</label>
+                      <label className="text-[10px] text-muted font-medium block mb-1">محتوا</label>
                       <textarea
                         value={editContent}
                         onChange={(e) => setEditContent(e.target.value)}
-                        className="w-full bg-gray-900 border border-white/10 rounded-lg p-2 text-sm text-white min-h-[70px] focus:outline-none focus:border-sky-500"
+                        className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg p-2 text-sm text-main min-h-[70px] focus:outline-none focus:border-[var(--input-focus-ring)]"
                       />
                     </div>
                   )}
 
                   <div>
-                    <label className="text-[10px] text-gray-400 font-medium block mb-1">پروژه مرتبط</label>
+                    <label className="text-[10px] text-muted font-medium block mb-1">پروژه مرتبط</label>
                     <select
                       value={editProject}
                       onChange={(e) => setEditProject(e.target.value)}
-                      className="w-full bg-gray-900 border border-white/10 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                      className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg p-2 text-xs text-main focus:outline-none focus:border-[var(--input-focus-ring)]"
                     >
                       <option value="">(بدون پروژه)</option>
                       {projects.map((proj) => (
@@ -212,14 +212,14 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
 
                   <div className="flex justify-end gap-1.5 pt-1">
                     <button
-                      onClick={() => handleSaveEdit(prop.id, prop.kind)}
-                      className="text-xs bg-green-600 hover:bg-green-700 font-bold px-3 py-1.5 rounded-lg text-white transition-all"
+                       onClick={() => handleSaveEdit(prop.id, prop.kind)}
+                       className="text-xs bg-lime hover:bg-[var(--color-primary-hover)] font-bold px-3 py-1.5 rounded-lg text-[var(--text-on-primary)] transition-all shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.15)]"
                     >
                       ذخیره پیش‌نویس
                     </button>
                     <button
                       onClick={() => setEditingId(null)}
-                      className="text-xs bg-gray-700 hover:bg-gray-600 font-bold px-3 py-1.5 rounded-lg text-gray-300 transition-all"
+                      className="text-xs glass-card border-subtle hover:bg-[var(--nav-hover-bg)] font-bold px-3 py-1.5 rounded-lg text-main transition-all"
                     >
                       انصراف
                     </button>
@@ -228,37 +228,37 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
               ) : (
                 // View mode
                 <div className="text-right" dir="rtl">
-                  <h5 className="text-sm font-bold text-white mb-1">
+                  <h5 className="text-sm font-bold text-main mb-1">
                     {prop.draft.title || '(بدون عنوان)'}
                   </h5>
                   {prop.kind === 'task' ? (
                     <>
                       {prop.draft.description && (
-                        <p className="text-xs text-gray-450 mb-2 line-clamp-2">
+                        <p className="text-xs text-muted mb-2 line-clamp-2">
                           {prop.draft.description}
                         </p>
                       )}
-                      <div className="flex flex-wrap gap-2 text-[10px] text-gray-400">
+                      <div className="flex flex-wrap gap-2 text-[10px] text-muted">
                         {prop.draft.dueDate && (
                           <span className="flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded">
-                            <CalendarIcon className="w-3 h-3 text-sky-400" />
+                            <CalendarIcon className="w-3 h-3 text-primary" />
                             سررسید: {prop.draft.dueDate}
                           </span>
                         )}
                         {prop.draft.priority && (
                           <span className={`px-2 py-0.5 rounded ${
                             prop.draft.priority === 'high' 
-                              ? 'bg-red-500/10 text-red-400' 
+                              ? 'bg-error/10 text-error' 
                               : prop.draft.priority === 'medium' 
-                                ? 'bg-orange-500/10 text-orange-400' 
-                                : 'bg-blue-500/10 text-blue-400'
+                                ? 'bg-primary/10 text-primary' 
+                                : 'bg-primary/5 text-muted'
                           }`}>
                             اولویت: {prop.draft.priority === 'high' ? 'زیاد' : prop.draft.priority === 'medium' ? 'متوسط' : 'کم'}
                           </span>
                         )}
                         {prop.draft.project_id && (
                           <span className="flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded">
-                            <BriefcaseIcon className="w-3 h-3 text-purple-400" />
+                            <BriefcaseIcon className="w-3 h-3 text-primary" />
                             پروژه: {projects.find(p => p.id === prop.draft.project_id)?.title || 'مرتبط'}
                           </span>
                         )}
@@ -267,14 +267,14 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                   ) : (
                     <>
                       {prop.draft.content && (
-                        <p className="text-xs text-gray-400 mb-2 whitespace-pre-wrap line-clamp-3">
+                        <p className="text-xs text-muted mb-2 whitespace-pre-wrap line-clamp-3">
                           {prop.draft.content}
                         </p>
                       )}
                       {prop.draft.project_id && (
-                        <div className="flex text-[10px] text-gray-400">
+                        <div className="flex text-[10px] text-muted">
                           <span className="flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded">
-                            <BriefcaseIcon className="w-3 h-3 text-purple-400" />
+                            <BriefcaseIcon className="w-3 h-3 text-primary" />
                             پروژه: {projects.find(p => p.id === prop.draft.project_id)?.title || 'مرتبط'}
                           </span>
                         </div>

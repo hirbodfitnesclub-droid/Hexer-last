@@ -66,14 +66,14 @@ export const SlideViewer: React.FC<SlideViewerProps> = ({ onFinish, onSkip }) =>
         id="slide-viewer-header"
         className="w-full flex justify-between items-center px-2 py-4"
       >
-        <span id="slide-index-counter" className="text-xs font-bold text-neutral-500 font-mono">
+        <span id="slide-index-counter" className="text-xs font-bold text-[var(--text-muted)] font-mono">
           {currentIndex + 1} / {ONBOARDING_SLIDES.length}
         </span>
         <button
           id="slide-skip-btn"
           type="button"
           onClick={onSkip}
-          className="text-xs font-bold text-neutral-400 hover:text-white px-3 py-1.5 rounded-full hover:bg-neutral-900 transition-colors duration-200 min-h-[44px] flex items-center justify-center"
+          className="text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] px-3 py-1.5 rounded-full hover:bg-[var(--nav-hover-bg)] transition-colors duration-200 min-h-[44px] flex items-center justify-center"
         >
           پرش به برنامه
         </button>
@@ -121,8 +121,8 @@ export const SlideViewer: React.FC<SlideViewerProps> = ({ onFinish, onSkip }) =>
               <span
                 className={`h-2.5 rounded-full transition-all duration-300 ${
                   isActive
-                    ? 'w-6 bg-gradient-to-r from-sky-400 to-indigo-500'
-                    : 'w-2.5 bg-neutral-800 group-hover:bg-neutral-700'
+                    ? 'w-6 bg-primary shadow-sm shadow-primary/30'
+                    : 'w-2.5 bg-black/10 dark:bg-white/10 group-hover:bg-black/20 dark:group-hover:bg-white/20'
                 }`}
               />
             </button>
@@ -141,7 +141,7 @@ export const SlideViewer: React.FC<SlideViewerProps> = ({ onFinish, onSkip }) =>
             id="slide-nav-prev-btn"
             type="button"
             onClick={handlePrev}
-            className="flex-1 border border-neutral-800 hover:border-neutral-700 text-neutral-400 hover:text-white font-bold h-12 rounded-2xl transition-all duration-200 active:scale-95 flex items-center justify-center gap-1.5 text-sm"
+            className="flex-1 border border-[var(--border-subtle)] hover:bg-[var(--nav-hover-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] font-bold h-12 rounded-2xl transition-all duration-200 active:scale-95 flex items-center justify-center gap-1.5 text-sm"
           >
             {/* Chevron Right (points to the right to go/return to start in RTL) */}
             <ChevronRightIcon className="w-4 h-4" />
@@ -158,8 +158,8 @@ export const SlideViewer: React.FC<SlideViewerProps> = ({ onFinish, onSkip }) =>
           onClick={handleNext}
           className={`font-black h-12 rounded-2xl transition-all duration-200 active:scale-95 flex items-center justify-center gap-1.5 text-sm ${
             currentIndex === ONBOARDING_SLIDES.length - 1
-              ? 'flex-[2] bg-gradient-to-r from-sky-400 via-indigo-500 to-pink-500 text-white shadow-lg shadow-indigo-500/10'
-              : 'flex-1 bg-white text-black hover:bg-neutral-200'
+              ? 'flex-[2] bg-primary text-[var(--text-on-primary)] shadow-lg shadow-primary/10 hover:opacity-90'
+              : 'flex-1 bg-primary text-[var(--text-on-primary)] shadow-md hover:opacity-90'
           }`}
         >
           {currentIndex === ONBOARDING_SLIDES.length - 1 ? (

@@ -105,10 +105,10 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
   // Background color / text for health rating
   const healthRating = useMemo(() => {
     const score = stats.healthScore;
-    if (score >= 80) return { label: 'عالی', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' };
-    if (score >= 50) return { label: 'خوب', color: 'text-sky-400', bg: 'bg-sky-500/10 border-sky-500/20' };
-    if (score >= 20) return { label: 'نیاز به بهبود', color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20' };
-    return { label: 'بحرانی', color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20' };
+    if (score >= 80) return { label: 'عالی', color: 'text-[var(--semantic-success)]', bg: 'bg-primary/10 border-[var(--border-subtle)]' };
+    if (score >= 50) return { label: 'خوب', color: 'text-[var(--semantic-success)]', bg: 'bg-primary/10 border-[var(--border-subtle)]' };
+    if (score >= 20) return { label: 'نیاز به بهبود', color: 'text-[var(--semantic-warning)]', bg: 'bg-primary/10 border-[var(--border-subtle)]' };
+    return { label: 'بحرانی', color: 'text-[var(--semantic-error)]', bg: 'bg-[var(--semantic-error-soft)] border-[var(--border-subtle)]' };
   }, [stats.healthScore]);
 
   if (!isOpen) return null;
@@ -122,7 +122,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-black/60 backdrop-blur-md"
+          className="absolute inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-md"
         />
 
         {/* Modal Sheet container */}
@@ -131,22 +131,22 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: '100%', opacity: 0.5 }}
           transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-          className="relative w-full max-w-lg bg-zinc-950/90 border-t sm:border border-white/10 rounded-t-[2.5rem] sm:rounded-[2rem] shadow-2xl overflow-hidden max-h-[92dvh] sm:max-h-[85dvh] flex flex-col z-10"
+          className="relative w-full max-w-lg bg-[var(--bg-card)] border-t sm:border border-[var(--border-subtle)] rounded-t-[2.5rem] sm:rounded-[2rem] shadow-2xl overflow-hidden max-h-[92dvh] sm:max-h-[85dvh] flex flex-col z-10"
         >
           {/* Header */}
-          <div className="p-6 border-b border-white/5 flex items-center justify-between flex-shrink-0">
+          <div className="p-6 border-b border-[var(--border-subtle)] flex items-center justify-between flex-shrink-0">
             <div>
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <ClipboardListIcon className="w-5 h-5 text-sky-400" />
+              <h3 className="text-xl font-bold text-[var(--text-main)] flex items-center gap-2">
+                <ClipboardListIcon className="w-5 h-5 text-[var(--text-main)] dark:text-[var(--color-primary)]" />
                 گزارش عملکرد هفتگی
               </h3>
-              <p className="text-xs text-zinc-400 mt-1">
+              <p className="text-xs text-[var(--text-muted)] mt-1">
                 دوره هفته جاری: {weekBoundaries.formattedSat} الی {weekBoundaries.formattedFri}
               </p>
             </div>
             <button 
               onClick={onClose}
-              className="p-2 rounded-xl bg-white/5 text-zinc-400 hover:text-white transition-colors"
+              className="p-2 rounded-xl bg-[var(--nav-hover-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
             >
               <XIcon className="w-4 h-4" />
             </button>
@@ -155,7 +155,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
           {/* Modal Scrollable Body */}
           <div className="p-6 pb-bottom-nav sm:pb-6 overflow-y-auto flex-1 space-y-6">
             {/* Health & Visual Stats Block */}
-            <div className="bg-zinc-900/60 border border-white/5 rounded-2xl p-4 sm:p-6 flex flex-row items-center justify-around gap-4 sm:gap-6">
+            <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-[var(--shadow-card)] rounded-2xl p-4 sm:p-6 flex flex-row items-center justify-around gap-4 sm:gap-6">
               {/* Donut Progress Chart */}
               <div className="relative flex items-center justify-center flex-shrink-0">
                 <svg className="w-24 h-24 transform -rotate-90">
@@ -163,7 +163,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
                     cx="48"
                     cy="48"
                     r="32"
-                    className="stroke-zinc-800"
+                    stroke="var(--border-subtle)"
                     strokeWidth="8"
                     fill="transparent"
                   />
@@ -171,7 +171,8 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
                     cx="48"
                     cy="48"
                     r="32"
-                    className="stroke-sky-400 transition-all duration-1000 ease-out"
+                    stroke="var(--color-primary)"
+                    className="transition-all duration-1000 ease-out"
                     strokeWidth="8"
                     strokeDasharray={strokeCircumference}
                     strokeDashoffset={strokeDashoffset}
@@ -181,17 +182,17 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
                 </svg>
                 {/* Embedded percentage details */}
                 <div className="absolute flex flex-col items-center">
-                  <span className="text-xl font-black text-white font-mono">{completionPercentage}%</span>
-                  <span className="text-[9px] text-zinc-400">انجام شده</span>
+                  <span className="text-xl font-black text-[var(--text-main)] font-mono">{completionPercentage}%</span>
+                  <span className="text-[9px] text-[var(--text-muted)]">انجام شده</span>
                 </div>
               </div>
 
               {/* Status score banner */}
               <div className="text-right space-y-1 sm:space-y-2">
-                <span className="text-[10px] sm:text-xs text-zinc-400 block font-semibold">امتیاز بهره‌وری</span>
+                <span className="text-[10px] sm:text-xs text-[var(--text-muted)] block font-semibold">امتیاز بهره‌وری</span>
                 <div className="flex items-baseline justify-start gap-1">
-                  <span className="text-4xl sm:text-5xl font-black text-white font-mono">{stats.healthScore}</span>
-                  <span className="text-[10px] sm:text-sm text-zinc-500 font-medium select-none">/ ۱۰۰</span>
+                  <span className="text-4xl sm:text-5xl font-black text-[var(--text-main)] font-mono">{stats.healthScore}</span>
+                  <span className="text-[10px] sm:text-sm text-[var(--text-muted)] font-medium select-none">/ ۱۰۰</span>
                 </div>
                 <div className={`px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold border inline-block ${healthRating.bg} ${healthRating.color}`}>
                   وضعیت هفته: {healthRating.label}
@@ -201,28 +202,28 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
 
             {/* General Counts Stats */}
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-zinc-900/30 border border-white/5 rounded-xl p-3 text-center">
-                <span className="text-2xl font-black text-white block font-mono">{doneThisWeek.length}</span>
-                <span className="text-[10px] text-zinc-400 block mt-1">کل کارهای انجام‌شده</span>
+              <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-[var(--shadow-card)] rounded-xl p-3 text-center">
+                <span className="text-2xl font-black text-[var(--text-main)] block font-mono">{doneThisWeek.length}</span>
+                <span className="text-[10px] text-[var(--text-muted)] block mt-1">کل کارهای انجام‌شده</span>
               </div>
-              <div className="bg-zinc-900/30 border border-white/5 rounded-xl p-3 text-center">
-                <span className="text-2xl font-black text-emerald-400 block font-mono">{stats.onTimeCount}</span>
-                <span className="text-[10px] text-zinc-400 block mt-1">به‌موقع</span>
+              <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-[var(--shadow-card)] rounded-xl p-3 text-center">
+                <span className="text-2xl font-black text-[var(--semantic-success)] block font-mono">{stats.onTimeCount}</span>
+                <span className="text-[10px] text-[var(--text-muted)] block mt-1">به‌موقع</span>
               </div>
-              <div className="bg-zinc-900/30 border border-white/5 rounded-xl p-3 text-center">
-                <span className="text-2xl font-black text-amber-500 block font-mono">{stats.delayedDoneCount}</span>
-                <span className="text-[10px] text-zinc-400 block mt-1">با تاخیر</span>
+              <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-[var(--shadow-card)] rounded-xl p-3 text-center">
+                <span className="text-2xl font-black text-[var(--text-main)] block font-mono">{stats.delayedDoneCount}</span>
+                <span className="text-[10px] text-[var(--text-muted)] block mt-1">با تاخیر</span>
               </div>
             </div>
 
             {/* Custom Tab selectors */}
-            <div className="flex bg-zinc-900/80 p-1 rounded-xl border border-white/5">
+            <div className="flex bg-[var(--bg-card)] p-1 rounded-xl border border-[var(--border-subtle)]">
               <button
                 onClick={() => setActiveTab('done')}
                 className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all ${
                   activeTab === 'done' 
-                    ? 'bg-zinc-800 text-sky-400 shadow' 
-                    : 'text-zinc-500 hover:text-zinc-300'
+                    ? 'bg-[var(--color-primary)] text-[var(--text-on-primary)] shadow' 
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                 }`}
               >
                 انجام شده‌ها ({doneThisWeek.length})
@@ -231,8 +232,8 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
                 onClick={() => setActiveTab('todo')}
                 className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all ${
                   activeTab === 'todo' 
-                    ? 'bg-zinc-800 text-sky-400 shadow' 
-                    : 'text-zinc-500 hover:text-zinc-300'
+                    ? 'bg-[var(--color-primary)] text-[var(--text-on-primary)] shadow' 
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                 }`}
               >
                 انجام نشده‌ها ({todoThisWeek.length})
@@ -251,8 +252,8 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
                     className="space-y-2"
                   >
                     {doneThisWeek.length === 0 ? (
-                      <div className="py-12 border border-dashed border-white/5 rounded-2xl flex flex-col items-center justify-center text-zinc-500">
-                        <CheckIcon className="w-8 h-8 text-zinc-650 mb-2 opacity-40 animate-pulse" />
+                      <div className="py-12 border border-dashed border-[var(--border-subtle)] rounded-2xl flex flex-col items-center justify-center text-[var(--text-muted)]">
+                        <CheckIcon className="w-8 h-8 text-[var(--text-muted)] opacity-40 mb-2 animate-pulse" />
                         <span className="text-xs">هیچ کاری در این هفته انجام نشده است.</span>
                       </div>
                     ) : (
@@ -268,27 +269,27 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
                         return (
                           <div 
                             key={t.id} 
-                            className="bg-zinc-900/40 border border-white/5 p-3 rounded-xl flex items-center justify-between gap-3 text-right"
+                            className="bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-[var(--shadow-card)] p-3 rounded-xl flex items-center justify-between gap-3 text-right"
                           >
                             <div className="flex-1 min-w-0 pr-1">
-                              <span className="text-xs text-white font-medium line-clamp-1 leading-normal ml-2">{t.title}</span>
+                              <span className="text-xs text-[var(--text-main)] font-medium line-clamp-1 leading-normal ml-2">{t.title}</span>
                               <div className="flex items-center gap-1.5 mt-1">
                                 {t.due_date && (
-                                  <span className="text-[9px] text-zinc-500 font-semibold">
+                                  <span className="text-[9px] text-[var(--text-muted)] font-semibold">
                                     موعد: {formatPersianDate(t.due_date)}
                                   </span>
                                 )}
-                                <span className="text-[9px] text-emerald-500/80 font-bold">
+                                <span className="text-[9px] text-[var(--semantic-success)] font-bold">
                                   انجام: {formatPersianDate(t.completed_at)}
                                 </span>
                               </div>
                             </div>
                             {isLate ? (
-                              <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[9px] font-bold px-2 py-0.5 rounded-md flex-shrink-0">
+                              <span className="bg-[var(--semantic-error-soft)] text-[var(--semantic-error)] border border-[var(--semantic-error)]/20 text-[9px] font-bold px-2 py-0.5 rounded-md flex-shrink-0">
                                 انجام با تاخیر
                               </span>
                             ) : (
-                              <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-bold px-2 py-0.5 rounded-md flex-shrink-0">
+                              <span className="bg-primary/10 text-[var(--text-main)] border border-[var(--border-subtle)] text-[9px] font-bold px-2 py-0.5 rounded-md flex-shrink-0">
                                 به‌موقع
                               </span>
                             )}
@@ -306,9 +307,9 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
                     className="space-y-2"
                   >
                     {todoThisWeek.length === 0 ? (
-                      <div className="py-12 border border-dashed border-white/5 rounded-2xl flex flex-col items-center justify-center text-zinc-500">
-                        <CheckIcon className="w-8 h-8 text-emerald-600/40 mb-2 opacity-55" />
-                        <span className="text-xs text-emerald-400 font-medium">عالی! هیچ کار موعدداری در این هفته باقی نمانده.</span>
+                      <div className="py-12 border border-dashed border-[var(--border-subtle)] rounded-2xl flex flex-col items-center justify-center text-[var(--text-muted)]">
+                        <CheckIcon className="w-8 h-8 text-[var(--semantic-success)] opacity-40 mb-2" />
+                        <span className="text-xs text-[var(--semantic-success)] font-medium">عالی! هیچ کار موعدداری در این هفته باقی نمانده.</span>
                       </div>
                     ) : (
                       todoThisWeek.map(t => {
@@ -320,23 +321,23 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
                         return (
                           <div 
                             key={t.id} 
-                            className="bg-zinc-900/40 border border-white/5 p-3 rounded-xl flex items-center justify-between gap-3 text-right"
+                            className="bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-[var(--shadow-card)] p-3 rounded-xl flex items-center justify-between gap-3 text-right"
                           >
                             <div className="flex-1 min-w-0 pr-1">
-                              <span className="text-xs text-white font-medium line-clamp-1 leading-normal ml-2">{t.title}</span>
+                              <span className="text-xs text-[var(--text-main)] font-medium line-clamp-1 leading-normal ml-2">{t.title}</span>
                               <div className="flex items-center gap-1.5 mt-1">
-                                <span className="text-[9px] text-zinc-400 font-semibold gap-1 flex items-center">
-                                  <CalendarIcon className="w-2.5 h-2.5 text-zinc-500" />
+                                <span className="text-[9px] text-[var(--text-muted)] font-semibold gap-1 flex items-center">
+                                  <CalendarIcon className="w-2.5 h-2.5 text-[var(--text-muted)]" />
                                   سررسید: {formatPersianDate(t.due_date)}
                                 </span>
                               </div>
                             </div>
                             {isOverdue ? (
-                              <span className="bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[9px] font-extrabold px-2 py-0.5 rounded-md flex-shrink-0 animate-pulse">
+                              <span className="bg-[var(--semantic-error-soft)] text-[var(--semantic-error)] border border-[var(--semantic-error)]/20 text-[9px] font-extrabold px-2 py-0.5 rounded-md flex-shrink-0 animate-pulse">
                                 عقب افتاده
                               </span>
                             ) : (
-                              <span className="bg-sky-500/10 text-sky-400 border border-sky-500/20 text-[9px] font-bold px-2 py-0.5 rounded-md flex-shrink-0">
+                              <span className="bg-primary/10 text-[var(--text-main)] border border-[var(--border-subtle)] text-[9px] font-bold px-2 py-0.5 rounded-md flex-shrink-0">
                                 در جریان
                               </span>
                             )}

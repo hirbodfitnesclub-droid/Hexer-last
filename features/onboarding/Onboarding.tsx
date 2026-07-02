@@ -53,11 +53,11 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userId, onComplete }) =>
   return (
     <div
       id="onboarding-root-screen"
-      className="fixed inset-0 bg-[#09090b] text-white overflow-hidden flex flex-col z-[100] preserve-safe-area"
+      className="fixed inset-0 bg-[var(--bg-base)] text-[var(--text-main)] overflow-hidden flex flex-col z-[100] preserve-safe-area"
       dir="rtl"
     >
       {/* Background Ambient Decorative Light Spot to convey a magical feels */}
-      <div id="onboarding-ambient-light" className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-72 bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
+      <div id="onboarding-ambient-light" className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-72 bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
 
       {/* Main Content Safe Frame */}
       <div
@@ -72,10 +72,10 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userId, onComplete }) =>
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-[#09090b]/90 backdrop-blur-md z-[110] flex flex-col items-center justify-center space-y-4"
+              className="absolute inset-0 bg-[var(--bg-base)]/90 backdrop-blur-md z-[110] flex flex-col items-center justify-center space-y-4"
             >
-              <div className="w-12 h-12 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin" />
-              <p className="text-sm font-bold text-neutral-300">در حال آماده‌سازی مغزِ دومِ شما... 🧠</p>
+              <div className="w-12 h-12 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+              <p className="text-sm font-bold text-[var(--text-muted)]">در حال آماده‌سازی مغزِ دومِ شما... 🧠</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -88,16 +88,16 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userId, onComplete }) =>
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="bg-red-500/15 border border-red-500/30 rounded-2xl p-4 flex items-start gap-3 mb-6"
+              className="bg-[var(--semantic-error-soft)] border border-[var(--semantic-error)]/20 rounded-2xl p-4 flex items-start gap-3 mb-6"
             >
-              <WarningIcon className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+              <WarningIcon className="w-5 h-5 text-[var(--semantic-error)] shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <p className="text-sm font-bold text-red-500">یه مشکلی پیش اومده!</p>
-                <p className="text-xs text-neutral-400 leading-relaxed font-semibold">{errorMsg}</p>
+                <p className="text-sm font-bold text-[var(--semantic-error)]">یه مشکلی پیش اومده!</p>
+                <p className="text-xs text-[var(--text-muted)] leading-relaxed font-semibold">{errorMsg}</p>
                 <button
                   type="button"
                   onClick={() => handleFinishOnboarding(fullName)}
-                  className="text-xs font-black text-red-400 hover:text-red-300 underline pt-1"
+                  className="text-xs font-black text-[var(--semantic-error)] opacity-90 hover:opacity-100 underline pt-1"
                 >
                   دوباره تلاش کن
                 </button>

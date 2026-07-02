@@ -53,16 +53,16 @@ export const UsageMeter: React.FC<{ compact?: boolean }> = ({ compact = false })
   if (loading) {
     if (compact) {
       return (
-        <div className="bg-zinc-900/40 rounded-xl border border-white/5 p-3 w-full animate-pulse flex items-center justify-between" dir="rtl">
-          <span className="text-[10px] text-zinc-500 font-bold">درحال بارگذاری سهمیه مصرف...</span>
-          <div className="w-20 bg-zinc-950 h-2 rounded-full"></div>
+        <div className="bg-black/5 dark:bg-white/5 rounded-xl border border-[var(--border-subtle)] p-3 w-full animate-pulse flex items-center justify-between" dir="rtl">
+          <span className="text-[10px] text-[var(--text-muted)] font-bold">درحال بارگذاری سهمیه مصرف...</span>
+          <div className="w-20 bg-black/10 dark:bg-white/10 h-2 rounded-full"></div>
         </div>
       );
     }
     return (
-      <div className="bg-zinc-900/40 p-5 rounded-2xl border border-white/5 animate-pulse flex flex-col items-center justify-center min-h-[140px]" dir="rtl">
-        <CpuIcon className="w-6 h-6 text-zinc-700 animate-spin mb-2" />
-        <span className="text-[10px] text-zinc-500 font-bold">درحال بارگذاری گزارش مصرف...</span>
+      <div className="bg-black/5 dark:bg-white/5 p-5 rounded-2xl border border-[var(--border-subtle)] animate-pulse flex flex-col items-center justify-center min-h-[140px]" dir="rtl">
+        <CpuIcon className="w-6 h-6 text-[var(--text-muted)] animate-spin mb-2" />
+        <span className="text-[10px] text-[var(--text-muted)] font-bold">درحال بارگذاری گزارش مصرف...</span>
       </div>
     );
   }
@@ -76,21 +76,20 @@ export const UsageMeter: React.FC<{ compact?: boolean }> = ({ compact = false })
 
   if (compact) {
     return (
-      <div className="bg-zinc-900/40 rounded-xl border border-white/5 p-2.5 w-full space-y-1.5 text-right" dir="rtl">
+      <div className="bg-black/5 dark:bg-white/5 rounded-xl border border-[var(--border-subtle)] p-2.5 w-full space-y-1.5 text-right" dir="rtl">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-300">
-            <CpuIcon className="w-3.5 h-3.5 text-purple-400" />
+          <div className="flex items-center gap-1.5 text-[10px] font-bold text-[var(--text-main)]">
+            <CpuIcon className="w-3.5 h-3.5 text-primary" />
             <span>سهمیه هوش مصنوعی:</span>
           </div>
-          <span className="text-[10px] font-black text-purple-400 font-mono">
+          <span className="text-[10px] font-black text-primary font-mono">
             {remaining} از {limit} باقی‌مانده
           </span>
         </div>
-        <div className="w-full bg-zinc-950 h-1.5 rounded-full overflow-hidden">
+        <div className="w-full bg-black/10 dark:bg-white/10 h-1.5 rounded-full overflow-hidden">
           <div 
             className={`h-full rounded-full transition-all duration-500 ${
-              boundedPercent > 85 ? 'bg-red-500 shadow-sm' :
-              boundedPercent > 60 ? 'bg-yellow-500' : 'bg-sky-500'
+              boundedPercent > 85 ? 'bg-[var(--semantic-error)]' : 'bg-primary'
             }`}
             style={{ width: `${boundedPercent}%` }}
           ></div>
@@ -100,19 +99,19 @@ export const UsageMeter: React.FC<{ compact?: boolean }> = ({ compact = false })
   }
 
   return (
-    <div className="bg-zinc-900/60 rounded-2xl border border-white/5 p-5 space-y-4" dir="rtl">
+    <div className="bg-black/5 dark:bg-white/5 rounded-2xl border border-[var(--border-subtle)] p-5 space-y-4" dir="rtl">
       {/* Title */}
       <div className="flex items-center justify-between text-right">
         <div className="flex items-center gap-2">
-          <CpuIcon className="w-4 h-4 text-purple-400" />
-          <span className="text-xs font-black text-zinc-300">سهمیه مصرف هوش مصنوعی</span>
+          <CpuIcon className="w-4 h-4 text-primary" />
+          <span className="text-xs font-black text-[var(--text-main)]">سهمیه مصرف هوش مصنوعی</span>
         </div>
         {usage?.plan_code && usage.plan_code !== 'free' ? (
-          <span className="px-2 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/20 text-[9px] font-black text-purple-300 flex items-center gap-1">
+          <span className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-[9px] font-black text-primary flex items-center gap-1">
             <SparklesIcon className="w-2.5 h-2.5" /> {usage.display_name}
           </span>
         ) : (
-          <span className="px-2 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-[9px] font-bold text-zinc-400">
+          <span className="px-2 py-0.5 rounded-md bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] text-[9px] font-bold text-[var(--text-muted)]">
             {usage?.display_name || 'رایگان'}
           </span>
         )}
@@ -120,15 +119,14 @@ export const UsageMeter: React.FC<{ compact?: boolean }> = ({ compact = false })
 
       {/* Progress Line */}
       <div className="space-y-1.5">
-        <div className="flex justify-between items-center text-[10px] font-bold text-zinc-500 font-mono">
+        <div className="flex justify-between items-center text-[10px] font-bold text-[var(--text-muted)] font-mono">
           <span>{count} درخواست مصرف شده</span>
           <span>{remaining} عدد باقی‌مانده از {limit}</span>
         </div>
-        <div className="w-full bg-zinc-950 h-2 rounded-full overflow-hidden">
+        <div className="w-full bg-black/10 dark:bg-white/10 h-2 rounded-full overflow-hidden">
           <div 
             className={`h-full rounded-full transition-all duration-500 ${
-              boundedPercent > 85 ? 'bg-red-500 shadow-sm' :
-              boundedPercent > 60 ? 'bg-yellow-500' : 'bg-gradient-to-r from-purple-500 to-indigo-500'
+              boundedPercent > 85 ? 'bg-[var(--semantic-error)]' : 'bg-primary'
             }`}
             style={{ width: `${boundedPercent}%` }}
           ></div>
@@ -137,9 +135,9 @@ export const UsageMeter: React.FC<{ compact?: boolean }> = ({ compact = false })
 
       {/* Daily Spark Graph (7 days usage logs) */}
       {dailyLog && dailyLog.length > 0 && (
-        <div className="pt-2 border-t border-white/5 space-y-3">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-500">
-            <ActivityIcon className="w-3.5 h-3.5 text-zinc-600" />
+        <div className="pt-2 border-t border-[var(--border-subtle)] space-y-3">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold text-[var(--text-muted)]">
+            <ActivityIcon className="w-3.5 h-3.5 text-[var(--text-muted)]" />
             <span>روند استفاده ۷ روز گذشته</span>
           </div>
           
@@ -154,17 +152,17 @@ export const UsageMeter: React.FC<{ compact?: boolean }> = ({ compact = false })
 
               return (
                 <div key={day.usage_date} className="flex flex-col items-center h-full flex-1 gap-1.5 group select-none">
-                  <div className="w-2.5 bg-zinc-900 hover:bg-purple-500/30 border border-white/5 rounded-t-sm h-full flex items-end justify-center transition-all relative">
+                  <div className="w-2.5 bg-black/5 dark:bg-white/5 hover:bg-primary/25 border border-[var(--border-subtle)] rounded-t-sm h-full flex items-end justify-center transition-all relative">
                     <div 
-                      className="w-full bg-gradient-to-t from-purple-600 to-indigo-500 rounded-t-sm transition-all duration-300" 
+                      className="w-full bg-primary rounded-t-sm transition-all duration-300" 
                       style={{ height: `${barHeight}%` }}
                     ></div>
                     {/* Hover Tooltip displaying transaction/request count */}
-                    <div className="absolute bottom-full mb-1 opacity-0 group-hover:opacity-100 bg-zinc-950 text-white border border-white/10 px-1.5 py-0.5 rounded text-[8px] font-mono transition-opacity z-20 pointer-events-none whitespace-nowrap">
+                    <div className="absolute bottom-full mb-1 opacity-0 group-hover:opacity-100 bg-[var(--bg-card)] text-[var(--text-main)] border border-[var(--border-subtle)] px-1.5 py-0.5 rounded text-[8px] font-mono transition-opacity z-20 pointer-events-none whitespace-nowrap">
                       {day.count} درخواست
                     </div>
                   </div>
-                  <span className="text-[8px] text-zinc-600 font-mono mt-0.5 group-hover:text-purple-400 transition-colors">
+                  <span className="text-[8px] text-[var(--text-muted)] font-mono mt-0.5 group-hover:text-primary transition-colors">
                     {label}
                   </span>
                 </div>
@@ -176,12 +174,12 @@ export const UsageMeter: React.FC<{ compact?: boolean }> = ({ compact = false })
 
       {/* Subscription Expiry indicator */}
       {usage?.expires_at && (
-        <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-bold text-zinc-500">
+        <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[10px] font-bold text-[var(--text-muted)]">
           <div className="flex items-center gap-1">
-            <CalendarIcon className="w-3.5 h-3.5 text-zinc-600" />
+            <CalendarIcon className="w-3.5 h-3.5 text-primary" />
             <span>تاریخ پایان اشتراک:</span>
           </div>
-          <span className="font-mono text-zinc-400">
+          <span className="font-mono text-[var(--text-main)]">
             {new Date(usage.expires_at).toLocaleDateString('fa-IR')}
           </span>
         </div>
