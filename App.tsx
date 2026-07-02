@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Page, Task, Note, Project, Habit, ActionResult } from './types';
+import { useMediaQuery } from './hooks/useMediaQuery';
 import BottomNav from './components/BottomNav';
 import Dashboard from './features/dashboard/Dashboard';
 import TasksView from './features/tasks/TasksView';
@@ -14,7 +15,7 @@ const SubscriptionPage = lazy(() => import('./features/billing/pages/Subscriptio
 
 const LoadingSpinner: React.FC = () => (
   <div className="flex items-center justify-center h-full min-h-[200px]" id="suspense-loader">
-    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-sky-500"></div>
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
   </div>
 );
 
@@ -28,6 +29,8 @@ import { useReminderScheduler } from './hooks/useReminderScheduler';
 import { requestNotificationPermission, subscribeToPush, saveSubscription } from './services/reminderService';
 
 // Import components
+import Sidebar from './components/Sidebar';
+import ProfileModal from './components/ProfileModal';
 import TaskEditorModal from './features/tasks/components/TaskEditorModal';
 import NoteEditorModal from './features/notes/components/NoteEditorModal';
 import { HabitManagerModal } from './features/habits/components/HabitManagerModal';
@@ -39,7 +42,33 @@ import * as billingService from './services/billingService';
 import { AnnouncementManager } from './features/announcements/AnnouncementManager';
 
 const MainApp: React.FC = () => {
-  const { user } = useAuth();
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const { user, signOut } = useAuth();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isZenActive, setIsZenActive] = useState(false);
+
+  useEffect(() => {
+    const handleOpenProfile = () => setIsProfileOpen(true);
+    window.addEventListener('hexer:open-profile', handleOpenProfile);
+    return () => window.removeEventListener('hexer:open-profile', handleOpenProfile);
+  }, []);
+
+  useEffect(() => {
+    const handleZenMode = (e: Event) => {
+      setIsZenActive((e as CustomEvent).detail);
+    };
+    window.addEventListener('hexer:zen-mode', handleZenMode);
+    return () => window.removeEventListener('hexer:zen-mode', handleZenMode);
+  }, []);
+
+  useEffect(() => {
+    const handleOpenTaskEditor = (e: Event) => {
+      const task = (e as CustomEvent).detail;
+      setEditingTask(task);
+    };
+    window.addEventListener('hexer:open-task-editor', handleOpenTaskEditor);
+    return () => window.removeEventListener('hexer:open-task-editor', handleOpenTaskEditor);
+  }, []);
   
   const {
     currentPage,
@@ -72,6 +101,7 @@ const MainApp: React.FC = () => {
     setIsOnboarding,
     editingHabit,
     setEditingHabit,
+    onTriggerUpgrade,
     // Operations
     addProject,
     updateProject,
@@ -213,28 +243,14 @@ const MainApp: React.FC = () => {
     if (loadingData) {
       return (
         <div className="flex items-center justify-center h-full" id="inner-loader">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-sky-500"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary"></div>
         </div>
       );
     }
     
     switch (currentPage) {
       case Page.Dashboard:
-        return (
-          <Dashboard 
-            tasks={tasks} notes={notes} projects={projects} habits={habits}
-            toggleHabitCompletion={toggleHabitCompletion} toggleTaskCompletion={toggleTaskCompletion}
-            selectedDate={selectedDate} setSelectedDate={setSelectedDate}
-            addTask={addTask} addNote={addNote}
-            editHabit={setEditingHabit}
-            subscription={subscription}
-            profile={profile}
-            onTriggerUpgrade={() => {
-              setPaywallMessage('جهت دسترسی نامحدود به دستیار هوشمند و قابلیت‌های مدیریت پروژه، طرح خود را ارتقا دهید.');
-              setShowPaywall(true);
-            }}
-          />
-        );
+        return <Dashboard />;
       case Page.Tasks:
         return (
           <TasksView 
@@ -273,21 +289,7 @@ const MainApp: React.FC = () => {
           </Suspense>
         );
       default:
-        return (
-          <Dashboard 
-            tasks={tasks} notes={notes} projects={projects} habits={habits}
-            toggleHabitCompletion={toggleHabitCompletion} toggleTaskCompletion={toggleTaskCompletion}
-            selectedDate={selectedDate} setSelectedDate={setSelectedDate}
-            addTask={addTask} addNote={addNote}
-            editHabit={setEditingHabit}
-            subscription={subscription}
-            profile={profile}
-            onTriggerUpgrade={() => {
-              setPaywallMessage('جهت دسترسی نامحدود به دستیار هوشمند و قابلیت‌های مدیریت پروژه، طرح خود را ارتقا دهید.');
-              setShowPaywall(true);
-            }}
-          />
-        );
+        return <Dashboard />;
     }
   };
 
@@ -306,15 +308,41 @@ const MainApp: React.FC = () => {
   }
 
   return (
-    <div className="relative flex flex-col h-[100dvh]" id="main-app-container">
-      <NetworkBanner />
-      <main className="flex-1 overflow-y-auto overflow-x-hidden pb-bottom-nav" id="view-viewport">
-        {renderContent()}
-      </main>
+    <div className="relative flex h-[100dvh] text-main" id="main-app-container">
+      {isDesktop ? (
+        /* شِلِ گلسِ بانددارِ دسکتاپ (دقیقاً مثل پروتوتایپ) */
+        <div className="hidden lg:flex fixed inset-0 z-10 items-center justify-center px-6 xl:px-10 overflow-hidden">
+          <main className="glass-app w-full max-w-[1280px] h-[92vh] max-h-[860px] rounded-[32px] p-4 flex gap-4 overflow-hidden">
+            <Sidebar currentPage={currentPage} setPage={setCurrentPage} onOpenProfile={() => setIsProfileOpen(true)} className="shrink-0" />
+            <div className="flex-1 min-w-0 h-full overflow-y-auto soft-scroll pb-6" id="view-viewport">
+              <NetworkBanner />
+              {renderContent()}
+            </div>
+          </main>
+        </div>
+      ) : (
+        /* لِی‌اوتِ موبایل (اسکرولیِ سیال) */
+        <div className="flex-1 flex flex-col min-w-0 relative z-10">
+          <NetworkBanner />
+          <main className={`flex-1 overflow-y-auto overflow-x-hidden ${isZenActive ? '' : 'pb-bottom-nav'}`} id="view-viewport">
+            {renderContent()}
+          </main>
+          {!isZenActive && <BottomNav currentPage={currentPage} setPage={setCurrentPage} />}
+        </div>
+      )}
+
       <ToastNotifications notifications={notifications} onRemove={removeNotification} />
-      <BottomNav currentPage={currentPage} setPage={setCurrentPage} />
-      
-      {/* Global Modals triggered from Chat & Lists */}
+
+      {/* Global Modals triggered from Chat, Sidebar & Lists */}
+      <ProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        user={user}
+        signOut={signOut}
+        subscription={subscription}
+        profile={profile}
+        onTriggerUpgrade={onTriggerUpgrade}
+      />
       {editingTask && (
         <TaskEditorModal 
           isOpen={!!editingTask} task={editingTask} 
@@ -359,7 +387,7 @@ const AppContent: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[100dvh]" id="main-loader">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-sky-500"></div>
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -375,7 +403,8 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <div className="bg-gray-950 min-h-screen text-white" style={{ fontFamily: "'Vazirmatn', sans-serif" }} id="app-root">
+    <div className="min-h-screen text-main" style={{ fontFamily: "'Vazirmatn', sans-serif" }} id="app-root">
+      <div className="bg-nature" />
       <AuthProvider>
         <AppContent />
       </AuthProvider>

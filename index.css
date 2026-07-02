@@ -3,6 +3,7 @@
    ========================================== */
 
 * {
+  -webkit-tap-highlight-color: transparent;
   box-sizing: border-box;
 }
 
@@ -13,6 +14,84 @@
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
   --bottom-nav-space: 5rem; /* افزوده شده در فاز J */
+
+  /* (الف) توکن‌های کانالیِ RGB */
+  --color-primary-rgb: 216 240 102;
+  --color-primary-hover-rgb: 193 219 60;
+  --on-primary-rgb: 0 0 0;
+  --text-main-rgb: 17 24 39;
+  --text-muted-rgb: 107 114 128;
+  --border-subtle-rgb: 229 231 235;
+  --success-rgb: 16 185 129;
+  --error-rgb: 239 68 68;
+  --warning-rgb: 245 158 11;
+
+  /* (ب) توکن‌های مقدارِ کاملِ Hex/rgba */
+  --color-primary: #D8F066;
+  --color-primary-hover: #C1DB3C;
+  --text-on-primary: #000000;
+  --bg-base: #F4F5F7;
+  --bg-image: linear-gradient(180deg, #F4F5F7, #ECEEF2);
+  --bg-app-glass: rgba(244, 245, 247, 0.6);
+  --bg-panel-glass: rgba(255, 255, 255, 0.7);
+  --bg-card: rgba(255, 255, 255, 0.85);
+  --text-main: #111827;
+  --text-muted: #6B7280;
+  --border-subtle: #E5E7EB;
+  --border-neon: transparent;
+  --input-focus-ring: #111827;
+  --nav-active-bg: var(--color-primary);
+  --nav-active-text: var(--text-on-primary);
+  --nav-hover-bg: rgba(255, 255, 255, 0.6);
+  --ink-bg: #16161A;
+  --ink-text: #FFFFFF;
+  --semantic-error: #EF4444;
+  --semantic-error-soft: rgba(239, 68, 68, 0.1);
+  --semantic-success: #10B981;
+  --shadow-glass: 0 30px 60px -15px rgba(0, 0, 0, 0.15);
+  --shadow-card: 0 10px 25px rgba(0, 0, 0, 0.05);
+  --shadow-btn: none;
+  --autofill-bg: #FFFFFF;
+  --autofill-text: #111827;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-pill: 9999px;
+}
+
+.dark {
+  /* (الف) توکن‌های کانالیِ RGB (Override) */
+  --text-main-rgb: 249 250 251;
+  --text-muted-rgb: 156 163 175;
+  --border-subtle-rgb: 51 65 85;
+  --success-rgb: 34 197 94;
+  --error-rgb: 255 107 107;
+  --warning-rgb: 251 191 36;
+
+  /* (ب) توکن‌های مقدارِ کاملِ Hex/rgba (Override) */
+  --bg-base: #121212;
+  --bg-image: linear-gradient(180deg, #121212, #0C0C0E);
+  --bg-app-glass: rgba(18, 18, 20, 0.6);
+  --bg-panel-glass: rgba(30, 41, 59, 0.4);
+  --bg-card: rgba(30, 41, 59, 0.55);
+  --text-main: #F9FAFB;
+  --text-muted: #9CA3AF;
+  --border-subtle: #334155;
+  --border-neon: #D8F066;
+  --input-focus-ring: #D8F066;
+  --nav-active-bg: rgba(216, 240, 102, 0.08);
+  --nav-active-text: var(--color-primary);
+  --nav-hover-bg: rgba(255, 255, 255, 0.05);
+  --ink-bg: rgba(216, 240, 102, 0.08);
+  --ink-text: var(--color-primary);
+  --semantic-error: #FF6B6B;
+  --semantic-error-soft: rgba(255, 107, 107, 0.1);
+  --semantic-success: #22C55E;
+  --shadow-glass: none;
+  --shadow-card: none;
+  --shadow-btn: none;
+  --autofill-bg: #09090b;
+  --autofill-text: #FFFFFF;
 }
 
 /* اساسی‌ترین تنظیمات ریشه برای جلوگیری از اسکرول پرشی و اوراسکرول در سافاری موبایل */
@@ -45,10 +124,155 @@ textarea:-webkit-autofill:focus,
 select:-webkit-autofill,
 select:-webkit-autofill:hover,
 select:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0px 1000px #09090b inset !important;
-  -webkit-text-fill-color: #ffffff !important;
-  caret-color: #ffffff;
+  -webkit-box-shadow: 0 0 0px 1000px var(--autofill-bg) inset !important;
+  -webkit-text-fill-color: var(--autofill-text) !important;
+  caret-color: var(--autofill-text);
   transition: background-color 5000s ease-in-out 0s;
+}
+
+/* ==========================================
+   HEXER MASTER UI DESIGN SYSTEM CLASSES
+   ========================================== */
+
+.glass-app {
+  background: var(--bg-app-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-glass);
+  transition: all 0.4s ease;
+}
+
+.glass-panel {
+  background: var(--bg-panel-glass);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.4s ease;
+}
+
+.glass-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-2px);
+}
+
+.tile-ink {
+  background: var(--ink-bg);
+  color: var(--ink-text);
+  border: 1px solid var(--border-neon);
+  box-shadow: var(--shadow-card);
+  transition: all 0.4s ease;
+}
+
+.tile-lime {
+  background-color: var(--color-primary);
+  color: var(--text-on-primary) !important;
+  border: none;
+  box-shadow: var(--shadow-card);
+}
+
+.dark .tile-lime {
+  box-shadow: 0 0 25px rgba(216, 240, 102, 0.15);
+}
+
+.nav-active {
+  background: var(--nav-active-bg);
+  color: var(--nav-active-text);
+  border: 1px solid var(--border-neon);
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.bg-lime {
+  background-color: var(--color-primary);
+  color: var(--text-on-primary) !important;
+}
+
+.text-lime {
+  color: var(--color-primary);
+}
+
+/* پس‌زمینه‌ی پایه‌ی خوداتکا — بدون تصویر خارجی. یک‌بار در ریشه‌ی App اعمال می‌شود. */
+.bg-nature {
+  position: fixed; inset: 0; z-index: -1;
+  background-image: var(--bg-image);
+  background-size: cover;
+  background-position: center;
+  transition: background-image 0.8s ease-in-out;
+}
+
+.bg-nature::after {
+  content: ''; position: absolute; inset: 0;
+  background: rgba(244, 245, 247, 0.1); 
+  transition: all 0.8s ease-in-out;
+}
+.dark .bg-nature::after {
+  background: rgba(12, 12, 14, 0.4); 
+}
+
+@media (max-width: 1023px) {
+  .bg-nature::after {
+    background: rgba(244, 245, 247, 0.35); 
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .dark .bg-nature::after {
+    background: rgba(12, 12, 14, 0.65); 
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}
+
+.soft-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.soft-scroll::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 99px;
+  opacity: 0.3;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.task-check.is-done {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.task-check.is-done svg {
+  color: var(--text-on-primary);
+}
+
+/* نمایش/پنهان آیکن تم به‌صورت CSS-محور — مقاوم در برابر re-render ریکت */
+.theme-icon-dark {
+  display: none;
+}
+
+.theme-icon-light {
+  display: inline-flex;
+}
+
+.dark .theme-icon-light {
+  display: none;
+}
+
+.dark .theme-icon-dark {
+  display: inline-flex;
 }
 
 /* ==========================================
@@ -57,6 +281,9 @@ select:-webkit-autofill:focus {
 
 /* حریمِ بالا برای هدرهای sticky */
 .pt-safe { padding-top: calc(env(safe-area-inset-top, 0px) + 2rem) !important; }
+
+/* هم‌ترازیِ هدرِ موبایل با استانداردِ اپل */
+.pt-app-safe { padding-top: calc(env(safe-area-inset-top, 0px) + 0.5rem) !important; }
 
 /* حریمِ پایین برای نوارهای عمل/footerِ ثابت */
 .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem) !important; }
