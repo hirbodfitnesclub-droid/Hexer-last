@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v1.73';
+const CACHE_VERSION = 'v1.74';
 const CACHE_NAME = `hexer-cache-${CACHE_VERSION}`;
 
 // Static resources to be cached using cache-first strategy
@@ -9,7 +9,9 @@ const STATIC_ASSETS = [
   '/icon-192.png',
   '/icon-512.png',
   '/icon-maskable-512.png',
-  '/apple-touch-icon.png'
+  '/apple-touch-icon.png',
+  '/bg-light.jpg',
+  '/bg-dark.jpg'
 ];
 
 self.addEventListener('install', (event) => {
@@ -71,6 +73,7 @@ self.addEventListener('fetch', (event) => {
     url.hostname.includes('fonts.gstatic.com') ||
     url.pathname.endsWith('.woff2') ||
     url.pathname.endsWith('.png') ||
+    url.pathname.endsWith('.jpg') ||
     url.pathname.endsWith('.ico') ||
     url.pathname.endsWith('.css');
 

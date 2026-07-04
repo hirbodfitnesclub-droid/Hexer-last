@@ -17,6 +17,7 @@
         theme: { extend: { colors: {
           primary:        'rgb(var(--color-primary-rgb) / <alpha-value>)',
           'primary-hover':'rgb(var(--color-primary-hover-rgb) / <alpha-value>)',
+          'primary-text': 'rgb(var(--color-primary-text-rgb) / <alpha-value>)',
           'on-primary':   'rgb(var(--on-primary-rgb) / <alpha-value>)',
           main:           'rgb(var(--text-main-rgb) / <alpha-value>)',
           muted:          'rgb(var(--text-muted-rgb) / <alpha-value>)',
@@ -24,6 +25,12 @@
           success:        'rgb(var(--success-rgb) / <alpha-value>)',
           error:          'rgb(var(--error-rgb) / <alpha-value>)',
           warning:        'rgb(var(--warning-rgb) / <alpha-value>)',
+          'project-sky': 'rgb(var(--project-color-sky-rgb) / <alpha-value>)',
+          'project-red': 'rgb(var(--project-color-red-rgb) / <alpha-value>)',
+          'project-green': 'rgb(var(--project-color-green-rgb) / <alpha-value>)',
+          'project-yellow': 'rgb(var(--project-color-yellow-rgb) / <alpha-value>)',
+          'project-purple': 'rgb(var(--project-color-purple-rgb) / <alpha-value>)',
+          'project-gray': 'rgb(var(--project-color-gray-rgb) / <alpha-value>)',
         } } }
       };
     </script>
@@ -41,9 +48,14 @@
       (function () {
         var t = localStorage.getItem('hexer-theme');
         var isDark = t === 'dark';
-        if (isDark) {
-          document.documentElement.classList.add('dark');
+        if (isDark) document.documentElement.classList.add('dark');
+
+        var ct = localStorage.getItem('hexer-color-theme');
+        if (ct === 'blue' || ct === 'purple') {
+          document.documentElement.setAttribute('data-color-theme', ct);
         }
+        // اگر ct نامعتبر/خالی بود، attribute اصلاً ست نمی‌شود → پیش‌فرضِ :root (سبز) اعمال می‌شود.
+
         document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark ? '#121212' : '#F4F5F7');
       })();
     </script>

@@ -31,7 +31,7 @@
   --color-primary-hover: #C1DB3C;
   --text-on-primary: #000000;
   --bg-base: #F4F5F7;
-  --bg-image: linear-gradient(180deg, #F4F5F7, #ECEEF2);
+  --bg-image: url('/bg-light.jpg');
   --bg-app-glass: rgba(244, 245, 247, 0.6);
   --bg-panel-glass: rgba(255, 255, 255, 0.7);
   --bg-card: rgba(255, 255, 255, 0.85);
@@ -57,6 +57,41 @@
   --radius-md: 16px;
   --radius-lg: 24px;
   --radius-pill: 9999px;
+  
+  /* پروژه - رنگ‌های ثابت غیرمرتبط با تم برند */
+  --project-color-sky: #38BDF8;
+  --project-color-red: #F87171;
+  --project-color-green: #4ADE80;
+  --project-color-yellow: #FACC15;
+  --project-color-purple: #C084FC;
+  --project-color-gray: #9CA3AF;
+
+  --project-color-sky-rgb: 56 189 248;
+  --project-color-red-rgb: 248 113 113;
+  --project-color-green-rgb: 74 222 128;
+  --project-color-yellow-rgb: 250 204 21;
+  --project-color-purple-rgb: 192 132 252;
+  --project-color-gray-rgb: 156 163 175;
+  --color-primary-text-rgb: 109 126 27;
+  --color-primary-text: #6D7E1B;
+}
+
+[data-color-theme="blue"] {
+  --color-primary-rgb: 102 182 240;
+  --color-primary-hover-rgb: 60 153 219;
+  --color-primary: #66B6F0;
+  --color-primary-hover: #3C99DB;
+  --color-primary-text-rgb: 39 123 183;
+  --color-primary-text: #277BB7;
+}
+
+[data-color-theme="purple"] {
+  --color-primary-rgb: 166 102 240;
+  --color-primary-hover-rgb: 134 60 219;
+  --color-primary: #A666F0;
+  --color-primary-hover: #863CDB;
+  --color-primary-text-rgb: 153 76 240;
+  --color-primary-text: #994CF0;
 }
 
 .dark {
@@ -70,19 +105,19 @@
 
   /* (ب) توکن‌های مقدارِ کاملِ Hex/rgba (Override) */
   --bg-base: #121212;
-  --bg-image: linear-gradient(180deg, #121212, #0C0C0E);
+  --bg-image: url('/bg-dark.jpg');
   --bg-app-glass: rgba(18, 18, 20, 0.6);
   --bg-panel-glass: rgba(30, 41, 59, 0.4);
   --bg-card: rgba(30, 41, 59, 0.55);
   --text-main: #F9FAFB;
   --text-muted: #9CA3AF;
   --border-subtle: #334155;
-  --border-neon: #D8F066;
-  --input-focus-ring: #D8F066;
-  --nav-active-bg: rgba(216, 240, 102, 0.08);
+  --border-neon: var(--color-primary);
+  --input-focus-ring: var(--color-primary);
+  --nav-active-bg: rgb(var(--color-primary-rgb) / 0.08);
   --nav-active-text: var(--color-primary);
   --nav-hover-bg: rgba(255, 255, 255, 0.05);
-  --ink-bg: rgba(216, 240, 102, 0.08);
+  --ink-bg: rgb(var(--color-primary-rgb) / 0.08);
   --ink-text: var(--color-primary);
   --semantic-error: #FF6B6B;
   --semantic-error-soft: rgba(255, 107, 107, 0.1);
@@ -92,6 +127,28 @@
   --shadow-btn: none;
   --autofill-bg: #09090b;
   --autofill-text: #FFFFFF;
+  
+  /* پروژه - رنگ‌های ثابت غیرمرتبط با تم برند (دارک) */
+  --project-color-sky: #7DD3FC;
+  --project-color-red: #FCA5A5;
+  --project-color-green: #86EFAC;
+  --project-color-yellow: #FDE047;
+  --project-color-purple: #D8B4FE;
+  --project-color-gray: #D1D5DB;
+
+  --project-color-sky-rgb: 125 211 252;
+  --project-color-red-rgb: 252 165 165;
+  --project-color-green-rgb: 134 239 172;
+  --project-color-yellow-rgb: 253 224 71;
+  --project-color-purple-rgb: 216 180 254;
+  --project-color-gray-rgb: 209 213 219;
+  --color-primary-text-rgb: var(--color-primary-rgb);
+  --color-primary-text: var(--color-primary);
+}
+
+[data-color-theme="purple"].dark {
+  --color-primary-text-rgb: 172 117 235;
+  --color-primary-text: #AC75EB;
 }
 
 /* اساسی‌ترین تنظیمات ریشه برای جلوگیری از اسکرول پرشی و اوراسکرول در سافاری موبایل */
@@ -171,15 +228,15 @@ select:-webkit-autofill:focus {
   transition: all 0.4s ease;
 }
 
-.tile-lime {
+.tile-brand {
   background-color: var(--color-primary);
   color: var(--text-on-primary) !important;
   border: none;
   box-shadow: var(--shadow-card);
 }
 
-.dark .tile-lime {
-  box-shadow: 0 0 25px rgba(216, 240, 102, 0.15);
+.dark .tile-brand {
+  box-shadow: 0 0 25px rgb(var(--color-primary-rgb) / 0.15);
 }
 
 .nav-active {
@@ -190,12 +247,12 @@ select:-webkit-autofill:focus {
   transition: all 0.3s ease;
 }
 
-.bg-lime {
+.bg-brand {
   background-color: var(--color-primary);
   color: var(--text-on-primary) !important;
 }
 
-.text-lime {
+.text-brand {
   color: var(--color-primary);
 }
 
