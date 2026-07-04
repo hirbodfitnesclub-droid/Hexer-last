@@ -70,7 +70,7 @@ export const ProjectDetailsModal: React.FC<ProjectDetailsModalProps> = ({
     >
       {icon}
       <span className="flex-1 truncate font-medium">{children}</span>
-      <PencilIcon className="w-3.5 h-3.5 text-[var(--text-muted)] group-hover:text-[var(--color-primary)] transition-colors" />
+      <PencilIcon className="w-3.5 h-3.5 text-[var(--text-muted)] group-hover:text-[var(--color-primary-text)] transition-colors" />
     </button>
   );
 
@@ -192,7 +192,7 @@ export const ProjectDetailsModal: React.FC<ProjectDetailsModalProps> = ({
                         <ItemRow 
                           key={t.id} 
                           onClick={() => { onClose(); onEditTask(t); }} 
-                          icon={<ListChecksIcon className="w-4 h-4 text-green-500 shrink-0" />}
+                          icon={<ListChecksIcon className="w-4 h-4 text-success shrink-0" />}
                         >
                           {t.title}
                         </ItemRow>
@@ -213,7 +213,7 @@ export const ProjectDetailsModal: React.FC<ProjectDetailsModalProps> = ({
                     <ItemRow 
                       key={n.id} 
                       onClick={() => { onClose(); onEditNote(n); }} 
-                      icon={<NotebookIcon className="w-4 h-4 text-purple-400 shrink-0" />}
+                      icon={<NotebookIcon className="w-4 h-4 text-[var(--text-muted)] shrink-0" />}
                     >
                       {n.title || 'یادداشت بدون عنوان'}
                     </ItemRow>

@@ -81,7 +81,7 @@ export const HabitForm: React.FC<HabitFormProps> = ({ habit, onSave, onCancel, i
       <div className="pt-4 flex gap-3 shrink-0">
         <button 
           type="submit"
-          className="flex-1 bg-lime hover:opacity-90 text-[var(--text-on-primary)] py-3 rounded-xl font-bold transition-all text-sm cursor-pointer"
+          className="flex-1 bg-[var(--color-primary)] hover:opacity-90 text-[var(--text-on-primary)] py-3 rounded-xl font-bold transition-all text-sm cursor-pointer"
           disabled={!name.trim()}
         >
           {isNew ? 'ایجاد عادت جدید' : 'ذخیره تغییرات نهایی'}

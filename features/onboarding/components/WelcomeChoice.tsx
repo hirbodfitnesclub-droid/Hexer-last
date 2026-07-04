@@ -23,7 +23,7 @@ export const WelcomeChoice: React.FC<WelcomeChoiceProps> = ({
         id="welcome-choice-icon-badge"
         className="w-20 h-20 rounded-3xl bg-primary/15 border border-primary/30 flex items-center justify-center shadow-lg mb-8"
       >
-        <BotIcon className="w-10 h-10 text-primary" />
+        <BotIcon className="w-10 h-10 text-primary-text" />
       </div>
 
       <div id="welcome-text-container" className="space-y-4 mb-10">

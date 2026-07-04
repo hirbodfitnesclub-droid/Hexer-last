@@ -7,8 +7,8 @@ import { useData } from '../../../contexts/DataContext';
 
 const priorityConfig = {
   [Priority.High]: { color: 'red', label: 'زیاد', bg: 'bg-[var(--semantic-error-soft)]', text: 'text-[var(--semantic-error)]', border: 'border-[var(--semantic-error)]/30' },
-  [Priority.Medium]: { color: 'yellow', label: 'متوسط', bg: 'bg-primary/10', text: 'text-[var(--color-primary)]', border: 'border-[var(--border-neon)]' },
-  [Priority.Low]: { color: 'sky', label: 'کم', bg: 'bg-primary/10', text: 'text-[var(--color-primary)]', border: 'border-[var(--border-neon)]' },
+  [Priority.Medium]: { color: 'yellow', label: 'متوسط', bg: 'bg-primary/10', text: 'text-[var(--color-primary-text)]', border: 'border-[var(--border-neon)]' },
+  [Priority.Low]: { color: 'sky', label: 'کم', bg: 'bg-primary/10', text: 'text-[var(--color-primary-text)]', border: 'border-[var(--border-neon)]' },
 };
 
 interface TaskCardProps {
@@ -75,12 +75,10 @@ export const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, onToggle, o
         <div className="flex items-center flex-wrap gap-x-4 gap-y-1 mt-2.5 text-[11px] text-[var(--text-muted)]">
           {task.project && (
             <div className="flex items-center gap-1.5 bg-[var(--bg-card)] px-2 py-0.5 rounded-md border border-[var(--border-subtle)]">
-              <div className={`w-1.5 h-1.5 rounded-full ${
-                task.project.color === 'red' ? 'bg-red-500' :
-                task.project.color === 'yellow' ? 'bg-yellow-500' :
-                task.project.color === 'blue' ? 'bg-blue-500' :
-                task.project.color === 'green' ? 'bg-success' : 'bg-primary'
-              }`}></div>
+              <div 
+                className="w-1.5 h-1.5 rounded-full" 
+                style={{ backgroundColor: 'var(--project-color-' + (task.project.color || 'sky') + ')' }}
+              ></div>
               <span className="text-[var(--text-muted)] font-semibold">{task.project.title}</span>
             </div>
           )}
@@ -92,15 +90,15 @@ export const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, onToggle, o
           )}
 
           {checklistTotal > 0 && (
-            <div className={`flex items-center gap-1.5 bg-[var(--bg-card)] px-2 py-0.5 rounded-md border border-[var(--border-subtle)] ${checklistCompleted === checklistTotal ? 'text-[var(--color-primary)]' : 'text-[var(--text-muted)]'}`}>
+            <div className={`flex items-center gap-1.5 bg-[var(--bg-card)] px-2 py-0.5 rounded-md border border-[var(--border-subtle)] ${checklistCompleted === checklistTotal ? 'text-[var(--color-primary-text)]' : 'text-[var(--text-muted)]'}`}>
               <ListChecksIcon className="w-3 h-3" />
               <span className="font-mono text-[10px]">{checklistCompleted}/{checklistTotal}</span>
             </div>
           )}
 
           {isLinkedToNote && (
-            <div className="flex items-center gap-1 bg-primary/10 text-[var(--color-primary)] border border-[var(--border-neon)] px-2 py-0.5 rounded-md font-semibold" title="دارای یادداشت متصل">
-              <NotebookIcon className="w-3 h-3 text-[var(--color-primary)]" />
+            <div className="flex items-center gap-1 bg-primary/10 text-[var(--color-primary-text)] border border-[var(--border-neon)] px-2 py-0.5 rounded-md font-semibold" title="دارای یادداشت متصل">
+              <NotebookIcon className="w-3 h-3 text-[var(--color-primary-text)]" />
               <span>یادداشت متصل</span>
             </div>
           )}

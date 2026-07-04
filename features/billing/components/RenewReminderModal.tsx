@@ -54,12 +54,12 @@ export const RenewReminderModal: React.FC = () => {
       aria-modal="true"
     >
       <div 
-        className="bg-zinc-950 border border-red-500/20 max-w-md w-full rounded-2xl p-6 shadow-2xl relative space-y-5 text-right dir-rtl"
+        className="bg-[var(--bg-card)] border border-error/20 max-w-md w-full rounded-2xl p-6 shadow-2xl relative space-y-5 text-right dir-rtl"
         onClick={e => e.stopPropagation()}
       >
         <button 
           onClick={handleDismiss} 
-          className="absolute top-4 left-4 p-1.5 text-zinc-500 hover:text-white bg-zinc-900 border border-white/5 rounded-lg transition-colors"
+          className="absolute top-4 left-4 p-1.5 text-[var(--text-muted)] hover:text-[var(--text-main)] bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg transition-colors"
           aria-label="بستن"
         >
           <XIcon className="w-4 h-4" />
@@ -67,21 +67,21 @@ export const RenewReminderModal: React.FC = () => {
 
         {/* Alarm Graphic icon */}
         <div className="flex items-center gap-3 pt-2">
-          <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/25 flex items-center justify-center text-red-400 shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-error/10 border border-error/25 flex items-center justify-center text-error shrink-0">
             <svg className="w-5 h-5 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
           <div>
-            <h3 className="text-sm font-black text-white">
+            <h3 className="text-sm font-black text-[var(--text-main)]">
               {isExpired ? 'اشتراک هوش مصنوعی شما منقضی شده است!' : 'هشدار نزدیک بودن تاریخ تمدید اشتراک'}
             </h3>
-            <span className="text-[10px] text-zinc-500 font-bold">برای ممانعت از قطع شدن دسترسی هوشمند</span>
+            <span className="text-[10px] text-[var(--text-muted)] font-bold">برای ممانعت از قطع شدن دسترسی هوشمند</span>
           </div>
         </div>
 
         {/* Message body */}
-        <p className="text-xs text-zinc-400 leading-relaxed font-semibold">
+        <p className="text-xs text-[var(--text-muted)] leading-relaxed font-semibold">
           {isExpired ? (
             'اعتبار اشتراک هکسر شما تموم شده و دسترسی شما به پروژه‌ها، برنامه‌ریزی و بخش‌های مختلف محدود شده؛ لطفاً نسبت به تمدیدش اقدام کنی.'
           ) : (
@@ -99,14 +99,14 @@ export const RenewReminderModal: React.FC = () => {
               // Since we operate under view modes we can use standard navigation
               window.dispatchEvent(new CustomEvent('navigate_to_subscription'));
             }}
-            className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-xl text-xs transition-colors text-center"
+            className="flex-1 bg-error hover:bg-error/90 text-[var(--text-on-primary)] font-bold py-2.5 rounded-xl text-xs transition-colors text-center"
           >
             تمدید اشتراک 🚀
           </button>
           
           <button 
             onClick={handleDismiss}
-            className="px-4 py-2.5 bg-zinc-900 border border-zinc-800 hover:bg-zinc-900 text-zinc-400 rounded-xl font-bold text-xs transition-colors"
+            className="px-4 py-2.5 bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:bg-[var(--nav-hover-bg)] text-[var(--text-muted)] rounded-xl font-bold text-xs transition-colors"
           >
             بعداً یادآوری کن
           </button>

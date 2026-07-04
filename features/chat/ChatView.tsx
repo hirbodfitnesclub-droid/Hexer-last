@@ -40,9 +40,9 @@ interface ChatViewProps {
 }
 
 const suggestions = [
-  { text: "برنامه امروزم چیه؟", icon: <CalendarIcon className="w-4 h-4 text-primary" /> },
-  { text: "یک تسک جدید بساز برای...", icon: <ListChecksIcon className="w-4 h-4 text-primary" /> },
-  { text: "ایده‌های قبلیم رو مرور کن", icon: <LightbulbIcon className="w-4 h-4 text-primary" /> },
+  { text: "برنامه امروزم چیه؟", icon: <CalendarIcon className="w-4 h-4 text-primary-text" /> },
+  { text: "یک تسک جدید بساز برای...", icon: <ListChecksIcon className="w-4 h-4 text-primary-text" /> },
+  { text: "ایده‌های قبلیم رو مرور کن", icon: <LightbulbIcon className="w-4 h-4 text-primary-text" /> },
 ];
 
 const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProject }) => {
@@ -567,10 +567,10 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
   return (
     <div className="flex flex-col h-full text-[var(--text-main)]">
       {/* Header */}
-      <div className="p-4 border-b border-[var(--border-subtle)] flex flex-col gap-3 backdrop-blur-xl sticky top-0 pt-safe z-10 w-full" style={{ background: 'var(--bg-app-glass)' }}>
+      <div className="p-4 lg:pt-0 border-b border-[var(--border-subtle)] lg:border-b-0 flex flex-col gap-3 bg-[var(--bg-app-glass)] lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none sticky top-0 pt-safe z-10 w-full">
         <div className="flex justify-between items-center w-full">
           <h2 className="text-lg font-bold text-[var(--text-main)] flex items-center gap-2">
-            <BotIcon className="w-6 h-6 text-primary" />
+            <BotIcon className="w-6 h-6 text-primary-text" />
             دستیار هوشمند هکسر
           </h2>
           <div className="flex gap-2">
@@ -622,7 +622,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
                 onClick={() => setFilterType('task')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-medium transition-all shrink-0 cursor-pointer ${
                   filterType === 'task'
-                    ? 'bg-primary/10 text-primary border border-primary/30 font-semibold'
+                    ? 'bg-primary/10 text-primary-text border border-primary/30 font-semibold'
                     : 'bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--border-subtle)] text-[var(--text-muted)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--text-main)]'
                 }`}
               >
@@ -633,7 +633,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
                 onClick={() => setFilterType('note')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-medium transition-all shrink-0 cursor-pointer ${
                   filterType === 'note'
-                    ? 'bg-primary/10 text-primary border border-primary/30 font-semibold'
+                    ? 'bg-primary/10 text-primary-text border border-primary/30 font-semibold'
                     : 'bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--border-subtle)] text-[var(--text-muted)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--text-main)]'
                 }`}
               >
@@ -644,7 +644,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
                 onClick={() => setFilterType('project')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-medium transition-all shrink-0 cursor-pointer ${
                   filterType === 'project'
-                    ? 'bg-primary/10 text-primary border border-primary/30 font-semibold'
+                    ? 'bg-primary/10 text-primary-text border border-primary/30 font-semibold'
                     : 'bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--border-subtle)] text-[var(--text-muted)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--text-main)]'
                 }`}
               >
@@ -670,7 +670,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
                 onClick={() => setFilterTime('today')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-medium transition-all shrink-0 cursor-pointer ${
                   filterTime === 'today'
-                    ? 'bg-primary/10 text-primary border border-primary/30 font-semibold'
+                    ? 'bg-primary/10 text-primary-text border border-primary/30 font-semibold'
                     : 'bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--border-subtle)] text-[var(--text-muted)] hover:bg-[var(--nav-hover-bg)] hover:text(--text-main)]'
                 }`}
               >
@@ -681,7 +681,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
                 onClick={() => setFilterTime('last_week')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-medium transition-all shrink-0 cursor-pointer ${
                   filterTime === 'last_week'
-                    ? 'bg-primary/10 text-primary border border-primary/30 font-semibold'
+                    ? 'bg-primary/10 text-primary-text border border-primary/30 font-semibold'
                     : 'bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--border-subtle)] text-[var(--text-muted)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--text-main)]'
                 }`}
               >
@@ -699,7 +699,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
           <div className="flex flex-col items-center justify-center py-10 opacity-100 transition-opacity duration-300">
             <div className="w-20 h-20 bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-full flex items-center justify-center mb-6 relative">
               <div className="absolute inset-0 bg-primary/20 rounded-full animate-pulse"></div>
-              <BotIcon className="w-10 h-10 text-primary" />
+              <BotIcon className="w-10 h-10 text-primary-text" />
             </div>
             <h3 className="text-xl font-bold text-[var(--text-main)] mb-2">امروز چطور می‌تونم کمکت کنم؟</h3>
             <p className="text-[var(--text-muted)] text-sm mb-8 text-center max-w-xs">آماده‌ام بهت کمک کنم! متنت رو تایپ کن یا صدات رو بفرست 🎤</p>
@@ -726,14 +726,14 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
             key={msg.id}
             className={`flex items-start gap-3 ${msg.sender === 'user' ? 'flex-row-reverse' : ''} transition-opacity duration-300`}
           >
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${msg.sender === 'user' ? 'bg-primary/20 text-primary border border-primary/30' : 'glass-card text-[var(--text-muted)]'}`}>
-              {msg.sender === 'user' ? <UserIcon className="w-5 h-5 text-primary" /> : <BotIcon className="w-5 h-5 text-[var(--text-muted)]" />}
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${msg.sender === 'user' ? 'bg-primary/20 text-primary-text border border-primary/30' : 'glass-card text-[var(--text-muted)]'}`}>
+              {msg.sender === 'user' ? <UserIcon className="w-5 h-5 text-primary-text" /> : <BotIcon className="w-5 h-5 text-[var(--text-muted)]" />}
             </div>
             
             <div className={`flex flex-col gap-2 max-w-[85%] ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
               <div className={`p-3.5 rounded-2xl text-sm leading-6 ${
                 msg.sender === 'user' 
-                  ? 'bg-lime text-[var(--text-on-primary)] rounded-tr-none text-right shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.15)]' 
+                  ? 'bg-brand text-[var(--text-on-primary)] rounded-tr-none text-right shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.15)]' 
                   : 'glass-card rounded-tl-none text-right text-[var(--text-main)]'
               }`} dir="rtl">
                 {msg.text}
@@ -750,10 +750,10 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
                   {msg.citations.length > 5 && (
                     <button
                       onClick={() => handleShowMoreCitations(msg.citations)}
-                      className="text-xs text-primary hover:text-primary-hover font-medium flex items-center gap-1.5 mt-1 transition-all bg-primary/5 hover:bg-primary/10 px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] hover:border-primary/30"
+                      className="text-xs text-primary-text hover:text-primary-hover font-medium flex items-center gap-1.5 mt-1 transition-all bg-primary/5 hover:bg-primary/10 px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] hover:border-primary/30"
                       id={`view-more-${msg.id}`}
                     >
-                      <PlusIcon className="w-3.5 h-3.5 text-primary" />
+                      <PlusIcon className="w-3.5 h-3.5 text-primary-text" />
                       مشاهده نتایج مشابه بیشتر ({msg.citations.length - 5} مورد دیگر)
                     </button>
                   )}
@@ -771,14 +771,14 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
                     if (isSuggestedLink) {
                       return (
                         <div key={idx} className="mt-2 bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--border-subtle)] p-3.5 rounded-xl text-right w-full sm:w-auto min-w-[260px]" dir="rtl">
-                          <p className="text-xs text-primary font-semibold mb-1 flex items-center gap-1.5">
+                          <p className="text-xs text-primary-text font-semibold mb-1 flex items-center gap-1.5">
                             <LinkIcon className="w-3.5 h-3.5" />
                             پیشنهاد پیوند معنایی هوشمند
                           </p>
                           <p className="text-sm font-bold text-[var(--text-main)] mb-2">{result.data.title}</p>
                           
                           {linked ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded">
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-primary-text bg-primary/10 px-2.5 py-1 rounded">
                               <CheckIcon className="w-3.5 h-3.5" />
                               اتصال برپا شد
                             </span>
@@ -868,7 +868,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
             <img src={selectedImagePreview} alt="Selected Preview" className="h-20 w-auto rounded-lg border border-[var(--border-subtle)]" />
             <button 
               onClick={removeImage}
-              className="absolute -top-2 -left-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
+              className="absolute -top-2 -left-2 bg-error text-white rounded-full p-1 shadow-md hover:bg-error/90 transition-colors"
             >
               <XIcon className="w-3 h-3" />
             </button>
@@ -877,7 +877,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
 
         {/* Read-Only Banner */}
         {isReadOnly && (
-          <div className="mb-3 p-2 bg-[var(--semantic-error-soft)] border border-red-500/20 text-[var(--semantic-error)] text-xs rounded-xl text-center font-semibold">
+          <div className="mb-3 p-2 bg-[var(--semantic-error-soft)] border border-error/20 text-[var(--semantic-error)] text-xs rounded-xl text-center font-semibold">
             این گفتگو به صورت آرشیو و فقط‌خواندنی است. برای چت جدید روی «بازگشت به چت امروز» کلیک کنید.
           </div>
         )}
@@ -903,7 +903,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
               <button
                 onClick={processAndSendAudio}
                 disabled={isLoading || isReadOnly}
-                className="p-2.5 bg-lime text-[var(--text-on-primary)] rounded-xl hover:bg-[var(--color-primary-hover)] transition-colors shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)] animate-pulse"
+                className="p-2.5 bg-brand text-[var(--text-on-primary)] rounded-xl hover:bg-[var(--color-primary-hover)] transition-colors shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)] animate-pulse"
                 title="ارسال پیام صوتی"
               >
                 <SendIcon className="w-5 h-5 transform rotate-180 text-[var(--text-on-primary)]" />
@@ -935,7 +935,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
                 <button
                   onClick={() => handleSendMessage()}
                   disabled={isLoading || isReadOnly}
-                  className="p-2.5 bg-lime text-[var(--text-on-primary)] rounded-xl hover:bg-[var(--color-primary-hover)] transition-colors shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)] disabled:opacity-50"
+                  className="p-2.5 bg-brand text-[var(--text-on-primary)] rounded-xl hover:bg-[var(--color-primary-hover)] transition-colors shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)] disabled:opacity-50"
                 >
                   <SendIcon className="w-5 h-5 text-[var(--text-on-primary)]" />
                 </button>
@@ -945,7 +945,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
                   disabled={isReadOnly}
                   className={`p-2.5 rounded-xl transition-all duration-300 disabled:opacity-50 ${
                     isRecording 
-                      ? 'bg-[var(--semantic-error)] text-white shadow-lg shadow-red-500/30 animate-pulse' 
+                      ? 'bg-error text-white shadow-lg shadow-error/30 animate-pulse' 
                       : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--nav-hover-bg)]'
                   }`}
                 >

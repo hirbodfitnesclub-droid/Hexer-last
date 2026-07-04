@@ -30,14 +30,14 @@ export const ToastNotifications: React.FC<ToastNotificationsProps> = ({ notifica
           ) : n.type === 'error' ? (
             <WarningIcon className="w-6 h-6 flex-shrink-0 text-[var(--semantic-error)]" />
           ) : (
-            <InfoIcon className="w-6 h-6 flex-shrink-0 text-[var(--color-primary)]" />
+            <InfoIcon className="w-6 h-6 flex-shrink-0 text-[var(--color-primary-text)]" />
           )}
           <div className="flex-1 text-sm">
             <p className="font-semibold text-[var(--text-main)]">{n.message}</p>
             {n.action && (
               <button
                 onClick={n.action.onClick}
-                className="mt-1 text-xs font-bold underline text-[var(--color-primary)] opacity-90 hover:opacity-100 transition-opacity"
+                className="mt-1 text-xs font-bold underline text-[var(--color-primary-text)] opacity-90 hover:opacity-100 transition-opacity"
               >
                 {n.action.label}
               </button>

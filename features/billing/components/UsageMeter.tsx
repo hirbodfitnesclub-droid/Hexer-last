@@ -79,10 +79,10 @@ export const UsageMeter: React.FC<{ compact?: boolean }> = ({ compact = false })
       <div className="bg-black/5 dark:bg-white/5 rounded-xl border border-[var(--border-subtle)] p-2.5 w-full space-y-1.5 text-right" dir="rtl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-[10px] font-bold text-[var(--text-main)]">
-            <CpuIcon className="w-3.5 h-3.5 text-primary" />
+            <CpuIcon className="w-3.5 h-3.5 text-primary-text" />
             <span>سهمیه هوش مصنوعی:</span>
           </div>
-          <span className="text-[10px] font-black text-primary font-mono">
+          <span className="text-[10px] font-black text-primary-text font-mono">
             {remaining} از {limit} باقی‌مانده
           </span>
         </div>
@@ -103,11 +103,11 @@ export const UsageMeter: React.FC<{ compact?: boolean }> = ({ compact = false })
       {/* Title */}
       <div className="flex items-center justify-between text-right">
         <div className="flex items-center gap-2">
-          <CpuIcon className="w-4 h-4 text-primary" />
+          <CpuIcon className="w-4 h-4 text-primary-text" />
           <span className="text-xs font-black text-[var(--text-main)]">سهمیه مصرف هوش مصنوعی</span>
         </div>
         {usage?.plan_code && usage.plan_code !== 'free' ? (
-          <span className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-[9px] font-black text-primary flex items-center gap-1">
+          <span className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-[9px] font-black text-primary-text flex items-center gap-1">
             <SparklesIcon className="w-2.5 h-2.5" /> {usage.display_name}
           </span>
         ) : (
@@ -162,7 +162,7 @@ export const UsageMeter: React.FC<{ compact?: boolean }> = ({ compact = false })
                       {day.count} درخواست
                     </div>
                   </div>
-                  <span className="text-[8px] text-[var(--text-muted)] font-mono mt-0.5 group-hover:text-primary transition-colors">
+                  <span className="text-[8px] text-[var(--text-muted)] font-mono mt-0.5 group-hover:text-primary-text transition-colors">
                     {label}
                   </span>
                 </div>
@@ -176,7 +176,7 @@ export const UsageMeter: React.FC<{ compact?: boolean }> = ({ compact = false })
       {usage?.expires_at && (
         <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[10px] font-bold text-[var(--text-muted)]">
           <div className="flex items-center gap-1">
-            <CalendarIcon className="w-3.5 h-3.5 text-primary" />
+            <CalendarIcon className="w-3.5 h-3.5 text-primary-text" />
             <span>تاریخ پایان اشتراک:</span>
           </div>
           <span className="font-mono text-[var(--text-main)]">

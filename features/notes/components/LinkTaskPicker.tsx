@@ -48,19 +48,19 @@ export const LinkTaskPicker: React.FC<LinkTaskPickerProps> = ({
         <button
           type="button"
           onClick={() => setShowPicker(true)}
-          className="flex items-center gap-1.5 text-xs text-sky-400 hover:text-sky-350 font-bold bg-sky-500/10 hover:bg-sky-500/15 border border-sky-500/20 px-3 py-1.5 rounded-xl transition-all"
+          className="flex items-center gap-1.5 text-xs text-primary-text hover:text-primary-hover font-bold bg-primary/10 hover:bg-primary/15 border border-primary/20 px-3 py-1.5 rounded-xl transition-all"
         >
           <PlusIcon className="w-3.5 h-3.5" />
           <span>لینک کار مرتبط</span>
         </button>
       ) : (
-        <div className="bg-zinc-950/60 p-4 rounded-xl border border-white/5 space-y-3">
-          <div className="flex justify-between items-center pb-2 border-b border-white/5">
-            <span className="text-xs font-bold text-zinc-400">اتصال کار وجود دارد</span>
+        <div className="bg-[var(--bg-card)] p-4 rounded-xl border border-[var(--border-subtle)] space-y-3">
+          <div className="flex justify-between items-center pb-2 border-b border-[var(--border-subtle)]">
+            <span className="text-xs font-bold text-[var(--text-muted)]">اتصال کار وجود دارد</span>
             <button
               type="button"
               onClick={() => setShowPicker(false)}
-              className="text-xs text-zinc-500 hover:text-white transition-colors"
+              className="text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
             >
               انصراف
             </button>
@@ -69,17 +69,17 @@ export const LinkTaskPicker: React.FC<LinkTaskPickerProps> = ({
           {/* Suggestions based on Tehran Same Day */}
           {suggestions.length > 0 && (
             <div className="space-y-2">
-              <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">پیشنهادی (هم‌زمان با ثبت یادداشت):</span>
+              <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-wider block">پیشنهادی (هم‌زمان با ثبت یادداشت):</span>
               <div className="grid grid-cols-1 gap-1.5">
                 {suggestions.map(task => (
                   <button
                     type="button"
                     key={task.id}
                     onClick={() => handleLink(task.id)}
-                    className="flex items-center gap-2 p-2 bg-zinc-900/60 hover:bg-sky-950/20 border border-white/5 hover:border-sky-500/20 text-right rounded-lg text-xs text-zinc-350 group transition-all"
+                    className="flex items-center gap-2 p-2 bg-[var(--bg-card)] hover:bg-primary/10 border border-[var(--border-subtle)] hover:border-primary/20 text-right rounded-lg text-xs text-[var(--text-muted)] group transition-all"
                   >
-                    <ListChecksIcon className="w-3.5 h-3.5 text-sky-400" />
-                    <span className="flex-1 truncate group-hover:text-sky-300 transition-colors">{task.title || 'بدون عنوان'}</span>
+                    <ListChecksIcon className="w-3.5 h-3.5 text-primary-text" />
+                    <span className="flex-1 truncate group-hover:text-primary-text transition-colors">{task.title || 'بدون عنوان'}</span>
                   </button>
                 ))}
               </div>
@@ -88,13 +88,13 @@ export const LinkTaskPicker: React.FC<LinkTaskPickerProps> = ({
 
           {/* Search Field */}
           <div className="relative group">
-            <SearchIcon className="w-4 h-4 text-zinc-600 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none group-focus-within:text-sky-400 transition-colors" />
+            <SearchIcon className="w-4 h-4 text-[var(--text-muted)] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none group-focus-within:text-primary-text transition-colors" />
             <input
               type="text"
               placeholder="جستجوی کار بر اساس عنوان..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 placeholder-zinc-600 rounded-xl py-2.5 pr-9 pl-3 outline-none focus:border-sky-500/50 transition-all font-medium text-right"
+              className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] text-xs text-[var(--text-main)] placeholder-[var(--text-muted)] rounded-xl py-2.5 pr-9 pl-3 outline-none focus:border-primary/50 transition-all font-medium text-right"
             />
           </div>
 
@@ -107,14 +107,14 @@ export const LinkTaskPicker: React.FC<LinkTaskPickerProps> = ({
                     type="button"
                     key={task.id}
                     onClick={() => handleLink(task.id)}
-                    className="w-full flex items-center gap-2 p-2 bg-zinc-900/40 hover:bg-sky-950/20 rounded-lg text-right text-xs text-zinc-300 hover:text-sky-350 transition-all border border-transparent hover:border-sky-500/10"
+                    className="w-full flex items-center gap-2 p-2 bg-[var(--bg-card)] hover:bg-primary/10 rounded-lg text-right text-xs text-[var(--text-muted)] hover:text-primary-text transition-all border border-transparent hover:border-primary/10"
                   >
-                    <ListChecksIcon className="w-3.5 h-3.5 text-zinc-500" />
+                    <ListChecksIcon className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                     <span className="flex-1 truncate">{task.title || 'بدون عنوان'}</span>
                   </button>
                 ))
               ) : (
-                <span className="text-[10px] text-zinc-600 text-center block py-2">نتیجه‌ای یافت نشد.</span>
+                <span className="text-[10px] text-[var(--text-muted)] text-center block py-2">نتیجه‌ای یافت نشد.</span>
               )}
             </div>
           )}

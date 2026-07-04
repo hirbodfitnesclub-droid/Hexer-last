@@ -102,7 +102,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
       popular: false,
       color: 'border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-main)] hover:border-primary/40',
       tag: 'کاربر پرو (Pro) 👑',
-      tagColor: 'bg-primary/20 text-primary font-black'
+      tagColor: 'bg-primary/20 text-primary-text font-black'
     }
   ];
 
@@ -119,7 +119,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
         <div className="flex justify-between items-center mb-8 flex-shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-[var(--bg-card)] flex items-center justify-center border border-[var(--border-subtle)]">
-              <SparklesIcon className="w-3.5 h-3.5 text-primary" />
+              <SparklesIcon className="w-3.5 h-3.5 text-primary-text" />
             </div>
             <span className="text-[10px] uppercase tracking-widest font-mono text-[var(--text-muted)]">Premium Upgrade Portal</span>
           </div>
@@ -134,7 +134,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
         {/* Text Area */}
         <div className="text-right mb-6 flex-shrink-0" dir="rtl">
           <h2 className="text-2xl font-black text-[var(--text-main)] leading-tight">
-            بررسی <span className="text-primary">طرح‌های پریمیوم</span> هکسر
+            بررسی <span className="text-primary-text">طرح‌های پریمیوم</span> هکسر
           </h2>
           <p className="text-xs text-[var(--text-muted)] mt-2 font-medium">
             سهمیه هوش مصنوعی خود را شارژ کن تا بدون وقفه و در اوج سرعت، کارهات رو به بهینه‌ترین شکل مدیریت کنی.

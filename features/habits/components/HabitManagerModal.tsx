@@ -96,7 +96,7 @@ export const HabitManagerModal: React.FC<HabitManagerModalProps> = ({
         {/* Header - Fixed */}
         <div className="p-5 pt-safe border-b border-[var(--border-subtle)] flex justify-between items-center shrink-0" dir="rtl" id="modal-header">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-primary/10 rounded-xl text-primary shrink-0">
+            <div className="p-2 bg-primary/10 rounded-xl text-primary-text shrink-0">
               <FlameIcon className="w-5 h-5"/>
             </div>
             <h2 className="text-sm font-extrabold text-[var(--text-main)] font-sans">
@@ -120,7 +120,7 @@ export const HabitManagerModal: React.FC<HabitManagerModalProps> = ({
                 onClick={() => setActiveTab('stats')}
                 className={`flex-1 py-2 text-center text-xs font-bold rounded-lg transition-all cursor-pointer ${
                   activeTab === 'stats' 
-                    ? 'bg-primary text-black' 
+                    ? 'bg-primary text-on-primary' 
                     : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                 }`}
               >
@@ -130,7 +130,7 @@ export const HabitManagerModal: React.FC<HabitManagerModalProps> = ({
                 onClick={() => setActiveTab('manage')}
                 className={`flex-1 py-2 text-center text-xs font-bold rounded-lg transition-all cursor-pointer ${
                   activeTab === 'manage' 
-                    ? 'bg-primary text-black' 
+                    ? 'bg-primary text-on-primary' 
                     : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                 }`}
               >

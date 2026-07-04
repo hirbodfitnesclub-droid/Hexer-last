@@ -13,7 +13,7 @@ export const TodaysNotes: React.FC = () => {
   return (
     <div className="bg-black/30 backdrop-blur-xl border border-white/5 rounded-2xl p-4 shadow-inner flex gap-4 h-40">
       <div className="flex-shrink-0 flex flex-col items-center justify-center w-20 text-center text-gray-400 border-l border-white/10 pr-2">
-        <NotebookIcon className="w-8 h-8 mb-2 text-purple-400" />
+        <NotebookIcon className="w-8 h-8 mb-2 text-[var(--text-muted)]" />
         <span className="text-xs font-semibold select-none">یادداشت‌ها</span>
       </div>
       <div className="flex-1 overflow-hidden flex items-center">
@@ -22,7 +22,7 @@ export const TodaysNotes: React.FC = () => {
             {todaysNotes.map(note => (
               <div 
                 key={note.id} 
-                className="w-48 h-28 flex-shrink-0 bg-gray-800/60 p-3 rounded-lg border border-white/5 flex flex-col snap-start transition-all duration-300 hover:border-purple-500/30"
+                className="w-48 h-28 flex-shrink-0 bg-gray-800/60 p-3 rounded-lg border border-white/5 flex flex-col snap-start transition-all duration-300 hover:border-primary/30"
               >
                 <h4 className="font-semibold text-sm text-gray-200 truncate">{note.title}</h4>
                 <p className="text-xs text-gray-400 mt-1 line-clamp-3 flex-1 overflow-hidden leading-relaxed">

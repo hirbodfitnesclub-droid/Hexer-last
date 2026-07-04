@@ -1,11 +1,12 @@
 import React, { useState, useRef } from 'react';
 import { User } from '@supabase/supabase-js';
-import { UserIcon, XIcon, ShieldIcon, BellIcon, MoonIcon, SunIcon, LogOutIcon, DownloadIcon, UploadIcon, CheckIcon, BotIcon } from './icons';
+import { UserIcon, XIcon, ShieldIcon, BellIcon, MoonIcon, SunIcon, LogOutIcon, DownloadIcon, UploadIcon, CheckIcon, BotIcon, SparklesIcon } from './icons';
 import { exportUserData, importUserData } from '../services/backupService';
 import { requestNotificationPermission, subscribeToPush, saveSubscription } from '../services/reminderService';
 import { motion, AnimatePresence } from 'motion/react';
 import SubscriptionModal from '../features/billing/components/SubscriptionModal';
 import SupportTicketModal from './SupportTicketModal';
+import { toggleDarkMode, getStoredColorTheme, applyColorTheme, COLOR_THEMES, ColorTheme } from '../utils/themeManager';
 
 interface ProfileModalProps {
     isOpen: boolean;
@@ -28,11 +29,10 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
         }
         return false;
     });
+    const [selectedColorTheme, setSelectedColorTheme] = useState<ColorTheme>(() => getStoredColorTheme());
 
     const handleToggleTheme = () => {
-        const isDark = document.documentElement.classList.toggle('dark');
-        localStorage.setItem('hexer-theme', isDark ? 'dark' : 'light');
-        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark ? '#121212' : '#F4F5F7');
+        const isDark = toggleDarkMode();
         setIsDarkTheme(isDark);
     };
 
@@ -186,7 +186,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                     {/* Status Feedback banner */}
                     {status.type && (
                         <div className={`p-3 rounded-xl text-[11px] font-bold flex items-center gap-2 transition-opacity duration-300 ${
-                            status.type === 'loading' ? 'bg-primary/10 text-primary border border-primary/20' :
+                            status.type === 'loading' ? 'bg-primary/10 text-primary-text border border-primary/20' :
                             status.type === 'success' ? 'bg-success/10 text-success border border-success/20' :
                             'bg-error/10 text-error border border-error/20'
                         }`}>
@@ -219,7 +219,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                             className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-[var(--nav-hover-bg)] transition-all group cursor-pointer active:scale-[0.98]"
                         >
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                                <div className="p-2 bg-primary/10 rounded-lg text-primary-text">
                                     <BotIcon className="w-4 h-4" />
                                 </div>
                                 <span className="text-xs text-[var(--text-main)] font-bold">پشتیبانی و ارسال تیکت</span>
@@ -243,7 +243,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                                             ? 'bg-success/10 text-success' 
                                             : permissionState === 'denied'
                                             ? 'bg-error/10 text-error'
-                                            : 'bg-primary/10 text-primary'
+                                            : 'bg-primary/10 text-primary-text'
                                     }`}>
                                         <BellIcon className="w-4 h-4" />
                                     </div>
@@ -278,7 +278,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                                         transition={{ duration: 0.25 }}
                                         className="bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] rounded-2xl p-4 space-y-2.5 overflow-hidden text-right"
                                     >
-                                        <div className="text-xs font-black text-primary flex items-center gap-2">
+                                        <div className="text-xs font-black text-primary-text flex items-center gap-2">
                                             <BellIcon className="w-3.5 h-3.5 inline" />
                                             <span>پیش‌نیاز نوتیفیکیشن در آیفون (iOS)</span>
                                         </div>
@@ -287,10 +287,10 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                                         </p>
                                         <ol className="list-decimal list-inside text-[10px] text-[var(--text-main)] space-y-1.5 pr-1 font-medium leading-relaxed">
                                             <li>
-                                                دکمه‌ی اشتراک‌گذاری پایین سافاری (<span className="text-primary font-semibold">Share</span>) را کلیک کنید.
+                                                دکمه‌ی اشتراک‌گذاری پایین سافاری (<span className="text-primary-text font-semibold">Share</span>) را کلیک کنید.
                                             </li>
                                             <li>
-                                                اسکرول کنید و گزینه‌ی <span className="text-primary font-semibold">«افزودن به صفحه اصلی (Add to Home Screen)»</span> را لمس کنید.
+                                                اسکرول کنید و گزینه‌ی <span className="text-primary-text font-semibold">«افزودن به صفحه اصلی (Add to Home Screen)»</span> را لمس کنید.
                                             </li>
                                             <li>
                                                 اپلیکیشن را از روی صفحه اصلی جدید باز کرده و مجدداً برای فعال‌سازی در این بخش تلاش کنید.
@@ -306,7 +306,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                             className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-[var(--nav-hover-bg)] transition-all group cursor-pointer active:scale-[0.98]"
                         >
                             <div className="flex items-center gap-3">
-                                <div className={`p-2 rounded-lg transition-colors duration-300 ${isDarkTheme ? 'bg-primary/10 text-primary' : 'bg-black/5 dark:bg-white/5 text-[var(--text-muted)]'}`}>
+                                <div className={`p-2 rounded-lg transition-colors duration-300 ${isDarkTheme ? 'bg-primary/10 text-primary-text' : 'bg-black/5 dark:bg-white/5 text-[var(--text-muted)]'}`}>
                                     {isDarkTheme ? <MoonIcon className="w-4 h-4" /> : <SunIcon className="w-4 h-4" />}
                                 </div>
                                 <div className="text-right">
@@ -319,6 +319,46 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                                 <div className={`absolute top-0.5 bottom-0.5 w-4 h-4 rounded-full bg-white transition-all duration-300 ${isDarkTheme ? 'left-[18px]' : 'left-0.5'}`} />
                             </div>
                         </button>
+
+                        <div className="w-full flex items-center justify-between p-2.5 rounded-xl transition-all">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-primary/10 rounded-lg text-primary-text">
+                                    <SparklesIcon className="w-4 h-4" />
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-xs text-[var(--text-main)] font-semibold">رنگ پوسته برند</div>
+                                    <div className="text-[10px] text-[var(--text-muted)] font-medium">شخصی‌سازی رنگ‌های هکسر</div>
+                                </div>
+                            </div>
+                            <div className="flex gap-2 items-center" dir="ltr">
+                                {COLOR_THEMES.map(theme => {
+                                    const isActive = selectedColorTheme === theme.id;
+                                    const bgClass = theme.id === 'green' ? 'bg-[#D8F066]' : theme.id === 'blue' ? 'bg-[#66B6F0]' : 'bg-[#A666F0]';
+                                    return (
+                                        <button
+                                            key={theme.id}
+                                            type="button"
+                                            onClick={() => {
+                                                applyColorTheme(theme.id);
+                                                setSelectedColorTheme(theme.id);
+                                            }}
+                                            className={`w-6 h-6 rounded-full transition-all duration-300 active:scale-95 cursor-pointer relative ${bgClass} ${
+                                                isActive 
+                                                    ? 'ring-2 ring-primary ring-offset-2 ring-offset-[var(--bg-card)] scale-110 shadow-lg' 
+                                                    : 'opacity-70 hover:opacity-100'
+                                            }`}
+                                            title={theme.label}
+                                        >
+                                            {isActive && (
+                                                <span className="absolute inset-0 flex items-center justify-center">
+                                                    <CheckIcon className="w-3 h-3 text-black" />
+                                                </span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     </div>
 
                     <div className="h-px bg-[var(--border-subtle)] my-2"></div>
@@ -337,7 +377,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                             disabled={status.type === 'loading'}
                             className="flex items-center justify-center gap-2 p-3 bg-black/5 dark:bg-white/5 hover:bg-[var(--nav-hover-bg)] rounded-xl transition-all border border-[var(--border-subtle)] group disabled:opacity-50 active:scale-95"
                         >
-                            <DownloadIcon className="w-4 h-4 text-primary group-hover:translate-y-[1px] transition-transform" />
+                            <DownloadIcon className="w-4 h-4 text-primary-text group-hover:translate-y-[1px] transition-transform" />
                             <span className="text-[11px] font-bold text-[var(--text-main)]">پشتیبان</span>
                         </button>
                         <button 

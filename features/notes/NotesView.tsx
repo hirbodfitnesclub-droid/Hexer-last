@@ -53,8 +53,7 @@ export const NotesView: React.FC = () => {
     <div className="min-h-full text-[var(--text-main)] relative flex flex-col h-full" dir="rtl">
       {/* Header Section */}
       <header 
-        className="sticky top-0 pt-safe z-30 px-6 py-8 backdrop-blur-xl border-b border-[var(--border-subtle)] shrink-0"
-        style={{ background: 'var(--bg-app-glass)' }}
+        className="sticky top-0 pt-safe z-30 px-6 py-8 lg:py-4 lg:px-8 lg:pt-0 bg-[var(--bg-app-glass)] lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none border-b border-[var(--border-subtle)] lg:border-b-0 shrink-0"
       >
         <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="text-right">
@@ -66,7 +65,7 @@ export const NotesView: React.FC = () => {
           
           {/* Search Input */}
           <div className="relative w-full md:w-96 group">
-            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-[var(--text-muted)] group-focus-within:text-[var(--color-primary)] transition-colors">
+            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-[var(--text-muted)] group-focus-within:text-[var(--color-primary-text)] transition-colors">
               <SearchIcon className="w-4 h-4" />
             </div>
             <input 
@@ -111,7 +110,7 @@ export const NotesView: React.FC = () => {
       {/* Floating Action Button */}
       <button 
         onClick={openModalForNew} 
-        className="fixed bottom-[calc(var(--bottom-nav-space)+var(--safe-area-inset-bottom)+1rem)] right-5 w-14 h-14 bg-lime text-[var(--text-on-primary)] rounded-full flex items-center justify-center shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)] hover:scale-105 transition-all duration-300 z-40"
+        className="fixed bottom-[calc(var(--bottom-nav-space)+var(--safe-area-inset-bottom)+1rem)] right-5 w-14 h-14 bg-brand text-[var(--text-on-primary)] rounded-full flex items-center justify-center shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)] hover:scale-105 transition-all duration-300 z-40"
         aria-label="New Note"
       >
         <PlusIcon className="w-7 h-7"/>

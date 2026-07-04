@@ -28,7 +28,7 @@ export const SlideCard: React.FC<SlideCardProps> = ({ slide }) => {
       >
         <Icon
           className={`w-10 h-10 ${
-            highlight ? 'text-primary' : 'text-[var(--text-muted)]'
+            highlight ? 'text-primary-text' : 'text-[var(--text-muted)]'
           }`}
         />
       </div>
@@ -39,7 +39,7 @@ export const SlideCard: React.FC<SlideCardProps> = ({ slide }) => {
           id={`slide-title-${slide.id}`}
           className={`text-2xl font-black leading-tight tracking-tight ${
             highlight
-              ? 'text-primary'
+              ? 'text-primary-text'
               : 'text-[var(--text-main)]'
           }`}
         >
@@ -48,7 +48,7 @@ export const SlideCard: React.FC<SlideCardProps> = ({ slide }) => {
         {highlight && (
           <div
             id={`slide-sparkle-pill-${slide.id}`}
-            className="inline-block bg-primary/10 px-3 py-1 rounded-full text-[10px] text-primary uppercase tracking-widest font-bold"
+            className="inline-block bg-primary/10 px-3 py-1 rounded-full text-[10px] text-primary-text uppercase tracking-widest font-bold"
           >
             قدرت Hexer Ai ✨
           </div>

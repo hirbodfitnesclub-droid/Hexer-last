@@ -144,7 +144,7 @@ export const SubscriptionPage: React.FC = () => {
                   <div className="flex justify-between items-start">
                     <h3 className="font-extrabold text-[var(--text-main)] text-sm font-sans">{plan.name}</h3>
                     {plan.isPopular && (
-                      <span className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-[8px] font-black text-primary font-sans">
+                      <span className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-[8px] font-black text-primary-text font-sans">
                         محبوب‌ترین
                       </span>
                     )}
@@ -164,7 +164,7 @@ export const SubscriptionPage: React.FC = () => {
                   <div className="pt-4 border-t border-[var(--border-subtle)] space-y-3">
                     {plan.features.map((feat, idx) => (
                       <div key={idx} className="flex items-start gap-2.5">
-                        <CheckIcon className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                        <CheckIcon className="w-3.5 h-3.5 text-primary-text shrink-0 mt-0.5" />
                         <span className="text-[11px] font-medium leading-relaxed text-[var(--text-main)] opacity-90">{feat}</span>
                       </div>
                     ))}
@@ -198,11 +198,11 @@ export const SubscriptionPage: React.FC = () => {
         {/* Security / payment trust footer credentials info */}
         <div className="border-t border-[var(--border-subtle)] pt-6 max-w-xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-right text-[var(--text-muted)]">
           <div className="flex items-center gap-2">
-            <ShieldCheckIcon className="w-5 h-5 text-primary" />
+            <ShieldCheckIcon className="w-5 h-5 text-primary-text" />
             <span className="text-[10px] font-bold">تضمین پرداخت امن تحت درگاه رسمی بانکی شبکه شتاب (زیبال)</span>
           </div>
           <div className="flex items-center gap-2">
-            <CreditCardIcon className="w-5 h-5 text-primary" />
+            <CreditCardIcon className="w-5 h-5 text-primary-text" />
             <span className="text-[10px] font-bold">فعال‌سازی آنی حساب و خدمات پس از بازگشت موفق تراکنش</span>
           </div>
         </div>

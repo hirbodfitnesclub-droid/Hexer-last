@@ -130,7 +130,7 @@ export const AiComposerPanel: React.FC = () => {
       {/* Header with bot icon and title */}
       <div className="flex justify-between items-center z-10">
         <div className="flex items-center gap-2">
-          <BotIcon className="w-5 h-5 text-main dark:text-primary" />
+          <BotIcon className="w-5 h-5 text-main dark:text-primary-text" />
           <h2 className="text-[16px] font-black leading-tight text-main">دستیار هوش مصنوعی هکسر</h2>
         </div>
         {/* Status/Badge */}
@@ -229,7 +229,7 @@ export const AiComposerPanel: React.FC = () => {
             <button 
               type="submit" 
               disabled={isSubmitting || (!input.trim() && !selectedImageFile && !recordedAudio && !isRecording)}
-              className="px-3 sm:px-4 py-2 bg-lime rounded-full text-xs font-bold text-on-primary transition hover:scale-105 active:scale-95 shrink-0 shadow-[var(--shadow-btn)] flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none min-w-0"
+              className="px-3 sm:px-4 py-2 bg-brand rounded-full text-xs font-bold text-on-primary transition hover:scale-105 active:scale-95 shrink-0 shadow-[var(--shadow-btn)] flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none min-w-0"
             >
               {isSubmitting ? (
                 <span className="w-4 h-4 border-2 border-on-primary border-t-transparent rounded-full animate-spin"></span>

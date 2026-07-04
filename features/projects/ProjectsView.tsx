@@ -60,7 +60,7 @@ export const ProjectsView: React.FC = () => {
   return (
     <div className="min-h-full text-[var(--text-main)] relative flex flex-col h-full" dir="rtl">
       {/* Header Section */}
-      <header className="sticky top-0 pt-safe z-30 px-6 py-8 backdrop-blur-xl border-b border-[var(--border-subtle)] shrink-0" style={{ background: 'var(--bg-app-glass)' }}>
+      <header className="sticky top-0 pt-safe z-30 px-6 py-8 lg:py-4 lg:px-8 lg:pt-0 bg-[var(--bg-app-glass)] lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none border-b border-[var(--border-subtle)] lg:border-b-0 shrink-0">
         <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="text-right">
             <h1 className="text-3xl font-black tracking-tight text-[var(--text-main)]">
@@ -71,7 +71,7 @@ export const ProjectsView: React.FC = () => {
           
           <button 
             onClick={openAddModal} 
-            className="flex items-center gap-2 px-6 py-2.5 bg-lime hover:bg-[var(--color-primary-hover)] rounded-xl text-[var(--text-on-primary)] font-bold text-xs transition-all shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)] w-fit shrink-0 self-start md:self-auto"
+            className="flex items-center gap-2 px-6 py-2.5 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] rounded-xl text-[var(--text-on-primary)] font-bold text-xs transition-all shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)] w-fit shrink-0 self-start md:self-auto"
           >
             <PlusIcon className="w-5 h-5 animate-pulse" />
             <span>پروژه جدید</span>
@@ -106,7 +106,7 @@ export const ProjectsView: React.FC = () => {
             </p>
             <button 
               onClick={openAddModal} 
-              className="mt-6 flex items-center gap-2 px-5 py-2.5 bg-lime rounded-xl text-[var(--text-on-primary)] font-bold text-xs hover:bg-[var(--color-primary-hover)] transition-colors shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)]"
+              className="mt-6 flex items-center gap-2 px-5 py-2.5 bg-[var(--color-primary)] rounded-xl text-[var(--text-on-primary)] font-bold text-xs hover:bg-[var(--color-primary-hover)] transition-colors shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)]"
             >
               <PlusIcon className="w-4 h-4" />
               <span>ساخت اولین پروژه</span>
@@ -174,7 +174,7 @@ export const ProjectsView: React.FC = () => {
                       key={color} 
                       onClick={() => setEditingProject(s => s ? { ...s, color } : null)} 
                       className={`w-7 h-7 rounded-full ${colorClasses[color].solidBg} transition-all hover:scale-110 relative ${
-                        editingProject.color === color ? 'ring-2 ring-offset-2 ring-offset-slate-900 ring-white scale-110' : ''
+                        editingProject.color === color ? 'ring-2 ring-offset-2 ring-offset-[var(--bg-base)] ring-white scale-110' : ''
                       }`}
                       aria-label={`Select color ${color}`}
                     >
@@ -190,7 +190,7 @@ export const ProjectsView: React.FC = () => {
             <div className="p-5 border-t border-[var(--border-subtle)] shrink-0 bg-transparent flex gap-3 pb-safe">
               <button 
                 onClick={handleSaveProject} 
-                className="flex-1 py-3 bg-lime hover:bg-[var(--color-primary-hover)] text-[var(--text-on-primary)] font-bold rounded-xl transition-all text-sm shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)]"
+                className="flex-1 py-3 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-[var(--text-on-primary)] font-bold rounded-xl transition-all text-sm shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)]"
               >
                 {isAdding ? 'اضافه کردن پروژه جدید' : 'ذخیره نهایی تغییرات'}
               </button>

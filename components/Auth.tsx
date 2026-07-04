@@ -336,8 +336,8 @@ const AuthComponent: React.FC = () => {
           </div>
         )}
         {message && (
-          <div className="flex items-start gap-2 bg-primary/10 border border-primary/20 p-3 rounded-lg text-xs text-primary">
-            <CheckIcon className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2 bg-primary/10 border border-primary/20 p-3 rounded-lg text-xs text-primary-text">
+            <CheckIcon className="w-4 h-4 text-primary-text shrink-0 mt-0.5" />
             <span>{message}</span>
           </div>
         )}
@@ -405,7 +405,7 @@ const AuthComponent: React.FC = () => {
           <form onSubmit={handleVerifySubmit} className="space-y-4">
             <div className="text-center">
               <span className="text-xs text-[var(--text-muted)]">کد ارسال شده به شماره </span>
-              <span className="text-xs text-primary font-mono font-bold">{phone}</span>
+              <span className="text-xs text-primary-text font-mono font-bold">{phone}</span>
               <span className="text-xs text-[var(--text-muted)]"> را وارد نمایید:</span>
             </div>
 
@@ -439,7 +439,7 @@ const AuthComponent: React.FC = () => {
 
               {timer > 0 ? (
                 <div className="flex items-center gap-1 opacity-85">
-                  <ClockIcon className="w-3.5 h-3.5 text-primary animate-pulse" />
+                  <ClockIcon className="w-3.5 h-3.5 text-primary-text animate-pulse" />
                   <span>ارسال مجدد ({timer} ثانیه)</span>
                 </div>
               ) : (
@@ -447,7 +447,7 @@ const AuthComponent: React.FC = () => {
                   type="button"
                   onClick={handleResendOtp}
                   disabled={loading}
-                  className="text-primary hover:opacity-80 font-medium transition-colors"
+                  className="text-primary-text hover:opacity-80 font-medium transition-colors"
                 >
                   ارسال مجدد کد تایید
                 </button>
@@ -524,7 +524,7 @@ const AuthComponent: React.FC = () => {
               <>
                 <p>
                   یافت نشد؟{' '}
-                  <button type="button" onClick={() => toggleMode('signup')} className="font-semibold text-primary hover:underline">
+                  <button type="button" onClick={() => toggleMode('signup')} className="font-semibold text-primary-text hover:underline">
                     ثبت‌نام کنید
                   </button>
                 </p>
@@ -535,12 +535,12 @@ const AuthComponent: React.FC = () => {
             ) : mode === 'signup' ? (
               <p>
                 حساب کاربری دارید؟{' '}
-                <button type="button" onClick={() => toggleMode('login')} className="font-semibold text-primary hover:underline">
+                <button type="button" onClick={() => toggleMode('login')} className="font-semibold text-primary-text hover:underline">
                   وارد شوید
                 </button>
               </p>
             ) : (
-              <button type="button" onClick={() => toggleMode('login')} className="font-semibold text-primary hover:underline flex items-center justify-center gap-1 mx-auto">
+              <button type="button" onClick={() => toggleMode('login')} className="font-semibold text-primary-text hover:underline flex items-center justify-center gap-1 mx-auto">
                 <span>بازگشت به ورود</span>
               </button>
             )}

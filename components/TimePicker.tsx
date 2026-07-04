@@ -10,7 +10,7 @@ interface TimePickerProps {
 const SelectWrapper: React.FC<{children: React.ReactNode}> = ({children}) => (
     <div className="relative flex-1">
         {children}
-        <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+        <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)]">
             <ChevronDownIcon className="w-4 h-4" />
         </div>
     </div>
@@ -56,22 +56,22 @@ const TimePicker: React.FC<TimePickerProps> = ({ value, onChange }) => {
             <select 
                 value={hour} 
                 onChange={(e) => handleChange(e.target.value, minute)}
-                className="w-full bg-slate-800/60 appearance-none px-3 py-2 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm cursor-pointer border border-slate-700 hover:border-slate-600 transition-colors text-center font-mono"
+                className="w-full bg-[var(--bg-card)] appearance-none px-3 py-2 rounded-lg text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-primary text-sm cursor-pointer border border-[var(--border-subtle)] hover:border-[var(--border-subtle)]/80 transition-colors text-center font-mono"
             >
-                {hours.map(h => <option key={h} value={h}>{h}</option>)}
+                {hours.map(h => <option key={h} value={h} className="bg-[var(--bg-card)] text-[var(--text-main)]">{h}</option>)}
             </select>
         </SelectWrapper>
 
-        <span className="text-slate-400 font-bold pb-1">:</span>
+        <span className="text-[var(--text-muted)] font-bold pb-1">:</span>
 
         {/* Minute */}
         <SelectWrapper>
             <select 
                 value={minute} 
                 onChange={(e) => handleChange(hour, e.target.value)}
-                className="w-full bg-slate-800/60 appearance-none px-3 py-2 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm cursor-pointer border border-slate-700 hover:border-slate-600 transition-colors text-center font-mono"
+                className="w-full bg-[var(--bg-card)] appearance-none px-3 py-2 rounded-lg text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-primary text-sm cursor-pointer border border-[var(--border-subtle)] hover:border-[var(--border-subtle)]/80 transition-colors text-center font-mono"
             >
-                {minutes.map(m => <option key={m} value={m}>{m}</option>)}
+                {minutes.map(m => <option key={m} value={m} className="bg-[var(--bg-card)] text-[var(--text-main)]">{m}</option>)}
             </select>
         </SelectWrapper>
     </div>

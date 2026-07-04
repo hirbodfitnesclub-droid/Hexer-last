@@ -15,8 +15,8 @@ interface OverdueTasksModalProps {
 
 const priorityConfig: Record<string, { label: string; badge: string }> = {
   [Priority.High]: { label: 'زیاد', badge: 'bg-error/10 text-error border-error/30 dark:border-error/20' },
-  [Priority.Medium]: { label: 'متوسط', badge: 'bg-primary/10 text-primary border-primary/30 dark:border-primary/20' },
-  [Priority.Low]: { label: 'کم', badge: 'bg-primary/10 text-primary border-primary/30 dark:border-primary/20' },
+  [Priority.Medium]: { label: 'متوسط', badge: 'bg-primary/10 text-primary-text border-primary/30 dark:border-primary/20' },
+  [Priority.Low]: { label: 'کم', badge: 'bg-primary/10 text-primary-text border-primary/30 dark:border-primary/20' },
 };
 
 export const OverdueTasksModal: React.FC<OverdueTasksModalProps> = ({ isOpen, onClose }) => {
@@ -156,7 +156,7 @@ export const OverdueTasksModal: React.FC<OverdueTasksModalProps> = ({ isOpen, on
                 <div className="flex gap-2 sm:gap-3 w-full">
                   <button
                     onClick={handleMoveAllToToday}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-lime hover:opacity-90 text-[var(--text-on-primary)] text-xs sm:text-sm font-bold transition-all shadow-sm shadow-lime/10"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-brand hover:opacity-90 text-[var(--text-on-primary)] text-xs sm:text-sm font-bold transition-all shadow-sm shadow-primary/10"
                   >
                     <CalendarDays className="w-4 h-4" />
                     <span className="hidden sm:inline">انتقال همه به امروز</span>
@@ -190,7 +190,7 @@ export const OverdueTasksModal: React.FC<OverdueTasksModalProps> = ({ isOpen, on
                         <div className="flex-1 min-w-0">
                           {/* Title & Priority */}
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="font-bold text-sm sm:text-base text-[var(--text-main)] group-hover:text-primary transition-colors leading-relaxed truncate">
+                            <h4 className="font-bold text-sm sm:text-base text-[var(--text-main)] group-hover:text-primary-text transition-colors leading-relaxed truncate">
                               {task.title}
                             </h4>
                             {task.priority && (
@@ -227,7 +227,7 @@ export const OverdueTasksModal: React.FC<OverdueTasksModalProps> = ({ isOpen, on
                             e.stopPropagation();
                             handleMoveToToday(task);
                           }}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[var(--nav-hover-bg)] hover:bg-lime hover:text-[var(--text-on-primary)] text-[var(--text-main)] text-xs font-bold transition-all border border-[var(--border-subtle)]"
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[var(--nav-hover-bg)] hover:bg-brand hover:text-[var(--text-on-primary)] text-[var(--text-main)] text-xs font-bold transition-all border border-[var(--border-subtle)]"
                           title="انتقال به امروز"
                         >
                           <CalendarDays className="w-4 h-4 shrink-0" />
@@ -239,7 +239,7 @@ export const OverdueTasksModal: React.FC<OverdueTasksModalProps> = ({ isOpen, on
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                  <div className="w-16 h-16 bg-lime/10 text-lime rounded-full flex items-center justify-center mb-4">
+                  <div className="w-16 h-16 bg-primary/10 text-primary-text rounded-full flex items-center justify-center mb-4">
                     <CheckCircle2 className="w-8 h-8" />
                   </div>
                   <h3 className="text-lg font-bold text-[var(--text-main)]">همه‌چیز روی روال است!</h3>

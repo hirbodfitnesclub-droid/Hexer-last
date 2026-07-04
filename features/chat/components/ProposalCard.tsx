@@ -56,14 +56,14 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
   return (
     <div className="mt-4 glass-card border-subtle rounded-2xl p-4 w-full">
       <div className="flex justify-between items-center mb-3">
-        <h4 className="text-sm font-bold text-primary flex items-center gap-1.5">
+        <h4 className="text-sm font-bold text-primary-text flex items-center gap-1.5">
           <ListChecksIcon className="w-4 h-4" />
           پیشنهادات استخراج‌شده توسط هوش مصنوعی
         </h4>
         {pendingProposals.length > 0 && (
           <button
             onClick={onApproveAll}
-            className="text-xs bg-lime hover:bg-[var(--color-primary-hover)] font-bold px-3 py-1.5 rounded-lg text-[var(--text-on-primary)] transition-all shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)]"
+            className="text-xs bg-brand hover:bg-[var(--color-primary-hover)] font-bold px-3 py-1.5 rounded-lg text-[var(--text-on-primary)] transition-all shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)]"
           >
             تأیید همه پیشنهادات
           </button>
@@ -90,7 +90,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
             >
               <div className="flex justify-between items-start mb-2">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                  <div className="p-1.5 rounded-lg bg-primary/10 text-primary-text">
                     {prop.kind === 'task' ? <ListChecksIcon className="w-4 h-4"/> : <NotebookIcon className="w-4 h-4"/>}
                   </div>
                   <span className="text-xs font-bold text-muted">
@@ -112,7 +112,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                     </button>
                     <button
                       onClick={() => onApproveProposal(prop.id)}
-                      className="p-1 text-primary hover:bg-primary/10 rounded-md transition-colors"
+                      className="p-1 text-primary-text hover:bg-primary/10 rounded-md transition-colors"
                       title="تأیید و ساخت"
                     >
                       <CheckIcon className="w-4 h-4" />
@@ -129,7 +129,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
 
                 {!isPending && (
                   <span className={`text-xs font-bold px-2 py-0.5 rounded ${
-                    isApproved ? 'bg-primary/10 text-primary' : 'bg-[var(--semantic-error-soft)] text-error'
+                    isApproved ? 'bg-primary/10 text-primary-text' : 'bg-[var(--semantic-error-soft)] text-error'
                   }`}>
                     {isApproved ? 'تأیید شد' : 'رد شد'}
                   </span>
@@ -213,7 +213,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                   <div className="flex justify-end gap-1.5 pt-1">
                     <button
                        onClick={() => handleSaveEdit(prop.id, prop.kind)}
-                       className="text-xs bg-lime hover:bg-[var(--color-primary-hover)] font-bold px-3 py-1.5 rounded-lg text-[var(--text-on-primary)] transition-all shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.15)]"
+                       className="text-xs bg-brand hover:bg-[var(--color-primary-hover)] font-bold px-3 py-1.5 rounded-lg text-[var(--text-on-primary)] transition-all shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.15)]"
                     >
                       ذخیره پیش‌نویس
                     </button>
@@ -241,7 +241,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                       <div className="flex flex-wrap gap-2 text-[10px] text-muted">
                         {prop.draft.dueDate && (
                           <span className="flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded">
-                            <CalendarIcon className="w-3 h-3 text-primary" />
+                            <CalendarIcon className="w-3 h-3 text-primary-text" />
                             سررسید: {prop.draft.dueDate}
                           </span>
                         )}
@@ -250,7 +250,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                             prop.draft.priority === 'high' 
                               ? 'bg-error/10 text-error' 
                               : prop.draft.priority === 'medium' 
-                                ? 'bg-primary/10 text-primary' 
+                                ? 'bg-primary/10 text-primary-text' 
                                 : 'bg-primary/5 text-muted'
                           }`}>
                             اولویت: {prop.draft.priority === 'high' ? 'زیاد' : prop.draft.priority === 'medium' ? 'متوسط' : 'کم'}
@@ -258,7 +258,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                         )}
                         {prop.draft.project_id && (
                           <span className="flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded">
-                            <BriefcaseIcon className="w-3 h-3 text-primary" />
+                            <BriefcaseIcon className="w-3 h-3 text-primary-text" />
                             پروژه: {projects.find(p => p.id === prop.draft.project_id)?.title || 'مرتبط'}
                           </span>
                         )}
@@ -274,7 +274,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                       {prop.draft.project_id && (
                         <div className="flex text-[10px] text-muted">
                           <span className="flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded">
-                            <BriefcaseIcon className="w-3 h-3 text-primary" />
+                            <BriefcaseIcon className="w-3 h-3 text-primary-text" />
                             پروژه: {projects.find(p => p.id === prop.draft.project_id)?.title || 'مرتبط'}
                           </span>
                         </div>

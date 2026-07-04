@@ -132,7 +132,7 @@ export const ProductivityChart: React.FC = () => {
               <span className="text-[9px] text-white/50 font-bold mt-0.5">هفته جاری</span>
             </div>
           </div>
-          <span className="text-[10px] font-black bg-lime px-2.5 py-0.5 rounded-full text-black">
+          <span className="text-[10px] font-black bg-brand px-2.5 py-0.5 rounded-full text-black">
             {toPersianNum(weeklyRate)}٪
           </span>
         </div>
@@ -143,15 +143,15 @@ export const ProductivityChart: React.FC = () => {
         {/* Month Row */}
         <div className="flex items-center justify-between flex-1 lg:flex-none w-full">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-primary/15 flex items-center justify-center text-primary shrink-0">
-              <TrendingUpIcon className="w-4 h-4 text-primary" />
+            <div className="w-7 h-7 rounded-full bg-primary/15 flex items-center justify-center text-primary-text shrink-0">
+              <TrendingUpIcon className="w-4 h-4 text-primary-text" />
             </div>
             <div className="flex flex-col text-right leading-tight">
               <span className="text-[11px] text-white/90 font-black">بهره‌وری</span>
               <span className="text-[9px] text-white/50 font-bold mt-0.5">ماه جاری</span>
             </div>
           </div>
-          <span className="text-[10px] font-black bg-lime px-2.5 py-0.5 rounded-full text-black shadow-[0_2px_8px_rgb(var(--color-primary-rgb)/0.3)]">
+          <span className="text-[10px] font-black bg-brand px-2.5 py-0.5 rounded-full text-black shadow-[0_2px_8px_rgb(var(--color-primary-rgb)/0.3)]">
             {toPersianNum(monthlyRate)}٪
           </span>
         </div>
@@ -162,8 +162,8 @@ export const ProductivityChart: React.FC = () => {
         <svg viewBox="0 0 280 120" preserveAspectRatio="none" className="w-full h-full overflow-visible">
           <defs>
             <linearGradient id="waveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#38bdf8" />
-              <stop offset="100%" stopColor="#D8F066" />
+              <stop offset="0%" stopColor="rgb(var(--color-primary-hover-rgb))" />
+              <stop offset="100%" stopColor="rgb(var(--color-primary-rgb))" />
             </linearGradient>
           </defs>
 

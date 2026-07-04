@@ -20,7 +20,7 @@ export const KeyProjects: React.FC = () => {
   // If there are no high priority projects, show the empty state
   if (highPriorityProjects.length === 0) {
     return (
-      <div className="tile-lime min-h-[200px] p-4 rounded-[var(--radius-lg)] flex flex-col justify-between shadow-sm" id="key-projects-panel-empty">
+      <div className="tile-brand min-h-[200px] p-4 rounded-[var(--radius-lg)] flex flex-col justify-between shadow-sm" id="key-projects-panel-empty">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <FolderGit2Icon className="w-5 h-5 text-[var(--text-on-primary)]" />
@@ -41,7 +41,7 @@ export const KeyProjects: React.FC = () => {
   const project = highPriorityProjects[0];
 
   return (
-    <div className="tile-lime min-h-[200px] p-4 rounded-[var(--radius-lg)] flex flex-col justify-between shadow-sm" id="key-projects-panel">
+    <div className="tile-brand min-h-[200px] p-4 rounded-[var(--radius-lg)] flex flex-col justify-between shadow-sm" id="key-projects-panel">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
           <FolderGit2Icon className="w-5 h-5 text-[var(--text-on-primary)]" />

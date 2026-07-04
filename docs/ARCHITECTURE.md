@@ -1817,3 +1817,186 @@ APIهای مصرفی (همگی موجود):
   - L4-3: `features/dashboard/components/FocusTimer.tsx`
   - L4-4: `features/dashboard/components/DashboardHeader.tsx`, `index.css`, `features/dashboard/Dashboard.tsx`
 - هیچ دو تسکی روی فایلِ مشترک نمی‌نویسند → از نظرِ تداخلِ Read/Write ایمن‌اند.
+
+---
+
+# §M — لنگرگاهِ سیستمیِ فاز «چند-تمیِ رنگِ برند + رفعِ بدهیِ رنگِ هاردکد»
+
+> مرجعِ کامل: `docs/PROJECT.md §فاز M`. «چگونگیِ» گام‌به‌گام در `docs/tasks.md` فاز M (M-1 … M-11).
+> این بخش، §۷ (سیستم تم) و §۹ (نگاشتِ توکن‌ها) را **گسترش** می‌دهد؛ محتوایِ آن دو بخش دست‌نخورده و همچنان معتبر است.
+> **راهنمای شماره‌گذاری:** این فاز شامل §M.0 تا §M.9 است (نُه زیربخش، بدونِ تکرار). §M.7 = نقشه‌ی تداخل فایل‌ها (Conflict Map)، §M.8 = فهرستِ فایل‌های اصلاح‌شونده برایِ رنگ‌هایِ هاردکد، §M.9 = اصلاحیه‌ی کنتراستِ متنِ برند (افزوده‌شده پس از بازبینیِ کارفرما).
+
+## M.0. وضعیتِ موجود (اسنپ‌شات، پیش از این فاز)
+- `index.css`: `:root` مقادیرِ لایت را تعریف می‌کند، `.dark` فقط بخشی از توکن‌ها را override می‌کند. `--color-primary`/`--color-primary-rgb` **در هر دو مدِ روشن/تاریک یکسان** است (فقط یک مقدار در `:root`، بدونِ override در `.dark`) — این الگو در این فاز حفظ می‌شود (هر تمِ رنگی هم یک مقدارِ ثابت برایِ هر دو مد دارد).
+- سه لیترالِ داخلیِ خودِ `index.css` (نه یک فایلِ کامپوننت) مقدارِ `rgba(216, 240, 102, ...)`/`#D8F066` را به‌صورتِ hard-coded تکرار می‌کنند به‌جایِ ارجاع به `var(--color-primary-rgb)`: `.dark{ --ink-bg }`, `.dark{ --nav-active-bg }`, `.dark .tile-lime{ box-shadow }`، و همچنین `.dark{ --border-neon }` و `.dark{ --input-focus-ring }` مقدارِ hex ثابت دارند به‌جایِ `var(--color-primary)`. این‌ها **باید در تسکِ M-1 اصلاح شوند** وگرنه سوییچِ تم روی این ۵ نقطه اثر نمی‌کند.
+- `index.html`: `tailwind.config` رنگ‌های `primary`/`primary-hover`/`on-primary`/`main`/`muted`/`subtle`/`success`/`error`/`warning` را با `rgb(var(--x-rgb) / <alpha-value>)` نگاشت می‌کند. **این فایل نیازی به تغییرِ نگاشتِ رنگ ندارد** (چون همه‌چیز از طریقِ متغیرِ CSS عبور می‌کند)؛ فقط اسکریپتِ pre-paint باید تمِ رنگی را هم اعمال کند (طبقِ M.1).
+- کلاس‌های `.bg-lime`/`.text-lime`/`.tile-lime` از قبل به‌درستی به `var(--color-primary)` وصل‌اند (پس با سوییچِ تم به‌درستی رنگ عوض می‌کنند)، اما نام‌گذاریِ آن‌ها («لایم») گمراه‌کننده می‌شود وقتی تم آبی/بنفش باشد — یک بدهیِ خوانایی/DX که در M-1/M-5 رفع می‌شود.
+
+## M.1. معماریِ تم: دو محورِ کاملاً مستقل (Mode × ColorTheme)
+محورِ Mode (بدونِ تغییر): کلاسِ `.dark` روی `<html>`.
+محورِ جدیدِ ColorTheme: `data-color-theme="green" | "blue" | "purple"` روی همان `<html>` (پیش‌فرض هنگامِ نبودِ attribute = `green`، برای backward-compat با کاربرانِ فعلی که چیزی در localStorage ندارند).
+
+**ساختارِ `index.css` پس از این فاز (فقط بخشِ رنگِ برند؛ بقیه‌ی توکن‌ها دست‌نخورده):**
+```css
+:root {
+  /* پیش‌فرض = سبز (بدون attribute، برای سازگاری با کاربرانِ قدیمی) */
+  --color-primary-rgb: 216 240 102;
+  --color-primary-hover-rgb: 193 219 60;
+  --color-primary: #D8F066;
+  --color-primary-hover: #C1DB3C;
+  --text-on-primary: #000000; /* قانونِ سخت، هر ۳ تم، هر دو مد */
+  /* ... سایرِ توکن‌های موجود دست‌نخورده ... */
+}
+
+[data-color-theme="blue"] {
+  --color-primary-rgb: 102 182 240;
+  --color-primary-hover-rgb: 60 153 219;
+  --color-primary: #66B6F0;
+  --color-primary-hover: #3C99DB;
+}
+
+[data-color-theme="purple"] {
+  --color-primary-rgb: 166 102 240;
+  --color-primary-hover-rgb: 134 60 219;
+  --color-primary: #A666F0;
+  --color-primary-hover: #863CDB;
+}
+
+/* .dark فقط توکن‌های غیرِ رنگِ-برند را override می‌کند؛ رنگِ برند خودش (بالا) در هر دو مد ثابت است */
+.dark {
+  --border-neon: var(--color-primary);              /* قبلاً hex ثابت بود؛ اصلاح شد */
+  --input-focus-ring: var(--color-primary);         /* قبلاً hex ثابت بود؛ اصلاح شد */
+  --ink-bg: rgb(var(--color-primary-rgb) / 0.08);   /* قبلاً rgba ثابت بود؛ اصلاح شد */
+  --nav-active-bg: rgb(var(--color-primary-rgb) / 0.08); /* قبلاً rgba ثابت بود؛ اصلاح شد */
+  /* ... سایرِ توکن‌های .dark موجود دست‌نخورده ... */
+}
+.dark .tile-lime {
+  box-shadow: 0 0 25px rgb(var(--color-primary-rgb) / 0.15); /* قبلاً rgba ثابت بود؛ اصلاح شد */
+}
+```
+**نکته‌ی حیاتی:** چون `[data-color-theme="blue"]` و `.dark` هر دو یک selector مستقل‌اند (نه ترکیب‌شده)، هیچ ترتیب/تخصصیتِ خاصی لازم نیست — مرورگر هر دو بلوک را روی `<html>` اعمال می‌کند و چون هرکدام متغیرهای متفاوتی override می‌کنند (رنگِ برند در یکی، توکن‌های وابسته‌به‌مد در دیگری)، تداخلی رخ نمی‌دهد.
+
+**اسکریپتِ pre-paint در `index.html` (بروزرسانی، جلوگیری از FOUC):**
+```html
+<script>
+  (function () {
+    var t = localStorage.getItem('hexer-theme');
+    var isDark = t === 'dark';
+    if (isDark) document.documentElement.classList.add('dark');
+
+    var ct = localStorage.getItem('hexer-color-theme');
+    if (ct === 'blue' || ct === 'purple') {
+      document.documentElement.setAttribute('data-color-theme', ct);
+    }
+    // اگر ct نامعتبر/خالی بود، attribute اصلاً ست نمی‌شود → پیش‌فرضِ :root (سبز) اعمال می‌شود.
+
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark ? '#121212' : '#F4F5F7');
+  })();
+</script>
+```
+
+## M.2. `utils/themeManager.ts` — قراردادِ API (تنها فایلِ جدید در کلِ این فاز)
+ماژولِ خالص، بدونِ React، بدونِ side-effect در import (فقط تابع export می‌کند)، هم‌سنگِ سبکِ فعلیِ `toggleTheme` موجود:
+```ts
+export type ColorTheme = 'green' | 'blue' | 'purple';
+export const COLOR_THEMES: { id: ColorTheme; label: string }[] = [
+  { id: 'green', label: 'سبز' },
+  { id: 'blue', label: 'آبی' },
+  { id: 'purple', label: 'بنفش' },
+];
+
+export function getStoredColorTheme(): ColorTheme { /* localStorage['hexer-color-theme'] یا 'green' */ }
+export function applyColorTheme(theme: ColorTheme): void { /* setAttribute + localStorage.setItem */ }
+
+export function isDarkMode(): boolean { /* document.documentElement.classList.contains('dark') */ }
+export function toggleDarkMode(): boolean { /* همان منطقِ فعلیِ toggleTheme؛ کلاس + localStorage['hexer-theme'] + meta theme-color؛ خروجی isDark جدید را برمی‌گرداند */ }
+```
+**قانون:** `Sidebar.tsx` و `ProfileModal.tsx` باید توگلِ روشن/تاریکِ خودشان را با فراخوانیِ `toggleDarkMode()` جایگزین کنند (حذفِ کدِ تکراریِ موجود در هر دو فایل). امضایِ خروجیِ `toggleDarkMode()` (بولینِ isDark جدید) طوری طراحی شده که مستقیماً جایگزینِ خطِ `const isDark = document.documentElement.classList.toggle('dark');` در هر دو فایل شود، بدونِ تغییرِ state‌مدیریتیِ محلیِ آن‌ها (`setIsDarkTheme` در ProfileModal همچنان با همین مقدارِ برگشتی صدا زده می‌شود).
+
+## M.3. سیستمِ «رنگِ برچسبِ پروژه» (Project Color System) — مستقل از تمِ برند
+توکن‌های جدید در `index.css` (`:root`، بدونِ وابستگی به `data-color-theme` یا `.dark` — این پالت ثابت است چون هویتِ کاربر است، نه برندِ اپ؛ فقط بینِ روشن/تاریک برایِ خوانایی جزئی تنظیم می‌شود):
+```css
+:root {
+  --project-color-sky:    #38BDF8;
+  --project-color-red:    #F87171;
+  --project-color-green:  #4ADE80;
+  --project-color-yellow: #FACC15;
+  --project-color-purple: #C084FC;
+  --project-color-gray:   #9CA3AF;
+}
+.dark {
+  --project-color-sky:    #7DD3FC;
+  --project-color-red:    #FCA5A5;
+  --project-color-green:  #86EFAC;
+  --project-color-yellow: #FDE047;
+  --project-color-purple: #D8B4FE;
+  --project-color-gray:   #D1D5DB;
+}
+```
+**تناظر با کلیدهایِ موجودِ `Project.color` (که همین ۶ کلید در `ProjectCard.tsx`/`ProjectsView.tsx` از قبل تعریف شده‌اند):** `sky→--project-color-sky`, `red→--project-color-red`, `green→--project-color-green`, `yellow→--project-color-yellow`, `purple→--project-color-purple`, `gray→--project-color-gray`. **منبعِ واحدِ حقیقت برایِ این نگاشت، فقط `colorClasses` در `features/projects/components/ProjectCard.tsx` است** — `NoteCard.tsx` و `TaskCard.tsx` باید این map را ایمپورت/مصرف کنند، نه اینکه نسخه‌ی محلیِ خودشان را داشته باشند (طبقِ تسکِ M-4).
+**نکته‌ی نام‌گذاری:** بله، یکی از این ۶ کلید هم `purple` نام دارد و یکی از دو تمِ جدیدِ برند هم `purple` نام دارد — این دو **کاملاً مستقل و بی‌ربط**‌اند (یکی برچسبِ یک پروژه‌ی خاص است، دیگری تمِ کلِ اپ). کدنویس نباید این دو را با هم قاطی کند یا سعی کند یکی را از دیگری مشتق کند.
+
+## M.4. جدولِ نهاییِ توکن‌های رنگِ برند (تکمیلِ جدولِ §۹)
+| توکن | سبز (پیش‌فرض، بدون تغییر) | آبی (جدید) | بنفش (جدید) |
+|---|---|---|---|
+| `--color-primary` | `#D8F066` | `#66B6F0` | `#A666F0` |
+| `--color-primary-rgb` | `216 240 102` | `102 182 240` | `166 102 240` |
+| `--color-primary-hover` | `#C1DB3C` | `#3C99DB` | `#863CDB` |
+| `--color-primary-hover-rgb` | `193 219 60` | `60 153 219` | `134 60 219` |
+| `--text-on-primary` (هر دو مد، هر ۳ تم) | `#000000` | `#000000` | `#000000` |
+| کنتراستِ متنِ مشکی رویِ `--color-primary` (WCAG) | ۱۶.۶:۱ | ۹.۵:۱ | ۵.۸:۱ (هر سه بالایِ حداقلِ AA=۴.۵:۱) |
+
+توکن‌هایِ سمنتیک (`--semantic-success/error/warning`) و توکن‌هایِ خنثی (`--bg-base`, `--bg-card`, `--text-main`, `--text-muted`, `--border-subtle`) **کاملاً بدونِ تغییر** باقی می‌مانند و به هیچ تمِ رنگی وابسته نیستند (طبقِ طراحیِ اصلیِ §۹).
+
+## M.5. منطقِ مسیردهیِ فایل (File Tree Δ)
+درختِ فایل بازترسیم نمی‌شود. این فاز **فقط یک فایلِ جدید می‌سازد**: `utils/themeManager.ts` (کنارِ سایرِ فایل‌هایِ موجودِ `utils/`، هم‌سطحِ `utils/dateUtils.ts`). همه‌ی تغییراتِ دیگر ویرایشِ فایل‌هایِ موجود یا حذفِ فایل‌هایِ مرده است — **هیچ فایلِ جدیدِ دیگری، هیچ پوشه‌ی جدیدی.**
+
+## M.6. رجیستریِ نهاییِ فایل‌هایِ مرده (Dead Files Registry — تأییدشده با grep سراسری، صفر importer)
+| مسیر | وضعیت |
+|---|---|
+| `components/ChatView.tsx` | مرده — نسخه‌ی زنده: `features/chat/ChatView.tsx` |
+| `components/Dashboard.tsx` | مرده — نسخه‌ی زنده: `features/dashboard/Dashboard.tsx` |
+| `components/HabitEditorModal.tsx` | مرده — نسخه‌ی زنده: `features/habits/components/HabitManagerModal.tsx` |
+| `components/NoteEditorModal.tsx` | مرده — نسخه‌ی زنده: `features/notes/components/NoteEditorModal.tsx` |
+| `components/NotesView.tsx` | مرده — نسخه‌ی زنده: `features/notes/NotesView.tsx` |
+| `components/Onboarding.tsx` | مرده — نسخه‌ی زنده: `features/onboarding/Onboarding.tsx` |
+| `components/ProjectsView.tsx` | مرده — نسخه‌ی زنده: `features/projects/ProjectsView.tsx` |
+| `components/TaskEditorModal.tsx` | مرده — نسخه‌ی زنده: `features/tasks/components/TaskEditorModal.tsx` |
+| `components/TasksView.tsx` | مرده — نسخه‌ی زنده: `features/tasks/TasksView.tsx` |
+| `components/Modal.tsx` | مرده — هیچ کامپوننتِ زنده‌ای از این wrapper استفاده نمی‌کند (هر مودالِ زنده استایلِ اختصاصیِ خودش را دارد) |
+| `features/dashboard/components/DashboardHeader(old).tsx` | مرده — از L3 به بعد فقط فایلِ مرجعِ تاریخی بود؛ صفر importer |
+| `features/habits/components/HabitEditorModal.tsx` | مرده — پیش‌نویسِ اولیه‌ای که با `HabitManagerModal.tsx`/`HabitForm.tsx` جایگزین شده؛ صفر importer |
+
+این فایل‌ها قبل از این فاز هم قانون #۷ (PROJECT.md) و §L3.1 به‌عنوانِ legacy علامت‌گذاری شده بودند اما هیچ‌وقت حذفِ فیزیکی نشدند؛ این فاز آن‌ها را نهایتاً حذف می‌کند (تسکِ M-3).
+
+## M.7. نقشه‌ی تداخلِ فایل‌ها (Conflict Map) و توالیِ اجرا
+- **M-1** (`index.css`, `index.html`) پایه‌ی همه‌چیز است؛ **باید اول اجرا شود** (تمامِ تسک‌های بعدی به توکن‌ها/کلاس‌هایی که M-1 می‌سازد وابسته‌اند).
+- **M-3** (حذفِ فایل‌های مرده) کاملاً مستقل است؛ می‌تواند هم‌زمان با M-1 اجرا شود.
+- پس از اتمامِ M-1، تسک‌هایِ **M-2, M-4, M-5, M-6, M-7, M-8, M-9** هیچ فایلِ مشترکی با هم ندارند (فهرستِ `CONTEXT_FILES`/فایل‌هایِ نوشتنیِ هرکدام در `tasks.md` بررسی و تضمین شده) → **همگی می‌توانند به‌صورتِ کاملاً موازی اجرا شوند.**
+- **M-11** (اصلاحِ کنتراستِ `text-primary`، §M.9) با فایل‌هایِ M-2, M-4, M-5, M-6, M-7, M-9 هم‌پوشانیِ گسترده دارد؛ باید **پس از اتمامِ کاملِ M-2 تا M-9** و **پیش از M-10** اجرا شود (M-10 آخرین تسکِ کلِ فاز است و باید صحتِ خروجیِ M-11 را هم راستی‌آزمایی کند).
+- **M-10** (ممیزیِ نهایی، بدونِ کد) واقعاً آخرین تسکِ فاز است؛ باید پس از اتمامِ همه‌ی تسک‌هایِ ۱ تا ۹ **و M-11** اجرا شود.
+
+## M.8. لیستِ نهاییِ فایل‌هایِ زنده‌ای که در این فاز رنگِ هاردکد در آن‌ها اصلاح می‌شود (خروجیِ ممیزی، صفرِ باقیمانده انتظار می‌رود)
+`components/BottomNav.tsx` · `components/Sidebar.tsx` · `components/ProfileModal.tsx` · `components/SupportTicketModal.tsx` · `components/PersianDatePicker.tsx` · `components/TimePicker.tsx` · `features/chat/ChatView.tsx` · `features/chat/components/ProposalCard.tsx` · `features/chat/components/MoreCitationsModal.tsx` · `features/dashboard/components/AiComposerPanel.tsx` · `features/dashboard/components/KeyProjects.tsx` · `features/dashboard/components/OverdueTasksModal.tsx` · `features/dashboard/components/StatsOverview.tsx` · `features/dashboard/components/ProductivityChart.tsx` · `features/dashboard/components/FocusTimer.tsx` · `features/dashboard/components/HabitTracker.tsx` · `features/dashboard/components/TodaysNotes.tsx` · `features/notes/NotesView.tsx` · `features/notes/components/NoteEditorModal.tsx` · `features/notes/components/NoteCard.tsx` · `features/notes/components/LinkTaskPicker.tsx` · `features/tasks/components/LinkNotePicker.tsx` · `features/tasks/components/TaskCard.tsx` · `features/projects/components/ProjectCard.tsx` · `features/projects/components/ProjectDetailsModal.tsx` · `features/habits/components/HabitManagerModal.tsx` · `features/billing/components/PaymentMethodModal.tsx` · `features/billing/components/ReceiptUploadModal.tsx` · `features/billing/components/RenewReminderModal.tsx` · `features/announcements/TemporaryModals/archive/_Example.tsx` · `index.css` · `index.html` (فایلِ جدید: `utils/themeManager.ts`).
+
+`components/icons.tsx` به‌طورِ کامل ممیزی شد و **صد‌درصد تمیز است** (همه‌ی آیکون‌ها از `stroke="currentColor"` استفاده می‌کنند)؛ هیچ تغییری در آن لازم نیست.
+
+
+## M.9. اصلاحیه‌ی تکمیلی (کشف‌شده در بازبینیِ کارفرما): تضادِ رنگِ متنِ برند روی سطحِ روشن
+
+**یافته:** توکنِ `--color-primary` برای دو نقشِ متفاوت مصرف می‌شود: (۱) رنگِ پس‌زمینه‌ی عناصرِ توپر (دکمه‌ها، FAB) — اینجا اشکالی ندارد چون همیشه با `--text-on-primary` (مشکی) جفت می‌شود؛ (۲) رنگِ خودِ متن/آیکون روی سطحِ خنثی (سفید/کارت) — اینجا **کنتراست به‌شدت ناکافی** است (لیمو رویِ سفید=۱.۳:۱، آبی=۲.۲:۱، بنفش=۳.۶:۱؛ حداقلِ استاندارد ۴.۵:۱). این یک نقصِ از پیش‌موجود است (نه ساخته‌ی این فاز) اما پالتِ جدیدِ آبی/بنفش آن را تشدید می‌کند، پس باید همین فاز رفع شود. ممیزیِ کامل ۳۰ فایلِ زنده و ۱۲۲ نمونه (بدونِ استثنا، همگی بدونِ قید `dark:` و همگی خارج از ترکیبِ نادرست با `bg-primary` توپر) را شناسایی کرد.
+
+**تصمیمِ M‑ز — توکنِ مجزا برایِ «متنِ برند»:** یک توکنِ جدید `--color-primary-text` (+ نسخه‌ی `-rgb`) تعریف می‌شود که مقدارش **در لایت‌مود تیره‌تر/کنتراست‌دارتر** از `--color-primary` است (طراحی‌شده با همان Hue، L/S کاهش‌یافته تا کنتراستِ ≥۴.۵:۱ روی سفید تضمین شود) و **در دارک‌مود** (به‌جز بنفش) با `--color-primary` یکی است چون از قبل کنتراستِ کافی دارد؛ بنفش در دارک‌مود هم یک مقدارِ کمی روشن‌ترِ اختصاصی می‌گیرد تا رویِ `--bg-card` تیره (`#1E293B`) هم به ۴.۵:۱ برسد. این توکن به Tailwind به‌عنوانِ کلیدِ رنگیِ جدید `primary-text` اضافه می‌شود (کلاسِ `text-primary-text`) — **جدا از کلیدِ `primary` موجود** (که همچنان فقط برایِ پس‌زمینه/border به کار می‌رود).
+
+**مقادیرِ دقیق (تأییدشده با محاسبه‌ی WCAG):**
+| توکن | سبز (لایت) | آبی (لایت) | بنفش (لایت) | سبز (دارک) | آبی (دارک) | بنفش (دارک) |
+|---|---|---|---|---|---|---|
+| `--color-primary-text` | `#6D7E1B` | `#277BB7` | `#994CF0` | `#D8F066` (=primary) | `#66B6F0` (=primary) | `#AC75EB` (اختصاصی) |
+| `--color-primary-text-rgb` | `109 126 27` | `39 123 183` | `153 76 240` | `216 240 102` | `102 182 240` | `172 117 235` |
+| کنتراست vs سفید/تیره | ۴.۵۲:۱ | ۴.۵۶:۱ | ۴.۵۲:۱ | ۱۴.۸:۱ | ۸.۵:۱ | ۴.۵۴–۵.۸:۱ |
+
+**قاعده‌ی جایگزینی (مکانیکی، بدونِ استثنا):** هرجا کلاسِ Tailwind به‌صورتِ `text-primary` (شاملِ حالت‌هایِ اپاسیتی مثلِ `text-primary/70`) یا مقدارِ arbitrary به‌صورتِ `text-[var(--color-primary)]` روی متن/آیکون استفاده شده، باید به‌ترتیب به `text-primary-text` و `text-[var(--color-primary-text)]` تغییر کند. این تغییر **هرگز** روی `bg-primary`, `border-primary`, `ring-primary`, `shadow-primary` یا خودِ `--color-primary` اعمال نمی‌شود (آن‌ها برایِ پس‌زمینه/حاشیه درست‌اند و دست‌نخورده می‌مانند).
+
+**فهرستِ ۳۰ فایلِ زنده‌ی نیازمندِ این جایگزینی (تسکِ M-11):** `components/Auth.tsx`, `components/PaywallModal.tsx`, `components/ProfileModal.tsx`, `components/ui/ToastNotifications.tsx`, `features/billing/components/SubscriptionModal.tsx`, `features/billing/components/UsageMeter.tsx`, `features/billing/pages/SubscriptionPage.tsx`, `features/chat/ChatView.tsx`, `features/chat/components/ActionResultCard.tsx`, `features/chat/components/ChatHistoryDrawer.tsx`, `features/chat/components/CitationCard.tsx`, `features/chat/components/ProposalCard.tsx`, `features/dashboard/components/AiComposerPanel.tsx`, `features/dashboard/components/FocusTimer.tsx`, `features/dashboard/components/OverdueTasksModal.tsx`, `features/dashboard/components/ProductivityChart.tsx`, `features/dashboard/components/WeeklyReportModal.tsx`, `features/habits/components/HabitManagerModal.tsx`, `features/habits/components/HabitStatsView.tsx`, `features/notes/NotesView.tsx`, `features/notes/components/NoteCard.tsx`, `features/notes/components/NoteEditorModal.tsx`, `features/onboarding/components/NameStep.tsx`, `features/onboarding/components/SlideCard.tsx`, `features/onboarding/components/WelcomeChoice.tsx`, `features/projects/components/ProjectCard.tsx`, `features/projects/components/ProjectDetailsModal.tsx`, `features/tasks/TasksView.tsx`, `features/tasks/components/TaskCard.tsx`, `features/tasks/components/TaskEditorModal.tsx`.
+
+**ضدالگویِ اضافه‌شده به فاز M:** ۱۱. رنگِ `--color-primary`/`bg-primary`/`border-primary` هرگز به‌طورِ مستقیم برایِ رنگِ متن یا آیکون استفاده نشود؛ همیشه `text-primary-text` (یا `text-[var(--color-primary-text)]`) به‌جایش به‌کار رود.

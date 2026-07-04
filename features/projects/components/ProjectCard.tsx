@@ -3,17 +3,17 @@ import { Project, Priority } from '../../../types';
 import { PencilIcon, TrashIcon, ListChecksIcon } from '../../../components/icons';
 
 export const colorClasses: { [key: string]: { bg: string; border: string; text: string; gradient: string; solidBg: string; } } = {
-  sky:    { bg: 'bg-primary/10', border: 'border-[var(--border-neon)]', text: 'text-[var(--color-primary)]', gradient: 'from-primary/20', solidBg: 'bg-primary' },
-  red:    { bg: 'bg-primary/10', border: 'border-[var(--border-neon)]', text: 'text-[var(--color-primary)]', gradient: 'from-primary/20', solidBg: 'bg-primary' },
-  green:  { bg: 'bg-primary/10', border: 'border-[var(--border-neon)]', text: 'text-[var(--color-primary)]', gradient: 'from-primary/20', solidBg: 'bg-primary' },
-  yellow: { bg: 'bg-primary/10', border: 'border-[var(--border-neon)]', text: 'text-[var(--color-primary)]', gradient: 'from-primary/20', solidBg: 'bg-primary' },
-  purple: { bg: 'bg-primary/10', border: 'border-[var(--border-neon)]', text: 'text-[var(--color-primary)]', gradient: 'from-primary/20', solidBg: 'bg-primary' },
-  gray:   { bg: 'bg-primary/10', border: 'border-[var(--border-neon)]', text: 'text-[var(--color-primary)]', gradient: 'from-primary/20', solidBg: 'bg-primary' },
+  sky:    { bg: 'bg-project-sky/10', border: 'border-[var(--project-color-sky)]', text: 'text-[var(--project-color-sky)]', gradient: 'from-project-sky/20', solidBg: 'bg-[var(--project-color-sky)]' },
+  red:    { bg: 'bg-project-red/10', border: 'border-[var(--project-color-red)]', text: 'text-[var(--project-color-red)]', gradient: 'from-project-red/20', solidBg: 'bg-[var(--project-color-red)]' },
+  green:  { bg: 'bg-project-green/10', border: 'border-[var(--project-color-green)]', text: 'text-[var(--project-color-green)]', gradient: 'from-project-green/20', solidBg: 'bg-[var(--project-color-green)]' },
+  yellow: { bg: 'bg-project-yellow/10', border: 'border-[var(--project-color-yellow)]', text: 'text-[var(--project-color-yellow)]', gradient: 'from-project-yellow/20', solidBg: 'bg-[var(--project-color-yellow)]' },
+  purple: { bg: 'bg-project-purple/10', border: 'border-[var(--project-color-purple)]', text: 'text-[var(--project-color-purple)]', gradient: 'from-project-purple/20', solidBg: 'bg-[var(--project-color-purple)]' },
+  gray:   { bg: 'bg-project-gray/10', border: 'border-[var(--project-color-gray)]', text: 'text-[var(--project-color-gray)]', gradient: 'from-project-gray/20', solidBg: 'bg-[var(--project-color-gray)]' },
 };
 
 export const priorityClasses: { [key: string]: { text: string; label: string; bg: string; color: string; } } = {
   [Priority.High]: { text: 'text-[var(--semantic-error)]', label: 'زیاد', bg: 'bg-[var(--semantic-error-soft)]', color: 'red' },
-  [Priority.Medium]: { text: 'text-[var(--color-primary)]', label: 'متوسط', bg: 'bg-primary/10', color: 'yellow' },
+  [Priority.Medium]: { text: 'text-[var(--color-primary-text)]', label: 'متوسط', bg: 'bg-primary/10', color: 'yellow' },
   [Priority.Low]: { text: 'text-[var(--text-muted)]', label: 'کم', bg: 'bg-[var(--bg-card)]', color: 'sky' },
 };
 
@@ -55,7 +55,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           <div className="flex items-center gap-1 flex-shrink-0 -mr-2 -mt-2">
             <button 
               onClick={(e) => { e.stopPropagation(); onEdit(project); }} 
-              className="p-1.5 text-[var(--text-muted)] hover:text-[var(--color-primary)] hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors font-semibold"
+              className="p-1.5 text-[var(--text-muted)] hover:text-[var(--color-primary-text)] hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors font-semibold"
               title="ویرایش پروژه"
             >
               <PencilIcon className="w-4 h-4"/>

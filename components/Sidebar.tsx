@@ -3,6 +3,7 @@ import { Page } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { HomeIcon, ListChecksIcon, NotebookIcon, BriefcaseIcon, SparklesIcon } from './icons';
+import { toggleDarkMode } from '../utils/themeManager';
 
 interface SidebarProps {
   currentPage: Page;
@@ -10,12 +11,6 @@ interface SidebarProps {
   onOpenProfile: () => void;
   className?: string;
 }
-
-const toggleTheme = () => {
-  const isDark = document.documentElement.classList.toggle('dark');
-  localStorage.setItem('hexer-theme', isDark ? 'dark' : 'light');
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark ? '#121212' : '#F4F5F7');
-};
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentPage,
@@ -116,7 +111,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             id="profile-trigger-btn"
           >
             <div
-              className="w-8 h-8 rounded-full bg-lime flex items-center justify-center font-bold text-sm shrink-0"
+              className="w-8 h-8 rounded-full bg-brand flex items-center justify-center font-bold text-sm shrink-0"
               style={{ color: 'var(--text-on-primary)' }}
             >
               {avatarLetter}
@@ -126,7 +121,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </button>
           <button
-            onClick={toggleTheme}
+            onClick={() => toggleDarkMode()}
             className="w-8 h-8 rounded-full hover:bg-[var(--nav-hover-bg)] text-muted flex items-center justify-center transition cursor-pointer shrink-0"
             id="theme-toggle-btn"
           >

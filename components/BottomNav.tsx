@@ -58,15 +58,15 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentPage, setPage }) => {
         <div className="absolute left-1/2 bottom-[calc(1.3rem+var(--safe-area-inset-bottom))] -translate-x-1/2 pointer-events-auto flex flex-col items-center gap-1.5">
             <button
                 onClick={() => setPage(Page.Chat)}
-                className={`w-14 h-14 bg-lime rounded-full flex items-center justify-center text-[var(--text-on-primary)] shadow-lg shadow-[0_0_15px_rgba(216,240,102,0.3)] hover:scale-110 active:scale-95 transition-all duration-300 ring-4 ring-[var(--bg-card)] cursor-pointer ${
-                  currentPage === Page.Chat ? 'scale-105 shadow-[0_0_20px_rgba(216,240,102,0.5)]' : ''
+                className={`w-14 h-14 bg-brand rounded-full flex items-center justify-center text-[var(--text-on-primary)] shadow-lg shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)] hover:scale-110 active:scale-95 transition-all duration-300 ring-4 ring-[var(--bg-card)] cursor-pointer ${
+                  currentPage === Page.Chat ? 'scale-105 shadow-[0_0_20px_rgb(var(--color-primary-rgb)/0.5)]' : ''
                 }`}
                 aria-label="چت با هوش مصنوعی"
                 >
                 <SparklesIcon className="w-7 h-7"/>
             </button>
             <span className={`text-[10px] font-bold leading-none transition-colors duration-300 ${
-              currentPage === Page.Chat ? 'text-lime' : 'text-[var(--text-muted)]'
+              currentPage === Page.Chat ? 'text-brand' : 'text-[var(--text-muted)]'
             }`}>
               دستیار
             </span>

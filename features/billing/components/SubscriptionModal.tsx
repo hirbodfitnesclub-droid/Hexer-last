@@ -151,20 +151,20 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
             /* --- STATE 1: PENDING MANUAL STATUS (LOCKED) --- */
             <div className="flex flex-col items-center justify-center py-16 px-4 text-center space-y-6">
               <div className="relative">
-                <div className="absolute inset-0 rounded-full bg-amber-500/20 blur-xl animate-pulse"></div>
-                <div className="w-20 h-20 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center justify-center text-amber-400 animate-pulse relative z-10">
+                <div className="absolute inset-0 rounded-full bg-warning/20 blur-xl animate-pulse"></div>
+                <div className="w-20 h-20 bg-warning/10 border border-warning/20 rounded-full flex items-center justify-center text-warning animate-pulse relative z-10">
                   <WarningIcon className="w-10 h-10" />
                 </div>
               </div>
               
               <div className="space-y-3 max-w-md">
-                <h3 className="text-base font-black text-amber-400">در انتظار تایید رسید</h3>
+                <h3 className="text-base font-black text-warning">در انتظار تایید رسید</h3>
                 <p className="text-xs text-[var(--text-muted)] font-medium leading-relaxed">
                   رسید پرداخت شما در انتظار تایید ادمین پشتیبانی است. لطفاً چند دقیقه دیگر بازگردید...
                 </p>
                 <div className="pt-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-300">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-warning/10 border border-warning/20 text-[10px] font-bold text-warning">
+                    <span className="w-1.5 h-1.5 rounded-full bg-warning animate-ping"></span>
                     وضعیت فعلی: بررسی مدارک ارسالی
                   </span>
                 </div>
@@ -248,7 +248,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                             <div className="flex justify-between items-start">
                               <h4 className="font-extrabold text-[var(--text-main)] text-xs">{plan.name}</h4>
                               {plan.isPopular && (
-                                <span className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-[8px] font-black text-primary font-sans">
+                                <span className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-[8px] font-black text-primary-text font-sans">
                                   محبوب‌ترین
                                 </span>
                               )}
@@ -266,7 +266,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                             <div className="pt-3 mt-3 border-t border-[var(--border-subtle)] space-y-2">
                               {plan.features.map((feat, idx) => (
                                 <div key={idx} className="flex items-start gap-2">
-                                  <CheckIcon className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                                  <CheckIcon className="w-3.5 h-3.5 text-primary-text shrink-0 mt-0.5" />
                                   <span className="text-[10px] text-[var(--text-main)] leading-relaxed opacity-90">{feat}</span>
                                 </div>
                               ))}
@@ -312,7 +312,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
         <div className="p-4 border-t border-[var(--border-subtle)] bg-[var(--bg-card)]/80 text-center shrink-0 pb-safe">
           <div className="flex flex-col items-center justify-center gap-1.5 text-[var(--text-muted)]">
             <div className="flex items-center gap-1.5">
-              <ShieldCheckIcon className="w-4 h-4 text-primary" />
+              <ShieldCheckIcon className="w-4 h-4 text-primary-text" />
               <span className="text-[9px] font-bold">تضمین پرداخت امن در شبکه شتاب کشور</span>
             </div>
           </div>

@@ -204,7 +204,7 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
             )}
             <button 
               onClick={handleSave} 
-              className="px-6 py-2.5 bg-lime hover:opacity-90 text-[var(--text-on-primary)] rounded-xl font-bold text-xs transition-all hover:scale-103"
+              className="px-6 py-2.5 bg-brand hover:opacity-90 text-[var(--text-on-primary)] rounded-xl font-bold text-xs transition-all hover:scale-103"
             >
               {isNew ? 'ثبت یادداشت' : 'ذخیره تغییرات'}
             </button>
@@ -285,9 +285,9 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
               {/* Active Tags & Input */}
               <div className="flex flex-wrap items-center gap-2 bg-[var(--bg-card)]/50 p-2 rounded-xl border border-[var(--border-subtle)] focus-within:border-primary/30 transition-all font-sans">
                 {formState.tags?.map(tag => (
-                  <span key={tag} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary/10 text-primary border border-primary/15 text-xs font-semibold">
+                  <span key={tag} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary/10 text-primary-text border border-primary/15 text-xs font-semibold">
                     {tag}
-                    <button type="button" onClick={() => removeTag(tag)} className="hover:text-[var(--text-main)] text-primary transition-colors">
+                    <button type="button" onClick={() => removeTag(tag)} className="hover:text-[var(--text-main)] text-primary-text transition-colors">
                       <XIcon className="w-3 h-3" />
                     </button>
                   </span>
@@ -314,13 +314,13 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
                       className={`
                         flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border transition-all whitespace-nowrap
                         ${isActive 
-                          ? 'bg-primary text-black border-primary' 
+                          ? 'bg-primary text-on-primary border-primary' 
                           : 'bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-primary/40 hover:text-[var(--text-main)]'}
                       `}
                     >
                       {preset.icon}
                       <span>{preset.label}</span>
-                      {isActive && <CheckIcon className="w-3 h-3 ml-0.5 text-black" />}
+                      {isActive && <CheckIcon className="w-3 h-3 ml-0.5 text-on-primary" />}
                     </button>
                   );
                 })}

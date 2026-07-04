@@ -34,7 +34,7 @@ export const NameStep: React.FC<NameStepProps> = ({ onSubmit }) => {
         id="name-step-icon-badge"
         className="w-16 h-16 rounded-2xl bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--border-subtle)] flex items-center justify-center shadow-md mb-6"
       >
-        <UserIcon className="w-8 h-8 text-primary" />
+        <UserIcon className="w-8 h-8 text-primary-text" />
       </div>
 
       <div id="name-step-header" className="text-center space-y-2 mb-8">

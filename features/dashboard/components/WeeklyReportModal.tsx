@@ -137,7 +137,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
           <div className="p-6 border-b border-[var(--border-subtle)] flex items-center justify-between flex-shrink-0">
             <div>
               <h3 className="text-xl font-bold text-[var(--text-main)] flex items-center gap-2">
-                <ClipboardListIcon className="w-5 h-5 text-[var(--text-main)] dark:text-[var(--color-primary)]" />
+                <ClipboardListIcon className="w-5 h-5 text-[var(--text-main)] dark:text-[var(--color-primary-text)]" />
                 گزارش عملکرد هفتگی
               </h3>
               <p className="text-xs text-[var(--text-muted)] mt-1">

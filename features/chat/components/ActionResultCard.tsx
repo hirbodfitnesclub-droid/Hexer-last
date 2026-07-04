@@ -41,7 +41,7 @@ export const ActionResultCard: React.FC<ActionResultCardProps> = ({ result, onCl
         </div>
         <div className="text-right flex-1">
           <p className="text-xs text-muted font-medium mb-0.5">{label}</p>
-          <p className="text-sm text-main font-bold group-hover:text-primary transition-colors">{title}</p>
+          <p className="text-sm text-main font-bold group-hover:text-primary-text transition-colors">{title}</p>
         </div>
         <div className="p-1.5 bg-white/5 rounded-full group-hover:bg-white/10 transition-colors">
           <LinkIcon className="w-4 h-4 text-muted group-hover:text-main" />

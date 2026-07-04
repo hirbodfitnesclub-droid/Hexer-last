@@ -11,7 +11,7 @@ interface PersianDatePickerProps {
 const SelectWrapper: React.FC<{children: React.ReactNode}> = ({children}) => (
     <div className="relative flex-1">
         {children}
-        <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+        <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)]">
             <ChevronDownIcon className="w-4 h-4" />
         </div>
     </div>
@@ -65,9 +65,9 @@ const PersianDatePicker: React.FC<PersianDatePickerProps> = ({ value, onChange }
             <select 
                 value={selectedDay} 
                 onChange={(e) => handleChange(selectedYear, selectedMonth, parseInt(e.target.value))}
-                className="w-full bg-slate-800/60 appearance-none px-3 py-2 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm cursor-pointer border border-slate-700 hover:border-slate-600 transition-colors"
+                className="w-full bg-[var(--bg-card)] appearance-none px-3 py-2 rounded-lg text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-primary text-sm cursor-pointer border border-[var(--border-subtle)] hover:border-[var(--border-subtle)]/80 transition-colors"
             >
-                {days.map(d => <option key={d} value={d}>{d}</option>)}
+                {days.map(d => <option key={d} value={d} className="bg-[var(--bg-card)] text-[var(--text-main)]">{d}</option>)}
             </select>
         </SelectWrapper>
 
@@ -76,9 +76,9 @@ const PersianDatePicker: React.FC<PersianDatePickerProps> = ({ value, onChange }
             <select 
                 value={selectedMonth} 
                 onChange={(e) => handleChange(selectedYear, parseInt(e.target.value), selectedDay)}
-                className="w-full bg-slate-800/60 appearance-none px-3 py-2 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm cursor-pointer border border-slate-700 hover:border-slate-600 transition-colors"
+                className="w-full bg-[var(--bg-card)] appearance-none px-3 py-2 rounded-lg text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-primary text-sm cursor-pointer border border-[var(--border-subtle)] hover:border-[var(--border-subtle)]/80 transition-colors"
             >
-                {persianMonths.map((name, index) => <option key={index} value={index + 1}>{name}</option>)}
+                {persianMonths.map((name, index) => <option key={index} value={index + 1} className="bg-[var(--bg-card)] text-[var(--text-main)]">{name}</option>)}
             </select>
         </SelectWrapper>
 
@@ -87,9 +87,9 @@ const PersianDatePicker: React.FC<PersianDatePickerProps> = ({ value, onChange }
             <select 
                 value={selectedYear} 
                 onChange={(e) => handleChange(parseInt(e.target.value), selectedMonth, selectedDay)}
-                className="w-full bg-slate-800/60 appearance-none px-3 py-2 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm cursor-pointer border border-slate-700 hover:border-slate-600 transition-colors"
+                className="w-full bg-[var(--bg-card)] appearance-none px-3 py-2 rounded-lg text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-primary text-sm cursor-pointer border border-[var(--border-subtle)] hover:border-[var(--border-subtle)]/80 transition-colors"
             >
-                {years.map(y => <option key={y} value={y}>{y}</option>)}
+                {years.map(y => <option key={y} value={y} className="bg-[var(--bg-card)] text-[var(--text-main)]">{y}</option>)}
             </select>
         </SelectWrapper>
     </div>

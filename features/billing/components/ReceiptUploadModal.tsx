@@ -119,20 +119,20 @@ export const ReceiptUploadModal: React.FC<ReceiptUploadModalProps> = ({ isOpen, 
       onClick={onClose}
     >
       <div 
-        className="bg-neutral-950 border border-neutral-800 rounded-[28px] shadow-[0_24px_60px_-15px_rgba(0,0,0,0.95)] w-full max-w-sm flex flex-col max-h-[90vh] overflow-hidden transform transition-all relative"
+        className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-[28px] shadow-[0_24px_60px_-15px_rgba(0,0,0,0.95)] w-full max-w-sm flex flex-col max-h-[90vh] overflow-hidden transform transition-all relative"
         onClick={e => e.stopPropagation()}
         dir="rtl"
       >
         {/* Header */}
-        <div className="relative bg-gradient-to-br from-indigo-950/40 via-neutral-950 to-neutral-950 p-5 shrink-0 border-b border-neutral-900 flex items-center justify-between">
+        <div className="relative bg-gradient-to-br from-primary/10 via-[var(--bg-card)] to-[var(--bg-card)] p-5 shrink-0 border-b border-[var(--border-subtle)] flex items-center justify-between">
           <div>
-            <h3 className="text-white font-extrabold text-xs">ارسال رسید واریز (کارت به کارت)</h3>
-            <p className="text-[10px] text-neutral-500 font-bold mt-0.5">بارگذاری امن مدارک تراکنش آفلاین</p>
+            <h3 className="text-[var(--text-main)] font-extrabold text-xs">ارسال رسید واریز (کارت به کارت)</h3>
+            <p className="text-[10px] text-[var(--text-muted)] font-bold mt-0.5">بارگذاری امن مدارک تراکنش آفلاین</p>
           </div>
           <button 
             onClick={onClose} 
             disabled={submitting}
-            className="w-7 h-7 flex items-center justify-center text-neutral-400 hover:text-white bg-neutral-900 rounded-full border border-neutral-800 transition-all disabled:opacity-40"
+            className="w-7 h-7 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] bg-[var(--bg-card)] rounded-full border border-[var(--border-subtle)] transition-all disabled:opacity-40"
           >
             <XIcon className="w-3.5 h-3.5" />
           </button>
@@ -142,20 +142,20 @@ export const ReceiptUploadModal: React.FC<ReceiptUploadModalProps> = ({ isOpen, 
         <div className="p-5 space-y-4 overflow-y-auto flex-1 scrollbar-thin">
           
           {/* Card specs details block */}
-          <div className="bg-neutral-900/60 border border-neutral-800 rounded-2xl p-4 space-y-3 text-right">
-            <span className="text-[9px] text-zinc-500 font-bold block uppercase tracking-wider">حساب بانکی مقصد جهت کارت‌به‌کارت</span>
+          <div className="bg-[var(--bg-card)]/60 border border-[var(--border-subtle)] rounded-2xl p-4 space-y-3 text-right">
+            <span className="text-[9px] text-[var(--text-muted)] font-bold block uppercase tracking-wider">حساب بانکی مقصد جهت کارت‌به‌کارت</span>
             
             <div className="space-y-2.5 text-xs">
-              <div className="flex justify-between items-center bg-neutral-950/40 p-2 rounded-xl border border-neutral-800/40">
-                <span className="text-zinc-400 font-medium">شماره کارت:</span>
+              <div className="flex justify-between items-center bg-black/5 dark:bg-white/5 p-2 rounded-xl border border-[var(--border-subtle)]/45">
+                <span className="text-[var(--text-muted)] font-medium">شماره کارت:</span>
                 <div className="flex items-center gap-1.5" dir="ltr">
-                  <span className="text-indigo-400 font-black font-mono tracking-wider text-xs md:text-sm select-all">
+                  <span className="text-primary-text font-black font-mono tracking-wider text-xs md:text-sm select-all">
                     6219 8619 1717 9755
                   </span>
                   <button 
                     onClick={handleCopyCard}
                     type="button"
-                    className="p-1 text-neutral-400 hover:text-white bg-neutral-900 hover:bg-neutral-850 rounded-lg transition-all active:scale-95 border border-neutral-800"
+                    className="p-1 text-[var(--text-muted)] hover:text-[var(--text-main)] bg-[var(--bg-card)] hover:bg-[var(--nav-hover-bg)] rounded-lg transition-all active:scale-95 border border-[var(--border-subtle)]"
                     title="کپی شماره کارت"
                   >
                     <CopyIcon className="w-3 h-3" />
@@ -163,23 +163,23 @@ export const ReceiptUploadModal: React.FC<ReceiptUploadModalProps> = ({ isOpen, 
                 </div>
               </div>
               <div className="flex justify-between px-1">
-                <span className="text-zinc-400 font-medium">نام بانک:</span>
-                <span className="text-white font-extrabold">بلو بانک سامان</span>
+                <span className="text-[var(--text-muted)] font-medium">نام بانک:</span>
+                <span className="text-[var(--text-main)] font-extrabold">بلو بانک سامان</span>
               </div>
               <div className="flex justify-between px-1">
-                <span className="text-zinc-400 font-medium">به نام:</span>
-                <span className="text-white font-extrabold">آرش مکی</span>
+                <span className="text-[var(--text-muted)] font-medium">به نام:</span>
+                <span className="text-[var(--text-main)] font-extrabold">آرش مکی</span>
               </div>
             </div>
           </div>
 
           {/* DND Drag-drop Area */}
           <div className="space-y-2">
-            <label className="text-[9px] font-bold text-neutral-400 block uppercase tracking-wider">بارگذاری عکس رسید پرداخت</label>
+            <label className="text-[9px] font-bold text-[var(--text-muted)] block uppercase tracking-wider">بارگذاری عکس رسید پرداخت</label>
             
             {imagePreview ? (
               /* PREVIEW CONTAINER */
-              <div className="relative rounded-2xl overflow-hidden border border-neutral-800 aspect-video group bg-neutral-950 flex items-center justify-center">
+              <div className="relative rounded-2xl overflow-hidden border border-[var(--border-subtle)] aspect-video group bg-black/40 flex items-center justify-center">
                 <img 
                   src={imagePreview} 
                   alt="رسید تراکنش بانکی" 
@@ -188,7 +188,7 @@ export const ReceiptUploadModal: React.FC<ReceiptUploadModalProps> = ({ isOpen, 
                 {!submitting && (
                   <button 
                     onClick={clearSelectedFile}
-                    className="absolute top-2 left-2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-all active:scale-95 border border-red-500/20"
+                    className="absolute top-2 left-2 p-1.5 bg-error hover:bg-error/90 text-[var(--text-on-primary)] rounded-full transition-all active:scale-95 border border-error/20"
                   >
                     <XIcon className="w-3.5 h-3.5" />
                   </button>
@@ -199,8 +199,8 @@ export const ReceiptUploadModal: React.FC<ReceiptUploadModalProps> = ({ isOpen, 
               <div 
                 className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
                   dragActive 
-                    ? 'border-indigo-500 bg-indigo-500/5' 
-                    : 'border-neutral-800 hover:border-neutral-700 bg-neutral-900/10'
+                    ? 'border-primary bg-primary/5' 
+                    : 'border-[var(--border-subtle)] hover:border-[var(--border-subtle)]/80 bg-black/5 dark:bg-white/5'
                 }`}
                 onDragEnter={handleDrag}
                 onDragOver={handleDrag}
@@ -216,28 +216,28 @@ export const ReceiptUploadModal: React.FC<ReceiptUploadModalProps> = ({ isOpen, 
                   className="hidden" 
                 />
                 
-                <UploadIcon className="w-7 h-7 mx-auto text-neutral-500 mb-2.5" />
-                <p className="text-xs text-zinc-300 font-bold">راست‌کلیک، رهاسازی یا کشیدن تصویر رسید</p>
-                <p className="text-[10px] text-neutral-500 mt-1">حداکثر حجم مجاز: ۲ مگابایت</p>
+                <UploadIcon className="w-7 h-7 mx-auto text-[var(--text-muted)] mb-2.5" />
+                <p className="text-xs text-[var(--text-muted)] font-bold">راست‌کلیک، رهاسازی یا کشیدن تصویر رسید</p>
+                <p className="text-[10px] text-[var(--text-muted)] mt-1">حداکثر حجم مجاز: ۲ مگابایت</p>
               </div>
             )}
           </div>
 
           {errorMessage && (
-            <div className="bg-red-500/10 border border-red-500/25 p-3.5 rounded-xl flex items-start gap-2 text-right">
-              <WarningIcon className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
-              <span className="text-[10px] text-red-300 font-bold leading-relaxed">{errorMessage}</span>
+            <div className="bg-error/10 border border-error/25 p-3.5 rounded-xl flex items-start gap-2 text-right">
+              <WarningIcon className="w-3.5 h-3.5 text-error shrink-0 mt-0.5" />
+              <span className="text-[10px] text-error font-bold leading-relaxed">{errorMessage}</span>
             </div>
           )}
 
         </div>
 
         {/* Footer */}
-        <div className="p-5 border-t border-neutral-900 flex-shrink-0">
+        <div className="p-5 border-t border-[var(--border-subtle)] flex-shrink-0">
           <button 
             onClick={handleSubmit}
             disabled={submitting || !selectedFile}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none shadow-md shadow-indigo-950/20"
+            className="w-full flex items-center justify-center gap-2 py-3 bg-primary hover:bg-primary/90 text-[var(--text-on-primary)] rounded-xl text-xs font-black transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none shadow-md shadow-primary/20"
           >
             {submitting ? (
               <>
