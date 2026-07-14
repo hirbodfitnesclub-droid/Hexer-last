@@ -691,7 +691,7 @@ notify pgrst, 'reload schema';
 
 ### منطق مسیردهی و کشف خودکار
 - پوشه‌ی اختصاصی: `features/announcements/TemporaryModals/` — هر فایل `*.tsx` مستقیماً داخل آن = **فعال**.
-- زیرپوشه‌ی آرشیو: `features/announcements/TemporaryModals/archive/` — نادیده گرفته می‌شود (به‌خاطر الگوی **غیربازگشتیِ** glob).
+- زیرپوشه‌ی آرشیو: `features/announcements/TemporaryModals/archive/` — نادیده گرفته می‌شود (به‌خاط�� الگوی **غیربازگشتیِ** glob).
 - کشف: `import.meta.glob('./TemporaryModals/*.tsx', { eager: true })` در `AnnouncementManager`. هر ماژول `export default` (کامپوننت) و `export const meta = { id, version, priority?, startsAt?, endsAt? }` دارد.
 
 ### فایل‌ها (جدید)
@@ -775,7 +775,7 @@ notify pgrst, 'reload schema';
 - `cron.unschedule('push-dispatch-cron')` در بلاک ایمن، سپس `cron.schedule('push-dispatch-cron','* * * * *', ...)` که با `net.http_post` و هدرِ `Authorization: Bearer <service_role_key از Vault>` فانکشن را صدا می‌زند.
 - جدولِ مشاهده‌پذیری: `create table if not exists public.push_dispatch_log(id, ran_at, sent_count, failed_count, cleaned_count, notes)` با RLS بسته (فقط service_role). `push-dispatch` در پایانِ هر اجرا یک ردیف لاگ می‌نویسد.
 - ایندکسِ کمکیِ view: `create index if not exists idx_tasks_due_pending on public.tasks(due_date) where completed_at is null;`.
-- **تذکرِ اجرا (در همان فایل کامنت):** کاربر باید در داشبوردِ Supabase اکستنشن‌های `pg_cron` و `pg_net` را فعال کند و سکرت‌های Vault را یک‌بار ست کند. این فایل دستی و idempotent اجرا می‌شود (طبق قانونِ §۲ بک‌اند).
+- **تذکرِ اجرا (در همان فایل کامنت):** کاربر باید در داشبوردِ Supabase اکستنشن‌های `pg_cron` و `pg_net` را فعال کند و سکر��‌های Vault را یک‌بار ست کند. این فایل دستی و idempotent اجرا می‌شود (طبق قانونِ §۲ بک‌اند).
 
 ویرایشِ **`supabase/functions/push-dispatch/index.ts`:** بدون تغییرِ منطقِ اصلی، افزودنِ نوشتنِ `push_dispatch_log` و شمارشِ دقیقِ `sent/failed/cleaned`. منطقِ پاک‌سازیِ ۴۱۰/۴۰۴ و dedup با جدولِ `reminders` حفظ می‌شود.
 
@@ -825,7 +825,7 @@ notify pgrst, 'reload schema';
   - **CRUDِ مقاومِ آفلاین:** در `catch`ِ هر عملیات، اگر `!navigator.onLine` یا خطای شبکه بود → به‌جای rollback، mutation در `outbox` صف می‌شود و state محلی (و اسنپ‌شات) حفظ می‌ماند. در موفقیتِ آنلاین، اسنپ‌شات به‌روز می‌شود.
   - عملیاتِ سرورمحور (AI/مدیا/پرداخت) از این مسیر **مستثنا**اند و در آفلاین پیامِ مناسب می‌دهند.
 - **`App.tsx`:** mountِ `useOfflineSync()`؛ پاس‌دادنِ تعدادِ pendingِ صف به `NetworkBanner`.
-- **`components/NetworkBanner.tsx`:** نمایشِ وضعیتِ واقعی («N تغییرِ ذخیره‌شده، در انتظارِ سینک» / «در حالِ سینک…»).
+- **`components/NetworkBanner.tsx`:** نمایشِ وضعیتِ واقعی («N تغییرِ ذخیر��‌شده، در انتظارِ سینک» / «در حالِ سینک…»).
 - **`services/supabaseClient.ts`:** صریح‌کردنِ `auth: { persistSession: true, autoRefreshToken: true }` تا session در کلدـاستارتِ آفلاین از localStorage بازخوانی شود (بدونِ نیاز به شبکه برای ورود به shell).
 
 ### ۱۱.ب.۳. مرزها (صریح)
@@ -1130,7 +1130,7 @@ DROP INDEX IF EXISTS public.idx_notes_content_trgm;
   - `TaskEditorModal`: footerِ ثابت `p-4 sm:p-6 border-t shrink-0` (خط ۶۳۰) — بدون inset. اسکرول `... pb-24 sm:pb-6` (خط ۳۲۲؛ زائد چون footer جداست).
   - `NoteEditorModal`: footerِ متادیتا `shrink-0 ... p-4 sm:p-6 pb-20 sm:pb-6` (خط ۲۳۵) — `pb-20`ِ ثابت.
   - `SubscriptionModal`: footerِ ثابت `p-4 border-t ... shrink-0 pb-safe` (خط ۳۱۲) — `pb-safe`ِ **no-op**.
-  - `HabitEditorModal`/`HabitManagerModal`/`ProjectDetailsModal`: **بدونِ footerِ ثابت**؛ دکمه‌ها/محتوای پایانی داخلِ ناحیه‌ی `flex-1 overflow-y-auto min-h-0` هستند و آن ناحیه پدینگِ امنِ پایین ندارد.
+  - `HabitEditorModal`/`HabitManagerModal`/`ProjectDetailsModal`: **بدونِ footerِ ثابت**؛ دکمه‌ها/محتوای پایانی داخلِ ناحیه‌ی `flex-1 overflow-y-auto min-h-0` هستند و آن ناحیه پدینگِ امنِ ��ایین ندارد.
 - `ChatHistoryDrawer.tsx:44-62`: کشوی پایین `fixed inset-0 z-[60] items-end` + پنل `max-h-[80vh] rounded-t-3xl flex-col` + اسکرول `p-4 overflow-y-auto flex-1` — لبه‌ی پایین روی Home Indicator.
 - موارد **درستِ موجود** (مرجعِ سبک، تغییر نمی‌کنند مگر برای DRY): `Onboarding.tsx:66-69` (style اینلاین با `calc(env(...)+1.5rem)`) و `WeeklyReportModal.tsx:156` (`pb-[calc(5rem+env(safe-area-inset-bottom))]`).
 
@@ -1184,7 +1184,7 @@ DROP INDEX IF EXISTS public.idx_notes_content_trgm;
 
 > **[گاردِ صحتِ WebKit — پاسخ به نگرانیِ کات‌شدنِ `padding-bottom`]** کانتینرهای اسکرولِ این پروژه همگی **بلاک‌اند** (یک `div` که `flex-1 overflow-y-auto` دارد = آیتمِ flex، نه عنصرِ `display:flex`). باگِ تاریخیِ نادیده‌گرفتنِ padding انتهایی مخصوصِ کانتینرهایی است که خودشان `display:flex|grid` دارند؛ روی کانتینرِ بلاک، `padding-bottom` در WebKit مدرن رعایت می‌شود. بنابراین `pb-safe-content` روی این کانتینرها امن است. **قانونِ سخت:** اگر هر کانتینرِ اسکرولی در آینده `display:flex|grid` شد، به‌جای padding باید از یک **اسپیسرِ انتهایی** (یک `div` فرزند با `flex:none` و `height: calc(env(safe-area-inset-bottom,0px)+1.5rem)`) استفاده شود — چون ارتفاعِ فرزند همیشه در هر موتوری رعایت می‌شود. در J7 این مورد روی iOS واقعی راستی‌آزمایی می‌شود و در صورتِ مشاهده‌ی کات‌شدگی، همان کانتینر به اسپیسر سوییچ می‌کند (نه چسب‌زخم؛ تعویضِ اصولیِ مکانیزم).
 
-## ۱۳.هـ. نقشه‌ی مسیردهیِ فایل‌ها (File Tree Δ — این پروژه از‌قبل موجود است)
+## ۱۳.هـ. نقشه‌ی مسیردهیِ فایل‌ها (File Tree Δ — این پر��ژه از‌قبل موجود است)
 - **منطقِ مسیردهی:** هیچ فایل/پوشه‌ی جدیدی ساخته نمی‌شود. تنها فایلِ «تعریفِ سبک» `index.css` است؛ مابقی، اعمالِ کلاس‌ها در درزهای موجود.
 - فایل‌های دست‌خورده: `index.css` (تعریفِ لایه)، `components/BottomNav.tsx`، `App.tsx`، `features/dashboard/Dashboard.tsx`، `features/tasks/TasksView.tsx`، `features/notes/NotesView.tsx`، `features/projects/ProjectsView.tsx` (هم صفحه و هم modalِ اینلاینِ همان فایل)، `features/tasks/components/TaskEditorModal.tsx`، `features/notes/components/NoteEditorModal.tsx`، `features/habits/components/HabitManagerModal.tsx` (مسیرِ زنده‌ی ویرایشِ عادت = این مودال که `HabitForm` را داخلِ اسکرولِ خود رندر می‌کند)، `features/projects/components/ProjectDetailsModal.tsx`، `features/billing/components/SubscriptionModal.tsx`، `components/PaywallModal.tsx`، `components/ProfileModal.tsx`، `features/chat/components/ChatHistoryDrawer.tsx`. اختیاری (DRY): همگام‌سازیِ `WeeklyReportModal.tsx` و `Onboarding.tsx` با لایه‌ی مرکزی.
 - **خارج از اسکوپ — فایل‌های مرده (تأییدشده با grep: هیچ ایمپورتری ندارند):** `components/Modal.tsx`، `components/Sidebar.tsx` (خالی)، **و `HabitEditorModal` در هر دو مسیر `components/HabitEditorModal.tsx` و `features/habits/components/HabitEditorModal.tsx`** — هیچ‌کدام در درختِ زنده رندر نمی‌شوند (App فقط `HabitManagerModal` را رندر می‌کند و آن `HabitForm` را به‌کار می‌برد، نه `HabitEditorModal`). به این فایل‌ها دست نزنید.
@@ -1224,7 +1224,7 @@ DROP INDEX IF EXISTS public.idx_notes_content_trgm;
 - **موتورِ سینک:** `useOfflineSync.flushOutbox` روی `online`/بوت؛ برای هر op سرویسِ متناظر؛ پس از `insert` → `remapTempId(item.id, res.id)`؛ store `failed` (DLQ) برای خطای دائمی.
 - **سرور:** RPCهای `create_task_with_tags`/`create_note_with_tags` (در `supabase/sql/10_functions.sql`) با `gen_random_uuid()`؛ `projects`/`habits` با `.insert()`؛ همه‌ی جداولِ هسته `id UUID PRIMARY KEY DEFAULT gen_random_uuid()` (در `supabase/sql/03_core.sql`)؛ `habit_completions` دارای `UNIQUE (habit_id, completion_date)`.
 - **Realtime:** `useRealtimeSync.handleInserts` با `if (prev.find(i=>i.id===payload.new.id)) return prev;` تشخیصِ تکراری می‌دهد (وابسته به برابریِ id).
-- **UX:** `NetworkBanner` (`fixed top-4`) + دکمه‌ی دستیِ `flushOutbox`؛ `ToastNotifications` با نوع‌های `'success'|'error'`، auto-dismiss پس از ۵ ثانیه (در `useDataManager.addNotification`).
+- **UX:** `NetworkBanner` (`fixed top-4`) + دکمه‌ی دستیِ `flushOutbox`؛ `ToastNotifications` با ن��ع‌های `'success'|'error'`، auto-dismiss پس از ۵ ثانیه (در `useDataManager.addNotification`).
 
 ## ۱۴.الف. سنگِ‌بنا — UUID کلاینت به‌عنوان کلید اصلیِ واقعی
 - **فایلِ جدید `utils/uuid.ts`:** این فایل را عیناً کپی کن؛ هیچ خطی را تغییر نده/بازنویسی نکن.
@@ -1379,7 +1379,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 # ARCHITECTURE.md — نقشه‌ی مهندسی فاز L2 (Visual Overhaul)
 
-> این سند «چه چیزی» و «چرایی» فاز L2 را تعریف می‌کند؛ «چگونگی» گام‌به‌گام در `tasks.md` (L2-1 تا L2-N).
+> این سند «چه چیز��» و «چرایی» فاز L2 را تعریف می‌کند؛ «چگونگی» گام‌به‌گام در `tasks.md` (L2-1 تا L2-N).
 > اصول حاکم (که از قبل پیاده شده‌اند و دست‌نخورده می‌مانند): **Server-Authoritative**، **RLS-First**، **Atomic via RPC**.
 
 ---
@@ -1390,7 +1390,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 ### ۱.۱. ساختار فعلی فرانت‌اند
 
-- **`App.tsx`** (ورودی اصلی): مدیریت Page routing، رندر `BottomNav`، lazy-load صفحات سنگین (`ChatView`, `ProjectsView`, `SubscriptionPage`)، مودال‌های سراسری (`TaskEditorModal`, `NoteEditorModal`, `HabitManagerModal`, `PaywallModal`, `ProfileModal`)، `NetworkBanner`، `ToastNotifications`. کانتینر ریشه: `bg-gray-950 min-h-screen text-white` با `h-[100dvh]`.
+- **`App.tsx`** (ورودی اصلی): مدیریت Page routing، رندر `BottomNav`، lazy-load صفحات سنگین (`ChatView`, `ProjectsView`, `SubscriptionPage`)، مودال‌های سراسری (`TaskEditorModal`, `NoteEditorModal`, `HabitManagerModal`, `PaywallModal`, `ProfileModal`)، `NetworkBanner`، `ToastNotifications`. کانتینر ری��ه: `bg-gray-950 min-h-screen text-white` با `h-[100dvh]`.
 - **`contexts/`**: `AuthContext` (احراز هویت Supabase) و `DataContext` (دسترسی سراسری به داده از طریق `useDataManager`).
 - **`hooks/`**: `useDataManager` (CRUD کامل + استیت)، `useOfflineSync`، `useRealtimeSync`، `useReminderScheduler`، `useNetworkStatus`.
 - **`services/`**: لایه‌ی ارتباط با Supabase و Gemini. تغییر ساختاری ممنوع.
@@ -1488,7 +1488,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 - انیمیشن: انتقالِ داشبورد→چت با `motion` (موجود در پروژه) به‌صورتِ fade/slideِ نرم در `App.tsx` دورِ `renderContent()` با `AnimatePresence` کلیددار بر `currentPage` (تجربه‌ی iOS-grade).
 
 **D6 — قانونِ کنتراستِ لایت‌مود (ریشه‌ی باگِ «نامرئی»):**
-- **کاشیِ تیره (`tile-ink` / `#16161A` / پومودورو / باکسِ «وضعیت هفته»):** متن **همیشه روشن** (`text-white` یا `--ink-text`). هرگز رنگِ متن را به `--text-main` وانگذار (در لایت‌مود تیره می‌شود → تیره روی تیره).
+- **کاشیِ تیره (`tile-ink` / `#16161A` / پومودورو / باکسِ «وضعیت هفته»):** متن **همیشه روشن** (`text-white` یا `--ink-text`). هرگز رنگِ متن را به `--text-main` وانگذار (در لایت‌مود تیره می‌شود → تیره ر��ی تیره).
 - **کارتِ روشن (`glass-card` / `glass-panel`):** متن `text-main`/`text-muted` (تیره). 
 - **ProductivityChart و FocusTimer کاشیِ تیره‌اند (نه `WidgetContainer`).** اشتباهِ فعلی این بود که داخلِ WidgetContainerِ روشن با متنِ سفید گذاشته شدند. باید مستقیماً `tile-ink`/پس‌زمینه‌ی تیره باشند تا متنِ سفیدشان در هر دو مود خوانا باشد.
 - **کنتراستِ کارت روی پس‌زمینه:** چون پس‌زمینه اکنون عکس/گلس است (D1/D2)، کارت‌های `--bg-card` کنتراست دارند؛ علاوه‌براین `--shadow-card` در لایت‌مود حفظ شود (سایه مرزِ کارت را مشخص می‌کند).
@@ -1751,10 +1751,10 @@ const toggleTheme = () => {
 - مرجع (read-only): `services/geminiService.ts`، `services/mediaService.ts`، `features/chat/hooks/useMediaRecorder.ts`، `utils/dateUtils.ts`، `index.css`.
 
 ## L4.۲. رجیستر باگ‌ها (ریشه‌یابی با فایل/خط)
-| کد | علائم | ریشه (مستخرج از سورس) | راهکار |
+| کد | علائم | ریشه (مستخرج از سورس) | راهکا�� |
 |----|-------|------------------------|--------|
 | L4-B1 | پنلِ AI دکوری؛ هر دکمه فقط به چت می‌برد؛ پیام/عکس/ویس گم می‌شود؛ موبایل خراب | `AiComposerPanel` فقط `setPendingDraft({text})` + navigate؛ دکمه‌های عکس/میکروفون صرفاً navigate. `composerBridge` فقط `{text}`. زیرساختِ ارسال کامل ولی در `ChatView.handleSendMessage` (خطوط ۲۴۸–۴۲۰) محبوس است. | گسترشِ bridge به text+imageFile+audioFile؛ override در `handleSendMessage`؛ پنل واقعی با ری‌یوزِ منطقِ چت |
-| L4-B2 | تسکِ بی‌ساعت، ۱۲:۰۰ نشان می‌دهد؛ ترتیب/اسکرول/خط نادرست | `dateUtils.toGregorian` (خط ۱۶) ساعت را ۱۲:۰۰ می‌گذارد؛ `TaskEditorModal` (خطوط ۱۰۴–۱۱۰، ۱۴۴–۱۴۵) قرارداد «۱۲:۰۰=بی‌ساعت» دارد، ولی `TodaysPlan.formatTime` با `getHours()`ِ محلی فقط ۰۰:۰۰ را خالی می‌کند؛ sort فقط done را ته می‌برد؛ خطِ تایم‌لاین per-item است؛ ارتفاعِ موبایل سقف ندارد | formatTime طبقِ قراردادِ تهران؛ sort جدید؛ سقفِ ~۴ ردیف + اسکرول؛ خطِ یکسره |
+| L4-B2 | تسکِ بی‌ساعت، ۱۲:۰۰ نشان می‌دهد؛ ترتیب/اسکرول/خط نادرست | `dateUtils.toGregorian` (خط ۱۶) ساعت را ۱۲:۰۰ می‌گذارد؛ `TaskEditorModal` (خطوط ۱۰۴–۱۱۰، ۱۴۴–۱��۵) قرارداد «۱۲:۰۰=بی‌ساعت» دارد، ولی `TodaysPlan.formatTime` با `getHours()`ِ محلی فقط ۰۰:۰۰ را خالی می‌کند؛ sort فقط done را ته می‌برد؛ خطِ تایم‌لاین per-item است؛ ارتفاعِ موبایل سقف ندارد | formatTime طبقِ قراردادِ تهران؛ sort جدید؛ سقفِ ~۴ ردیف + اسکرول؛ خطِ یکسره |
 | L4-B3 | نمودارِ StatsOverview روی ~۳۰٪ ثابت می‌ماند و پر نمی‌شود | `dashW` عرض را به [۳۰،۵۰]٪ کلمپ می‌کند (تزئینی)، پیشرفتِ واقعی را بازتاب نمی‌دهد | خط‌چین = درصدِ باقی‌مانده با کفِ حداقلی؛ کپسولِ متن flex-1 با پیشرفت بزرگ‌تر |
 | L4-B4 | هدرِ موبایل شلوغ؛ toggle تم جای نامناسب | هدرِ فعلی: آواتار+رینگ+toggle راست، HEXER چپ | ۲ المان: آواتار+رینگ چپ، سلامِ زمانی راست؛ حذفِ HEXER و toggle |
 | L4-B5 | گزینهٔ «تم دارک» در ProfileModal کار نمی‌کند | دکمهٔ `disabled` (خطوط ۲۹۱–۲۹۵) | سوییچِ فعالِ «تِم هکسر» با مکانیزمِ موجود |
@@ -1995,8 +1995,356 @@ export function toggleDarkMode(): boolean { /* همان منطقِ فعلیِ to
 | `--color-primary-text-rgb` | `109 126 27` | `39 123 183` | `153 76 240` | `216 240 102` | `102 182 240` | `172 117 235` |
 | کنتراست vs سفید/تیره | ۴.۵۲:۱ | ۴.۵۶:۱ | ۴.۵۲:۱ | ۱۴.۸:۱ | ۸.۵:۱ | ۴.۵۴–۵.۸:۱ |
 
-**قاعده‌ی جایگزینی (مکانیکی، بدونِ استثنا):** هرجا کلاسِ Tailwind به‌صورتِ `text-primary` (شاملِ حالت‌هایِ اپاسیتی مثلِ `text-primary/70`) یا مقدارِ arbitrary به‌صورتِ `text-[var(--color-primary)]` روی متن/آیکون استفاده شده، باید به‌ترتیب به `text-primary-text` و `text-[var(--color-primary-text)]` تغییر کند. این تغییر **هرگز** روی `bg-primary`, `border-primary`, `ring-primary`, `shadow-primary` یا خودِ `--color-primary` اعمال نمی‌شود (آن‌ها برایِ پس‌زمینه/حاشیه درست‌اند و دست‌نخورده می‌مانند).
+**قاعده‌ی جایگزینی (مکانیکی، بدونِ استثنا):** هرجا کلاسِ Tailwind به‌صورتِ `text-primary` (شاملِ حالت‌هایِ اپاسیتی مثلِ `text-primary/70`) یا مقدارِ arbitrary به‌صورتِ `text-[var(--color-primary)]` ��وی متن/آیکون استفاده شده، باید به‌ترتیب به `text-primary-text` و `text-[var(--color-primary-text)]` تغییر کند. این تغییر **هرگز** روی `bg-primary`, `border-primary`, `ring-primary`, `shadow-primary` یا خودِ `--color-primary` اعمال نمی‌شود (آن‌ها برایِ پس‌زمینه/حاشیه درست‌اند و دست‌نخورده می‌مانند).
 
 **فهرستِ ۳۰ فایلِ زنده‌ی نیازمندِ این جایگزینی (تسکِ M-11):** `components/Auth.tsx`, `components/PaywallModal.tsx`, `components/ProfileModal.tsx`, `components/ui/ToastNotifications.tsx`, `features/billing/components/SubscriptionModal.tsx`, `features/billing/components/UsageMeter.tsx`, `features/billing/pages/SubscriptionPage.tsx`, `features/chat/ChatView.tsx`, `features/chat/components/ActionResultCard.tsx`, `features/chat/components/ChatHistoryDrawer.tsx`, `features/chat/components/CitationCard.tsx`, `features/chat/components/ProposalCard.tsx`, `features/dashboard/components/AiComposerPanel.tsx`, `features/dashboard/components/FocusTimer.tsx`, `features/dashboard/components/OverdueTasksModal.tsx`, `features/dashboard/components/ProductivityChart.tsx`, `features/dashboard/components/WeeklyReportModal.tsx`, `features/habits/components/HabitManagerModal.tsx`, `features/habits/components/HabitStatsView.tsx`, `features/notes/NotesView.tsx`, `features/notes/components/NoteCard.tsx`, `features/notes/components/NoteEditorModal.tsx`, `features/onboarding/components/NameStep.tsx`, `features/onboarding/components/SlideCard.tsx`, `features/onboarding/components/WelcomeChoice.tsx`, `features/projects/components/ProjectCard.tsx`, `features/projects/components/ProjectDetailsModal.tsx`, `features/tasks/TasksView.tsx`, `features/tasks/components/TaskCard.tsx`, `features/tasks/components/TaskEditorModal.tsx`.
 
 **ضدالگویِ اضافه‌شده به فاز M:** ۱۱. رنگِ `--color-primary`/`bg-primary`/`border-primary` هرگز به‌طورِ مستقیم برایِ رنگِ متن یا آیکون استفاده نشود؛ همیشه `text-primary-text` (یا `text-[var(--color-primary-text)]`) به‌جایش به‌کار رود.
+
+---
+---
+---
+
+# §N — لنگرگاهِ سیستمیِ فاز «پایداری UX»
+
+> مرجع: `docs/PROJECT.md §N` و `docs/tasks.md` فاز N (N-1 تا N-7).
+> اصولِ §۷ (رنگ، z-index، مودال، safe-area) و تمامِ قواعد فازهای پیشین بدون تغییر رعایت می‌شوند.
+> **قانون طلایی این فاز:** هیچ RPC/جدول/Edge Function/ساختار معماری جدیدی ساخته نمی‌شود. همه تغییرات در لایه‌ی View یا hook/state موجود است.
+
+## N.0. منطقِ مسیردهیِ فایل (فقط ویرایش — هیچ فایل جدیدی ساخته نمی‌شود)
+| تسک | فایل‌های درگیر |
+|-----|--------------|
+| N-1 | `index.html` |
+| N-2 | `components/ui/ToastNotifications.tsx` |
+| N-3 | `hooks/useDataManager.ts` |
+| N-4 | `features/tasks/components/TaskEditorModal.tsx` |
+| N-5 | `features/dashboard/components/FocusTimer.tsx` |
+| N-6 | `features/dashboard/components/ProductivityChart.tsx` |
+| N-7 | `features/tasks/components/TaskEditorModal.tsx` + `features/dashboard/components/FocusTimer.tsx` |
+
+> هیچ دو تسکی روی فایل مشترک نمی‌نویسند به‌جز N-4 و N-7 که هر دو روی `TaskEditorModal.tsx` کار می‌کنند. این دو باید **به‌صورت ترتیبی** اجرا شوند (N-4 قبل از N-7).
+
+## N.1. باگ‌های گزارش‌شده — ریشه‌یابی کامل
+
+### N-B1: ناهماهنگی فونت و اعداد لاتین
+**ریشه (از سورس):**
+- در `index.html` لینک گوگل فونت: `family=Vazirmatn:wght@300;400;500;600;700` — این نسخه‌ی استاندارد است که گلیف‌های اعداد لاتین (0-9 ASCII) دارد.
+- در همان `index.html`، `tailwind.config` هیچ override روی `fontFamily.mono` ندارد. پس کلاس `font-mono` (که در `FocusTimer.tsx` خط ۱۷۸ و خط ۳۴۴ برای نمایش تایمر استفاده می‌شود) به فونت سیستمی fallback می‌کند نه Vazirmatn.
+- کلاس `tabular-nums` هم برای تایمر استفاده شده که با فونت mono سیستمی نمایش می‌دهد.
+
+**راه‌حل (خط‌به‌خط):**
+1. در `index.html`، لینک گوگل فونت را به `family=Vazirmatn+FD:wght@300;400;500;600;700` تغییر بده — این نسخه‌ی Farsi Digit همان وزیرمتن است اما با گلیف‌های عدد فارسی.
+2. در `index.html` داخل `tailwind.config` بلوک `fontFamily` را اضافه کن:
+```js
+fontFamily: {
+  sans: ['Vazirmatn FD', 'Vazirmatn', 'sans-serif'],
+  mono: ['Vazirmatn FD', 'Vazirmatn', 'monospace'],
+}
+```
+3. در `<style>` داخل `<head>` مقدار `font-family: 'Vazirmatn', sans-serif` را به `font-family: 'Vazirmatn FD', 'Vazirmatn', sans-serif` تغییر بده.
+
+> **تأثیر:** با این تغییر، همه‌ی اعداد در کلِ اپ (تایمر، تاریخ، درصد، شمارنده) به‌صورت خودکار فارسی رندر می‌شوند. هیچ تغییری در کامپوننت‌ها لازم نیست.
+
+### N-B2: جایگذاری نادرست Toast
+**ریشه (از سورس):**
+- در `components/ui/ToastNotifications.tsx` خط ۲۰: `className="fixed bottom-24 right-4 z-[100] w-full max-w-sm space-y-3"`
+- در موبایل RTL، `right-4` لبه‌ی راست است (لبه‌ی شروع متن). این از نظر بصری درست است اما `bottom-24` (96px) کافی نیست وقتی `--bottom-nav-space` = 5rem (80px) و safe-area هم داریم.
+- در دسکتاپ (sidebar visible): Toast با BottomNav در سایدبار موبایل تداخل ندارد اما موقعیتش باید بهتر باشد.
+
+**راه‌حل:**
+- `bottom-24` را به `bottom-[calc(var(--bottom-nav-space,5rem)+env(safe-area-inset-bottom,0px)+0.75rem)]` تغییر بده.
+- `right-4` را به `left-4 right-auto` تغییر بده (برای RTL لبه‌ی پایان = چپ منطقی‌تر است برای دسکتاپ، موبایل هر دو طرف قابل قبول است).
+
+### N-B3: نبود قابلیت آندو برای حذف‌ها
+**ریشه (از سورس):**
+- در `hooks/useDataManager.ts`، `deleteTask` (خط ۳۸۴)، `deleteNote` (خط ~۵۲۰)، `deleteProject` (خط ۲۷۵)، و `deleteHabit` هر کدام بلافاصله state را آپدیت و به DB می‌فرستند.
+- سیستم Notification موجود (`addNotification`) از یک `action?: { label, onClick }` پشتیبانی می‌کند (تعریف در خط ۱۴–۲۲ و خط ۶۱–۷۴).
+
+**راه‌حل (pattern یکسان برای همه‌ی delete handler‌ها):**
+```typescript
+const deleteTask = useCallback(async (id: string) => {
+  const taskToDelete = tasks.find(t => t.id === id);
+  if (!taskToDelete) return;
+  
+  // 1. Optimistic UI: بردار از state
+  const originalTasks = [...tasks];
+  const nextTasks = tasks.filter(t => t.id !== id);
+  setTasks(nextTasks);
+  await saveSnapshot(userId, 'tasks', nextTasks);
+
+  // 2. تایمر ۳ ثانیه برای commit واقعی
+  const timeoutId = setTimeout(async () => {
+    // اگر آنلاین بود: commit به DB
+    if (!navigator.onLine) {
+      await enqueue({ id, entity: 'tasks', action: 'delete', payload: null });
+      return;
+    }
+    try {
+      await taskService.deleteTask(id);
+    } catch (error) {
+      // rollback اگر DB خطا داد
+      setTasks(originalTasks);
+      await saveSnapshot(userId, 'tasks', originalTasks);
+      addNotification('خطا در حذف کار.', 'error');
+    }
+  }, 3000);
+
+  // 3. Notification با action لغو
+  addNotification(`کار «${taskToDelete.title}» حذف شد.`, 'info', {
+    label: 'لغو',
+    onClick: () => {
+      clearTimeout(timeoutId);
+      setTasks(originalTasks);
+      saveSnapshot(userId, 'tasks', originalTasks);
+    }
+  });
+}, [tasks, userId, addNotification]);
+```
+**نکته‌ی مهم:** `addNotification` در `useDataManager` هم `setTimeout` داخلی ۵ ثانیه برای حذف notification دارد. باید مطمئن شد که `clearTimeout` روی timeoutId undo همیشه قبل از auto-dismiss notification امکان‌پذیر باشد. برای این کار، duration notification undo را به `4000ms` (بیشتر از ۳۰۰۰ms undo) تنظیم کن تا همیشه قابل کلیک باشد.
+
+همین pattern باید برای `deleteNote`، `deleteProject`، و `deleteHabit` هم اعمال شود.
+
+### N-B4: خطا در ذخیره‌ی دوم تسک
+**ریشه (از سورس — خط‌به‌خط):**
+1. در `App.tsx`، وقتی `editingTask` یک تسک موجود است، `handleSaveTask` معمولاً `updateTask(taskData)` صدا می‌زند.
+2. `editingTask` از `tasks` state آمده (از `useData`). این تسک‌ها از `taskService.getTasks` لود شده‌اند که ستون‌ها صریح و بدون `embedding` هستند.
+3. **مشکل اصلی:** در `TaskEditorModal.tsx` خط ۵۲، `formState` با `task` prop سید می‌شود. اگر `task` حاوی فیلد `project` (آبجکت) باشد (مثلاً وقتی از `DataContext` آمده و `project` join شده)، این آبجکت در `formState` می‌ماند. در `handleSave` (خط ۱۴۴–۱۷۳)، `onSave({ ...formState, due_date: finalDueDate })` صدا می‌شود که `project` آبجکت را هم شامل می‌شود. در `taskService.updateTask`، `const { project, ...cleanUpdates } = updates as any` این را handle می‌کند **اما فقط برای `project`**. فیلدهای دیگری مثل `checklist` (jsonb array) یا `tags` (text[]) اگر نوع نادرستی داشتند می‌توانند خطا بدهند.
+4. **باگ دقیق:** وقتی اولین بار ذخیره می‌شود و task از DB برمی‌گردد، `updated_at` و احتمالاً فیلدهای دیگر آپدیت می‌شوند. بار دوم، `formState` هنوز از state قدیمی است که با prop اولیه سید شده. وقتی `onSave` صدا می‌شود، اگر `project_id` از `undefined` به `null` یا برعکس تبدیل شده باشد، این می‌تواند مشکل ایجاد کند (Supabase به `undefined` حساس است).
+5. **راه‌حل اصولی:** در `TaskEditorModal.handleSave`، قبل از صدا کردن `onSave`، یک sanitization صریح:
+```typescript
+const cleanPayload = {
+  title: formState.title,
+  description: formState.description ?? null,
+  status: formState.status,
+  priority: formState.priority,
+  due_date: finalDueDate,
+  project_id: formState.project_id ?? null,
+  tags: formState.tags ?? [],
+  checklist: formState.checklist ?? [],
+  completed_at: formState.completed_at ?? null,
+  ...(formState.id ? { id: formState.id } : {})
+};
+const savedTask = await onSave(cleanPayload);
+```
+این تضمین می‌کند هرگز فیلد غیرمنتظره‌ای به DB ارسال نمی‌شود.
+
+### N-B5: فوکوس مود تسک‌های نامرتبط را نشان می‌دهد
+**ریشه (از سورس):**
+- در `FocusTimer.tsx` خط ۳۹–۴۱، `activeTasks` فقط `status !== 'done'` چک می‌کند.
+- کلِ `tasks` state شامل تسک‌های همه‌ی روزها است.
+
+**راه‌حل:**
+```typescript
+const activeTasks = useMemo(() => {
+  const today = new Date();
+  return tasks.filter((t) => {
+    if (t.status === 'done') return false;
+    if (!t.due_date) return true; // تسک‌های بدون تاریخ همیشه نشان داده می‌شوند
+    return isSameTehranDay(t.due_date, today);
+  });
+}, [tasks]);
+```
+باید `isSameTehranDay` از `utils/dateUtils` import شود.
+
+### N-B6: تغییر نادرست نمودار بهره‌وری هنگام جابه‌جایی تسک‌ها
+**ریشه (از سورس):**
+- در `ProductivityChart.tsx` خط ۳۷–۴۶، `weekData` با `isSameTehranDay(t.due_date, day)` محاسبه می‌شود. این به `due_date` فعلی تسک نگاه می‌کند.
+- وقتی تسکی از روز X به امروز جابه‌جا می‌شود، `due_date` آن به امروز تغییر می‌کند → نمودار روز X دیگر آن تسک را نمی‌بیند → درصد روز X تغییر می‌کند.
+
+**راه‌حل:**
+برای روزهای **گذشته** (روزهایی که `!isSameTehranDay(day, new Date())`):
+- «تکمیل‌شده» = تسک‌هایی که `completed_at` در آن روز بوده
+- «کل» = تسک‌هایی که `due_date` **اصلاً** در آن روز بوده (این تغییر نمی‌کند چون `due_date` وقتی تسک جابه‌جا می‌شود عوض می‌شود — پس همچنان مشکل دارد)
+
+تصمیم دقیق‌تر: برای روزهای گذشته، **فقط** از `completed_at` محاسبه کن:
+```typescript
+const weekData = useMemo(() => {
+  return weekDays.map((day) => {
+    const isToday = isSameTehranDay(day, new Date());
+    
+    if (isToday) {
+      // امروز: محاسبه‌ی معمول بر اساس due_date
+      const dayTasks = tasks.filter(t => t.due_date && isSameTehranDay(t.due_date, day));
+      const completedCount = dayTasks.filter(t => t.status === 'done').length;
+      const progress = dayTasks.length > 0 ? Math.round((completedCount / dayTasks.length) * 100) : 0;
+      return { day, progress, isToday: true };
+    } else {
+      // روزهای گذشته: فقط بر اساس completed_at (تاریخچه‌ی واقعی)
+      const completedOnDay = tasks.filter(t => 
+        t.completed_at && isSameTehranDay(t.completed_at, day)
+      ).length;
+      // برای نمایش، اگر هیچ تسکی در آن روز تکمیل نشده → 0
+      // اگر تکمیل شده → یک درصد تخمینی بر اساس ۵ تسک بهینه‌ی روزانه
+      const DAILY_TARGET = 5;
+      const progress = Math.min(100, Math.round((completedOnDay / DAILY_TARGET) * 100));
+      return { day, progress, isToday: false };
+    }
+  });
+}, [tasks, weekDays]);
+```
+**نکته:** این رویکرد نمودار را به «کارهای تکمیل‌شده» وابسته می‌کند نه «due_date» — که ذاتاً immutable‌تر است. target روزانه `5` قابل تنظیم نیست و فقط برای نرمال‌سازی است.
+
+### N-B7: بسته شدن ناخواسته مودال هنگام تیک ساب‌تسک
+**ریشه (از سورس):**
+- در `TaskEditorModal.tsx`، داخل بخش «Checklist View» (خط ~۳۶۴–۳۷۸)، دکمه‌ی checkbox:
+```jsx
+<button 
+  onClick={() => handleToggleChecklistItem(item.id)}
+  ...
+```
+- وقتی این دکمه کلیک می‌شود، `handleToggleChecklistItem` (خط ۲۰۷–۲۱۶) صدا زده می‌شود که در view mode با `onSave(updatedTask)` کال می‌کند.
+- اما مشکل اصلی: این دکمه داخل یک container است که روی آن `onClick` دارد (والد). در view mode، کلیک روی status toggle (خط ۳۲۷–۳۳۴) هم هست. بررسی نشان می‌دهد مشکل از event bubble نیست بلکه از اینجاست:
+- در `handleToggleChecklistItem` در view mode، `onSave` صدا زده می‌شود. این `onSave` در `App.tsx` به `handleSaveTask` متصل است. اگر `handleSaveTask` بعد از save، مودال را ببندد (مثلاً `setEditingTask(null)`)، این مشکل ایجاد می‌شود.
+- **اما** در `App.tsx` معمولاً `handleSaveTask` فقط `updateTask` صدا می‌زند و مودال را نمی‌بندد (بستن با `setEditingTask(null)` فقط در `onClose` انجام می‌شود).
+- **ریشه‌ی واقعی:** احتمالاً event propagation از دکمه‌ی checkbox به backdrop می‌رسد و `handleClose` صدا می‌شود. `e.stopPropagation()` روی دکمه‌ی checkbox حل می‌کند.
+
+**راه‌حل:**
+```jsx
+<button 
+  onClick={(e) => { e.stopPropagation(); handleToggleChecklistItem(item.id); }}
+  ...
+```
+
+### N-B8: عدم قابلیت ویرایش زمان تایمر + نبود دکمه استراحت زودهنگام
+**ریشه (از سورس):**
+- در `FocusTimer.tsx` خطوط ۱۹–۲۰: `const FOCUS_SECONDS = 25 * 60;` و `const BREAK_SECONDS = 5 * 60;` — ثابت بدون امکان تغییر.
+- state‌های `timeLeft`/`isBreak` مستقیماً از این ثابت‌ها تنظیم می‌شوند.
+- در zen mode overlay، دکمه‌های کنترلی (ریست/پلی) وجود دارند اما دکمه‌ی «رفتن به استراحت زودهنگام» وجود ندارد.
+
+**راه‌حل (الف — ویرایش زمان):**
+```typescript
+const [focusMinutes, setFocusMinutes] = useState(25);
+const [breakMinutes, setBreakMinutes] = useState(5);
+const [isEditingTimer, setIsEditingTimer] = useState(false);
+
+const FOCUS_SECONDS = focusMinutes * 60;
+const BREAK_SECONDS = breakMinutes * 60;
+```
+یک mini-panel ویرایش داخل همان ویجت (نه modal جدید) که با کلیک روی آیکون settings ظاهر می‌شود:
+- دو input عددی برای `focusMinutes` و `breakMinutes`
+- validation: حداقل ۱، حداکثر ۹۹
+- ذخیره در `localStorage` (کلیدهای `hexer-focus-minutes` و `hexer-break-minutes`)
+
+**راه‌حل (ب — دکمه‌ی استراحت زودهنگام):**
+در zen mode overlay، داخل بخش «Bottom Controls» (خط ~۴۴۲–۴۷۰)، یک دکمه اضافه می‌شود که فقط وقتی `!isBreak` نمایش دارد و `handleToggleMode` را صدا می‌زند.
+
+## N.2. منطقِ مسیردهیِ تغییرات (File Routing)
+
+```
+index.html
+  └── (N-1) تغییر فونت گوگل + tailwind.config + body style
+
+components/ui/ToastNotifications.tsx
+  └── (N-2) تغییر موقعیت Toast
+
+hooks/useDataManager.ts
+  └── (N-3) آندو برای deleteTask + deleteNote + deleteProject + deleteHabit
+
+features/tasks/components/TaskEditorModal.tsx
+  ├── (N-4) sanitization در handleSave
+  └── (N-7) stopPropagation روی checkbox ساب‌تسک
+
+features/dashboard/components/FocusTimer.tsx
+  ├── (N-5) فیلتر تسک‌های امروز در activeTasks
+  └── (N-7) focusMinutes/breakMinutes state + دکمه استراحت زودهنگام
+
+features/dashboard/components/ProductivityChart.tsx
+  └── (N-6) محاسبه‌ی immutable برای روزهای گذشته
+```
+
+## N.3. معیارِ پذیرشِ نهایی فاز N
+۱. همه‌ی اعداد در هر کامپوننتِ زنده (تایمر، تاریخ، درصد، شمارنده) فارسی رندر می‌شوند — بدون هیچ استثنا.
+۲. هیچ Toast‌ای زیر BottomNav پنهان نمی‌شود.
+۳. پس از حذف هر آیتم، notification با action «لغو» نمایش دارد و اگر کلیک شد آیتم برمی‌گردد.
+۴. ویرایش دوم و سوم و هر بار تسک بدون خطا ذخیره می‌شود.
+۵. picker فوکوس مود فقط تسک‌های امروز/بدون تاریخ نشان می‌دهد.
+۶. نمودار بهره‌وری روزهای گذشته بعد از جابه‌جایی تسک تغییر نمی‌کند.
+۷. تیک زدن ساب‌تسک مودال را نمی‌بندد.
+۸. کاربر می‌تواند زمان فوکوس/استراحت را ویرایش کند (persist در localStorage) و از zen mode زودتر به استراحت برود.
+
+
+# §O — لنگرگاه سیستمی «Apple Duration Picker + Zen Polish»
+
+> مرجع: `docs/PROJECT.md §O` و `docs/tasks.md` فاز O.
+> اصول §۷ (رنگ، z-index، مودال، safe-area) بدون تغییر. صفر backend.
+
+## O.0. ریشه‌یابی (از سورسِ N-7)
+
+| # | مشکل | ریشه |
+|---|------|------|
+| O-B1 | ویجت موبایل زشت/کش‌آمده | `isEditingTimer` یک ردیف دو-input داخل ویجت min-h ثابت اضافه می‌کرد |
+| O-B2 | Zen اسکرول اجباری | Bottom Controls = ردیف سه‌تایی + دکمهٔ دوم «استراحت زودهنگام» → ارتفاع > viewport |
+| O-B3 | نبود edit در Zen | فقط ویجت `setIsEditingTimer` داشت؛ overlay مداد/ورود به picker نداشت |
+| O-B4 | UX غیر اپلی | `<input type="number">` خام؛ نه wheel، نه tap-to-type |
+
+## O.1. معماری انتخاب‌شده
+
+```
+FocusTimer.tsx  (تنها فایلِ touch این فاز)
+├── helpers: readStoredMinutes / clampMinutes
+├── DurationWheel          (module scope — scroll-snap y + tap-to-type)
+├── DurationPickerModal    (module scope — draft state, z-[80])
+└── FocusTimer             (widget + task picker z-[70] + zen z-[60])
+```
+
+### DurationWheel
+- ارتفاع ثابت: `WHEEL_ITEM_H (44) × WHEEL_VISIBLE (5)`.
+- `scroll-snap-type: y mandatory` + pad بالا/پایین = ((5-1)/2)*44.
+- settle debounce ~۹۰ms پس از scroll → `onChange(clamped)`.
+- click/tap روی ستون → `isTyping`؛ `<input inputMode="numeric" pattern="[0-9]*">`؛ blur/Enter → clamp ۱..۹۹.
+- programmatic scroll با flag تا loop نشود.
+
+### DurationPickerModal
+- open → copy props به draftFocus/draftBreak.
+- confirm → `onConfirm(draftFocus, draftBreak)` فقط.
+- cancel/backdrop → unmount drafts discarded.
+- body scroll lock هنگام open.
+- mobile: bottom sheet (`items-end`, rounded-t-28) + handle؛ sm+: center card.
+- z-[80] > zen z-[60] و task picker z-[70].
+
+### applyDurations (در FocusTimer)
+```
+clamp → setState focus/break
+→ localStorage keys unchanged
+→ setIsRunning(false)
+→ setTimeLeft(isBreak ? break*60 : focus*60)
+→ close modal
+```
+
+### Zen layout contract
+```
+fixed inset-0 z-[60] h-[100dvh] overflow-hidden flex flex-col
+├── top bar (pt-app-safe) — title + pencil + exit
+├── center (flex-1 min-h-0) — circular timer (tap = open picker)
+├── session card (max-h-[32vh] overflow-y-auto) — distractions + note
+└── bottom controls (pb-safe) — reset | play/pause | single mode toggle
+```
+Mode toggle label:
+- focus active → «استراحت» + breakMinutes′
+- break active → «فوکوس» + focusMinutes′
+همان `handleToggleMode`؛ بدون دکمهٔ دوم.
+
+### Widget surface (بدون expand)
+- بدون بلوک `isEditingTimer`.
+- entry points: pencil، tap روی digital clock، chips «فوکوس N′ / استراحت M′».
+
+## O.2. z-index (امتداد §۷.۲)
+| لایه | مقدار | کامپوننت |
+|---|---|---|
+| Zen overlay | `z-[60]` | FocusTimer zen |
+| Task picker | `z-[70]` | FocusTimer task modal |
+| Duration picker | `z-[80]` | DurationPickerModal |
+
+## O.3. File routing
+```
+features/dashboard/components/FocusTimer.tsx   (edit only)
+docs/PROJECT.md / ARCHITECTURE.md / tasks.md   (docs)
+```
+هیچ فایل جدید، هیچ rename storage key، هیچ تغییر DataContext.
+
+## O.4. ریسک پروداکشن و گاردها
+- iOS rubber-band: `overscroll-contain` + no-scrollbar روی wheel.
+- input mode numeric روی iOS کیبورد عدد باز می‌کند (نه full keyboard).
+- private mode localStorage: try/catch؛ UI state همچنان کار می‌کند.
+- هنگام running: تغییر مدت → pause + reset segment (قابل‌پیش‌بینی؛ از half-written tick جلوگیری).
+- accessibility: role=dialog/listbox، aria-valuenow، min 44×44 controls.

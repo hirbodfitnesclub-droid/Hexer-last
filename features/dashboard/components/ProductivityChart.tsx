@@ -24,22 +24,29 @@ export const ProductivityChart: React.FC = () => {
     return days.reverse();
   }, []);
 
-  // 2. Compute progress percentage for each day of the current week (completed / total due)
+  // 2. Compute progress percentage for each day of the current week
+  // Today: due_date-based ratio. Past days: immutable history from completed_at.
   const weekData = useMemo(() => {
+    const today = new Date();
     return weekDays.map((day) => {
-      // Find tasks due on this day
-      const dayTasks = tasks.filter((t) => {
-        return t.due_date && isSameTehranDay(t.due_date, day);
-      });
+      const isToday = isSameTehranDay(day, today);
 
-      const completedCount = dayTasks.filter((t) => t.status === 'done').length;
-      const progress = dayTasks.length > 0 ? Math.round((completedCount / dayTasks.length) * 100) : 0;
-
-      return {
-        day,
-        progress,
-        isToday: isSameTehranDay(day, new Date()),
-      };
+      if (isToday) {
+        // امروز: محاسبه‌ی معمول بر اساس due_date
+        const dayTasks = tasks.filter((t) => t.due_date && isSameTehranDay(t.due_date, day));
+        const completedCount = dayTasks.filter((t) => t.status === 'done').length;
+        const progress = dayTasks.length > 0 ? Math.round((completedCount / dayTasks.length) * 100) : 0;
+        return { day, progress, isToday: true };
+      } else {
+        // روزهای گذشته: فقط بر اساس completed_at (تاریخچه‌ی واقعی — immutable)
+        const completedOnDay = tasks.filter(
+          (t) => t.completed_at && isSameTehranDay(t.completed_at, day)
+        ).length;
+        // نرمال‌سازی: target روزانه = ۵ تسک
+        const DAILY_TARGET = 5;
+        const progress = Math.min(100, Math.round((completedOnDay / DAILY_TARGET) * 100));
+        return { day, progress, isToday: false };
+      }
     });
   }, [tasks, weekDays]);
 

@@ -18,7 +18,11 @@ interface ToastNotificationsProps {
 
 export const ToastNotifications: React.FC<ToastNotificationsProps> = ({ notifications, onRemove }) => {
   return (
-    <div className="fixed bottom-24 right-4 z-[100] w-full max-w-sm space-y-3" id="toast-container">
+    <div
+      className="fixed z-[100] w-full max-w-sm space-y-3 left-4 right-4 mx-auto"
+      style={{ bottom: 'calc(var(--bottom-nav-space, 5rem) + env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
+      id="toast-container"
+    >
       {notifications.map(n => (
         <div
           key={n.id}

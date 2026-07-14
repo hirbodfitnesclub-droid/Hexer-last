@@ -148,20 +148,36 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
 
     if (hasDate && formState.due_date) {
       const dateObj = new Date(formState.due_date);
-      
+
       if (hasTime) {
         const [h, m] = selectedTime.split(':').map(Number);
         dateObj.setHours(h, m, 0, 0);
       } else {
         // If no time is selected, explicit midday is used as our Tehran date-only standard
-        dateObj.setHours(12, 0, 0, 0); 
+        dateObj.setHours(12, 0, 0, 0);
       }
       finalDueDate = dateObj.toISOString();
     }
 
+    // Sanitization: فقط فیلدهای معتبر DB را ارسال کن
+    const cleanPayload: Partial<Task> & { title: string } = {
+      title: formState.title.trim(),
+      description: formState.description ?? null,
+      status: formState.status,
+      priority: formState.priority ?? Priority.Medium,
+      due_date: finalDueDate,
+      project_id: formState.project_id ?? null,
+      tags: Array.isArray(formState.tags) ? formState.tags : [],
+      checklist: Array.isArray(formState.checklist) ? formState.checklist : [],
+      completed_at: formState.completed_at ?? null,
+    };
+    if (formState.id) {
+      cleanPayload.id = formState.id;
+    }
+
     try {
-      const savedTask = await onSave({ ...formState, due_date: finalDueDate });
-      if (isNew && savedTask && savedTask.id && pendingLinkIds.length > 0) {
+      const savedTask = await onSave(cleanPayload);
+      if (isNew && savedTask?.id && pendingLinkIds.length > 0) {
         for (const noteId of pendingLinkIds) {
           await linkTaskNote(savedTask.id, noteId);
         }
@@ -364,7 +380,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
                     {formState.checklist.map(item => (
                       <div key={item.id} className="flex items-start gap-3">
                         <button 
-                          onClick={() => handleToggleChecklistItem(item.id)}
+                          onClick={(e) => { e.stopPropagation(); handleToggleChecklistItem(item.id); }}
                           className={`mt-1 w-4 h-4 rounded border flex shrink-0 items-center justify-center transition-colors ${
                             item.isCompleted ? 'bg-[var(--color-primary)] border-[var(--color-primary)]' : 'border-[var(--text-muted)] hover:border-[var(--color-primary)] bg-[var(--bg-card)]'
                           }`}

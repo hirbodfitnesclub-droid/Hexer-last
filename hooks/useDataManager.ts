@@ -273,32 +273,42 @@ export const useDataManager = (user: any) => {
   }, [projects, userId, addNotification]);
 
   const deleteProject = useCallback(async (id: string) => {
+    const projectToDelete = projects.find(p => p.id === id);
+    if (!projectToDelete) return;
+
     const originalProjects = [...projects];
     const nextProjects = projects.filter(p => p.id !== id);
     setProjects(nextProjects);
     await saveSnapshot(userId, 'projects', nextProjects);
 
-    if (!navigator.onLine) {
-      await enqueue({ id, entity: 'projects', action: 'delete', payload: null });
-      addNotification("حذف پروژه به صورت آفلاین ثبت شد.", "info");
-      return;
-    }
-
-    try {
-      await projectService.deleteProject(id);
-      addNotification("پروژه حذف شد.");
-    } catch (error) {
-      const msg = (error as any)?.message || '';
-      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
-      if (isRetry) {
+    const commitDelete = async () => {
+      if (!navigator.onLine) {
         await enqueue({ id, entity: 'projects', action: 'delete', payload: null });
-        addNotification("حذف پروژه به صورت آفلاین ثبت شد.", "info");
-      } else {
+        return;
+      }
+      try {
+        await projectService.deleteProject(id);
+      } catch (error) {
         setProjects(originalProjects);
         await saveSnapshot(userId, 'projects', originalProjects);
-        addNotification("خطا در حذف پروژه.", "error");
+        addNotification('خطا در حذف پروژه.', 'error');
       }
-    }
+    };
+
+    const timeoutId = setTimeout(commitDelete, 3000);
+
+    addNotification(
+      `پروژه «${projectToDelete.title.substring(0, 20)}» حذف شد.`,
+      'info',
+      {
+        label: 'لغو',
+        onClick: async () => {
+          clearTimeout(timeoutId);
+          setProjects(originalProjects);
+          await saveSnapshot(userId, 'projects', originalProjects);
+        }
+      }
+    );
   }, [projects, userId, addNotification]);
 
   // Tasks CRUD - Optimistic UI & Atomic checks & Offline Queue support
@@ -382,32 +392,42 @@ export const useDataManager = (user: any) => {
   }, [tasks, userId, addNotification]);
 
   const deleteTask = useCallback(async (id: string) => {
+    const taskToDelete = tasks.find(t => t.id === id);
+    if (!taskToDelete) return;
+
     const originalTasks = [...tasks];
     const nextTasks = tasks.filter(t => t.id !== id);
     setTasks(nextTasks);
     await saveSnapshot(userId, 'tasks', nextTasks);
 
-    if (!navigator.onLine) {
-      await enqueue({ id, entity: 'tasks', action: 'delete', payload: null });
-      addNotification("حذف کار به صورت آفلاین ثبت شد.", "info");
-      return;
-    }
-
-    try {
-      await taskService.deleteTask(id);
-      addNotification("کار حذف شد.");
-    } catch (error) {
-      const msg = (error as any)?.message || '';
-      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
-      if (isRetry) {
+    const commitDelete = async () => {
+      if (!navigator.onLine) {
         await enqueue({ id, entity: 'tasks', action: 'delete', payload: null });
-        addNotification("حذف کار به صورت آفلاین ثبت شد.", "info");
-      } else {
+        return;
+      }
+      try {
+        await taskService.deleteTask(id);
+      } catch (error) {
         setTasks(originalTasks);
         await saveSnapshot(userId, 'tasks', originalTasks);
-        addNotification("خطا در حذف کار.", "error");
+        addNotification('خطا در حذف کار.', 'error');
       }
-    }
+    };
+
+    const timeoutId = setTimeout(commitDelete, 3000);
+
+    addNotification(
+      `کار «${taskToDelete.title.substring(0, 20)}» حذف شد.`,
+      'info',
+      {
+        label: 'لغو',
+        onClick: async () => {
+          clearTimeout(timeoutId);
+          setTasks(originalTasks);
+          await saveSnapshot(userId, 'tasks', originalTasks);
+        }
+      }
+    );
   }, [tasks, userId, addNotification]);
 
   const toggleTaskCompletion = useCallback(async (id: string) => {
@@ -526,32 +546,42 @@ export const useDataManager = (user: any) => {
   }, [notes, userId, addNotification]);
 
   const deleteNote = useCallback(async (id: string) => {
+    const noteToDelete = notes.find(n => n.id === id);
+    if (!noteToDelete) return;
+
     const originalNotes = [...notes];
     const nextNotes = notes.filter(n => n.id !== id);
     setNotes(nextNotes);
     await saveSnapshot(userId, 'notes', nextNotes);
 
-    if (!navigator.onLine) {
-      await enqueue({ id, entity: 'notes', action: 'delete', payload: null });
-      addNotification("حذف یادداشت به صورت آفلاین ثبت شد.", "info");
-      return;
-    }
-
-    try {
-      await noteService.deleteNote(id);
-      addNotification("یادداشت حذف شد.");
-    } catch (error) {
-      const msg = (error as any)?.message || '';
-      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
-      if (isRetry) {
+    const commitDelete = async () => {
+      if (!navigator.onLine) {
         await enqueue({ id, entity: 'notes', action: 'delete', payload: null });
-        addNotification("حذف یادداشت به صورت آفلاین ثبت شد.", "info");
-      } else {
+        return;
+      }
+      try {
+        await noteService.deleteNote(id);
+      } catch (error) {
         setNotes(originalNotes);
         await saveSnapshot(userId, 'notes', originalNotes);
-        addNotification("خطا در حذف یادداشت.", "error");
+        addNotification('خطا در حذف یادداشت.', 'error');
       }
-    }
+    };
+
+    const timeoutId = setTimeout(commitDelete, 3000);
+
+    addNotification(
+      `یادداشت «${noteToDelete.title.substring(0, 20)}» حذف شد.`,
+      'info',
+      {
+        label: 'لغو',
+        onClick: async () => {
+          clearTimeout(timeoutId);
+          setNotes(originalNotes);
+          await saveSnapshot(userId, 'notes', originalNotes);
+        }
+      }
+    );
   }, [notes, userId, addNotification]);
 
   // Habits CRUD - Optimistic UI & Offline Queue support
@@ -631,32 +661,42 @@ export const useDataManager = (user: any) => {
   }, [habits, userId, addNotification]);
 
   const deleteHabit = useCallback(async (id: string) => {
+    const habitToDelete = habits.find(h => h.id === id);
+    if (!habitToDelete) return;
+
     const originalHabits = [...habits];
     const nextHabits = habits.filter(h => h.id !== id);
     setHabits(nextHabits);
     await saveSnapshot(userId, 'habits', nextHabits);
 
-    if (!navigator.onLine) {
-      await enqueue({ id, entity: 'habits', action: 'delete', payload: null });
-      addNotification("حذف عادت به صورت آفلاین ثبت شد.", "info");
-      return;
-    }
-
-    try {
-      await habitService.deleteHabit(id);
-      addNotification("عادت حذف شد.");
-    } catch (error) {
-      const msg = (error as any)?.message || '';
-      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
-      if (isRetry) {
+    const commitDelete = async () => {
+      if (!navigator.onLine) {
         await enqueue({ id, entity: 'habits', action: 'delete', payload: null });
-        addNotification("حذف عادت به صورت آفلاین ثبت شد.", "info");
-      } else {
+        return;
+      }
+      try {
+        await habitService.deleteHabit(id);
+      } catch (error) {
         setHabits(originalHabits);
         await saveSnapshot(userId, 'habits', originalHabits);
-        addNotification("خطا در حذف عادت.", "error");
+        addNotification('خطا در حذف عادت.', 'error');
       }
-    }
+    };
+
+    const timeoutId = setTimeout(commitDelete, 3000);
+
+    addNotification(
+      `عادت «${habitToDelete.name.substring(0, 20)}» حذف شد.`,
+      'info',
+      {
+        label: 'لغو',
+        onClick: async () => {
+          clearTimeout(timeoutId);
+          setHabits(originalHabits);
+          await saveSnapshot(userId, 'habits', originalHabits);
+        }
+      }
+    );
   }, [habits, userId, addNotification]);
 
   const toggleHabitCompletion = useCallback(async (habitId: string, date: string) => {

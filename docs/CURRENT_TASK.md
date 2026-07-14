@@ -1,327 +1,470 @@
 
 
+# فاز N — پایداری UX: فونت یکپارچه، اعداد فارسی، Toast RTL، آندو حذف، باگ‌های تسک و فوکوس
 
-# فاز M — سیستم چندتمیِ رنگِ برند + رفعِ بدهیِ رنگ‌های هاردکد (Multi Color-Theme & Hardcoded Color Debt Remediation)
-
-> مرجعِ کامل: `docs/PROJECT.md` §فاز M و `docs/ARCHITECTURE.md` §M.
-> قانونِ طلایی: هیچ فایلِ کامپوننتِ جدیدی ساخته نشود (فقط ۱ فایل `utils/themeManager.ts`)؛ هیچ پکیج/سرویس/RPC/جدولِ جدید؛ هیچ تغییرِ رفتاری، فقط رنگ/کلاس. فایل‌های legacy نام‌برده‌شده فقط **حذف** شوند، نه ویرایش.
-
----
-
-### تسک M-1: پایه‌گذاریِ توکن‌های ۳تمی در `:root` و `.dark` (`index.css` و `index.html`)
-
-**عنوان:** گسترشِ `index.css` برای پذیرشِ مقادیر آبی و بنفش در قالبِ CSS variableها از طریق `data-color-theme` + رفع لیترال‌های داخلیِ خود `index.css`.
-
-**راهنمای پیاده‌سازی فنی:**
-1. در `index.css` بلوکِ `:root` فعلی را نگه دار (فقط کامنتِ «(الف) توکن‌های کانالیِ RGB» و «(ب) توکن‌های مقدارِ کاملِ Hex/rgba» و غیره حفظ شود).
-2. مقادیرِ آبی و بنفشِ تعریف‌شده در ARCHITECTURE §M.1 را عیناً (دقیقاً مطابق همان بلوک‌های `[data-color-theme="blue"]` و `[data-color-theme="purple"]`) به‌عنوانِ ۲ بلوکِ مستقلِ جدید در `index.css` (بین `:root` و `.dark`) اضافه کن.
-3. در بلوکِ موجودِ `.dark` در `index.css`، ۵ متغیری که هاردکدِ لیترال هستند (همان ۵ متغیرِ ذکرشده در ARCHITECTURE §M.0: `--border-neon`, `--input-focus-ring`, `--ink-bg`, `--nav-active-bg` و `--shadow-card` برای `.dark .tile-lime`) را به‌گونه‌ای آپدیت کن که بجای لیترال `#D8F066` یا `rgba(216,240,102,...)` از ارجاعِ پویا به `var(--color-primary)` و `rgb(var(--color-primary-rgb) / ...)` استفاده کنند (دقیقاً مطابقِ قطعه‌کدِ ARCHITECTURE §M.1).
-4. در `index.css`، نام‌های کلاسِ کمکیِ قدیمیِ `.bg-lime` و `.text-lime` و `.tile-lime` را به نام‌های خنثی تغییر بده: `.bg-brand`، `.text-brand`، `.tile-brand`. (توجه: کدِ استایلِ درونِ این کلاس‌ها دست‌نخورده می‌ماند، فقط نام‌شان عوض می‌شود؛ آپدیتِ مصرف‌کننده‌های این کلاس‌ها در سایر تسک‌هاست).
-5. در `index.html`، بلوکِ `<script>` pre-paint را دقیقاً با کدِ نوشته‌شده در ARCHITECTURE §M.1 جایگزین کن (تا `hexer-color-theme` را از `localStorage` بخواند و اِتریبیوت `data-color-theme` را روی `document.documentElement` اضافه کند).
-6. بقیه‌ی محتوای `index.html` (مثل `tailwind.config` داخلیِ `<script>`) دقیقاً دست‌نخورده بماند (نگاشت‌های فعلیِ `primary` و غیره کار می‌کنند).
-
-**محدودیت‌های اختصاصی تسک:**
-- **باید:** فقط و فقط مقادیرِ هاردکدِ مرتبط با رنگ برند (lime) در `.dark` پویا شوند؛ سایر متغیرهای `.dark` (مثل رنگ بک‌گراند `#121212` و غیره) دست‌نخورده بمانند.
-- **نباید:** تغییر مقادیر یا افزودن پلاگین به `tailwind.config` موجود در `index.html`.
-
-**معیار پذیرش میکرو:**
-- `index.css` بدون خطا پردازش می‌شود؛ بلوک‌های آبی/بنفش حضور دارند؛ لیترالِ `216, 240, 102` و `#D8F066` در داخل بلوک `.dark` وجود ندارد (همگی به `var` تبدیل شده‌اند).
-- `index.html` کدِ خواندنِ `hexer-color-theme` را در بلاک pre-paint خود دارد.
-
-**آرایه کانتکست ماشین‌خوان:**
-```json
-CONTEXT_FILES: ["index.css", "index.html"]
-```
+> مرجعِ کامل: `docs/PROJECT.md` §فاز N و `docs/ARCHITECTURE.md` §N.
+> قانونِ طلایی: هیچ فایلِ کامپوننتِ جدیدی ساخته نشود؛ هیچ پکیج/سرویس/RPC/جدولِ جدید؛ همه‌ی تغییرات در لایه‌ی View یا hook/state موجود است. فایل‌های SQL و Edge Functionها لمس نمی‌شوند.
 
 ---
 
-### تسک M-2: ایجاد ماژول مدیریت تم مشترک (`utils/themeManager.ts`)
+### تسک N-1: یکپارچه‌سازی فونت Vazirmatn FD و رندر اعداد فارسی [DONE]
 
-**عنوان:** استخراجِ توابعِ خالصِ مدیریتِ تم/دارک‌مود/ذخیره‌سازی از کامپوننت‌های UI.
-
-**راهنمای پیاده‌سازی فنی:**
-1. یک فایلِ جدید به نام `themeManager.ts` در مسیر `utils/` بساز.
-2. امضای دقیق توابعِ تعریف‌شده در PROJECT.md §M.2 را پیاده‌سازی کن: `COLOR_THEMES`، `getStoredColorTheme()`، `applyColorTheme(theme)`، `isDarkMode()`، و `toggleDarkMode()`.
-3. در داخل `toggleDarkMode`، دقیقاً همان منطقِ موجود در `Sidebar.tsx` یا `ProfileModal.tsx` را پیاده‌سازی کن (تغییر کلاسِ `dark` روی `documentElement` + آپدیتِ `localStorage['hexer-theme']` + آپدیت متا‌تگ `theme-color`) و مقدار جدید `isDark` را برگردان.
-4. در داخل `applyColorTheme`، مقدارِ دریافتی را در `localStorage.setItem('hexer-color-theme', theme)` ذخیره کن؛ سپس اگر مقدار `green` بود `document.documentElement.removeAttribute('data-color-theme')` را صدا بزن، وگرنه `document.documentElement.setAttribute('data-color-theme', theme)` را اعمال کن.
-
-**محدودیت‌های اختصاصی تسک:**
-- **باید:** این فایل یک فایلِ تایپ‌اسکریپت خالص (`.ts`) بدون React/JSX باشد.
-- **نباید:** افزودن React Context، State، یا هرگونه عوارض جانبیِ سنگین‌تر.
-
-**معیار پذیرش میکرو:**
-- فایلِ `utils/themeManager.ts` بدون خطای تایپ‌اسکریپت وجود دارد و شامل هر ۵ اکسپورتِ خواسته‌شده است.
-- فراخوانی `applyColorTheme('blue')` کلاس/صفتِ صحیح و رکوردِ localStorage را بی‌نقص تنظیم می‌کند.
-
-**آرایه کانتکست ماشین‌خوان:**
-```json
-CONTEXT_FILES: []
-```
-
----
-
-### تسک M-3: حذف قطعی و ایمن فایل‌های مرده (Dead Code Deletion) [DONE]
-
-**عنوان:** پاک‌سازی ۱۲ فایل کامپوننتِ تکراری و بی‌استفاده که ریشه در معماری قدیمی دارند.
+**عنوان:** تغییر نسخه‌ی فونت از Vazirmatn به Vazirmatn FD و تنظیم fontFamily در Tailwind.
 
 **راهنمای پیاده‌سازی فنی:**
-1. ۱۲ فایل ذکرشده در ARCHITECTURE §M.6 را مستقیماً از روی دیسک **حذف (Delete)** کن (از طریق کامندهای sandbox مثل `rm` در صورت امکان، یا ابزار ویرایش فایل).
-2. لیست دقیق: `components/ChatView.tsx`, `components/Dashboard.tsx`, `components/HabitEditorModal.tsx`, `components/NoteEditorModal.tsx`, `components/NotesView.tsx`, `components/Onboarding.tsx`, `components/ProjectsView.tsx`, `components/TaskEditorModal.tsx`, `components/TasksView.tsx`, `components/Modal.tsx`, `features/dashboard/components/DashboardHeader(old).tsx`, `features/habits/components/HabitEditorModal.tsx`.
-3. هیچ فایلی جز لیست بالا نباید دست بخورد یا پاک شود.
+1. در `index.html`، لینک گوگل فونت را از:
+   `https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap`
+   به:
+   `https://fonts.googleapis.com/css2?family=Vazirmatn+FD:wght@300;400;500;600;700&display=swap`
+   تغییر بده. همچنین `<link rel="preconnect">` ها را نگه دار.
 
-**محدودیت‌های اختصاصی تسک:**
-- **باید:** حذف فیزیکی فایل.
-- **نباید:** دستکاری در فایل‌های هم‌نامِ زنده (آن‌هایی که در `features/**/` یا سایر فولدرها هستند و پسوند `(old)` ندارند). این فایل‌های هم‌نام زنده‌اند و پاک نمی‌شوند!
-
-**معیار پذیرش میکرو:**
-- پس از اجرا، هیچ‌یک از آن ۱۲ فایل روی دیسک وجود ندارند.
-
-**آرایه کانتکست ماشین‌خوان:**
-```json
-CONTEXT_FILES: []
-```
-
----
-
-### تسک M-4: مستقل‌سازی سیستمِ رنگ پروژه (`Project.color`) [DONE]
-
-**عنوان:** جداسازی کاملِ پالتِ رنگِ پروژه‌ی کاربر از تمِ برندِ اپلیکیشن.
-
-**راهنمای پیاده‌سازی فنی:**
-1. در `index.css` مقادیر متغیرهای CSS توصیف‌شده در ARCHITECTURE §M.3 (`--project-color-sky`, `--project-color-red` و...) را مستقیماً به بلوک‌های `:root` و `.dark` اضافه کن (این‌ها رنگ‌های ثابتِ غیرمرتبط با تم هستند).
-2. در `features/projects/components/ProjectCard.tsx`، نگاشت فعلی `colorClasses` که برای هر ۶ رنگ یکسان است (`bg-primary/10`, `text-[var(--color-primary)]`, و غیره) را طوری ویرایش کن که هر کلید (`sky, red, green, yellow, purple, gray`) از متغیرِ CSSِ همنامِ اختصاصیِ خودش استفاده کند (برای هر ۶ رنگ، مقادیر: `bg: 'bg-[var(--project-color-{color})]/10'`, `border: 'border-[var(--project-color-{color})]'`, `text: 'text-[var(--project-color-{color})]'`, `gradient: 'from-[var(--project-color-{color})]/20'`, `solidBg: 'bg-[var(--project-color-{color})]'` را به‌طور دقیق و یک‌دست تنظیم کن؛ `var(--border-neon)` و `--color-primary` را کلاً از اینجا حذف کن).
-3. در `features/notes/components/NoteCard.tsx`، شرطِ تو‌در‌توی فعلی برای background که رنگ `#3B82F6` هاردکد داشت را حذف کن و به‌جای آن `background: 'linear-gradient(to right, transparent, var(--project-color-' + (project?.color || 'sky') + '), transparent)'` بگذار (استفاده از متغیر جدید به‌صورت پویا).
-4. در `features/tasks/components/TaskCard.tsx` خطوطِ ۷۹-۸۱ (`task.project.color === 'red' ? 'bg-red-500' : ...`) را با `style={{ backgroundColor: 'var(--project-color-' + (task.project.color || 'sky') + ')' }}` (با حذفِ کلاس‌های Tailwind خامِ red/yellow/blue-500) جایگزین کن و شرط fallback `bg-primary` را هم به همان متغیرِ `project-color-sky` هدایت کن. خطِ ۱۲۷ (`priorityColor`) که از `--semantic-error`/`--color-primary` استفاده می‌کرد سالم است، دست نزن.
-
-**محدودیت‌های اختصاصی تسک:**
-- **باید:** متغیرهای جدید `--project-color-*` به‌طور استاندارد در `index.css` وارد شوند.
-- **نباید:** تغییری در رنگ‌های `Priority` یا تداخل در کلاس‌های دیگرِ کارت‌ها ایجاد شود.
-
-**معیار پذیرش میکرو:**
-- هر پروژه براساس فیلد `color` خود واقعاً یک رنگِ بصری متفاوت و معنادار (آبی، قرمز، زرد، سبز...) تولید می‌کند، فارغ از اینکه تمِ برندِ کلِ اپلیکیشن چیست.
-
-**آرایه کانتکست ماشین‌خوان:**
-```json
-CONTEXT_FILES: ["index.css", "features/projects/components/ProjectCard.tsx", "features/notes/components/NoteCard.tsx", "features/tasks/components/TaskCard.tsx"]
-```
-
----
-
-### تسک M-5: جایگزینیِ گسترده کلاسِ `lime` با `brand` و رفعِ هاردکدهایِ داشبورد [DONE]
-
-**عنوان:** جستجو و جایگزینی کلاس‌های قدیمیِ `.bg-lime` و اصلاح توکن‌های خنثی در داشبورد/شورتکات‌ها.
-
-**راهنمای پیاده‌سازی فنی:**
-1. در فایل‌های زیر، هرگونه وقوع دقیق رشته‌ی `bg-lime` را به `bg-brand`، `text-lime` را به `text-brand`، و `tile-lime` را به `tile-brand` تبدیل کن:
-   - `components/BottomNav.tsx`
-   - `components/Sidebar.tsx`
-   - `features/chat/ChatView.tsx`
-   - `features/chat/components/ProposalCard.tsx`
-   - `features/dashboard/components/AiComposerPanel.tsx`
-   - `features/dashboard/components/KeyProjects.tsx`
-   - `features/dashboard/components/StatsOverview.tsx`
-   - `features/notes/NotesView.tsx`
-   - `features/notes/components/NoteEditorModal.tsx`
-   - `features/dashboard/components/FocusTimer.tsx` (همچنین در FocusTimer مقادیر هاردکد `#16161a` را به `var(--ink-bg)` تبدیل کن).
-2. در `features/dashboard/components/OverdueTasksModal.tsx` (علاوه بر تغییر `bg-lime` به `bg-brand`)، استفاده‌ی ناصحیح از `shadow-lime/10` را به `shadow-primary/10` و `bg-lime/10 text-lime` را به `bg-primary/10 text-primary` تبدیل کن.
-3. در `features/dashboard/components/StatsOverview.tsx` مقادیر `#16161A` در کلاس‌های کپسول‌ها به `bg-[var(--ink-bg)]` تبدیل شوند.
-
-**محدودیت‌های اختصاصی تسک:**
-- **باید:** کلاس‌های جایگزین‌شده (مثل `bg-brand`) دقیقاً همان‌هایی باشند که در M-1 تغییرِ نام یافتند.
-
-**معیار پذیرش میکرو:**
-- هیچ کلاسی با کلمه‌ی `lime` در فایل‌های ذکرشده باقی نمانده و برنامه‌ی زنده کماکان استایل‌های صحیح دارد (به دلیل تبدیلِ نام).
-
-**آرایه کانتکست ماشین‌خوان:**
-```json
-CONTEXT_FILES: ["components/BottomNav.tsx", "components/Sidebar.tsx", "features/chat/ChatView.tsx", "features/chat/components/ProposalCard.tsx", "features/dashboard/components/AiComposerPanel.tsx", "features/dashboard/components/KeyProjects.tsx", "features/dashboard/components/StatsOverview.tsx", "features/notes/NotesView.tsx", "features/notes/components/NoteEditorModal.tsx", "features/dashboard/components/FocusTimer.tsx", "features/dashboard/components/OverdueTasksModal.tsx"]
-```
-
----
-
-### تسک M-6: رفعِ نقصِ هدر و نمودار و تقویم در داشبورد (Dashboard Widgets fixes) [DONE]
-
-**عنوان:** رفع لیترال‌هایِ هاردکد در SVG نمودارِ بهره‌وری و رنگ‌های هاردکدِ عادت و امروز.
-
-**راهنمای پیاده‌سازی فنی:**
-1. در `features/dashboard/components/ProductivityChart.tsx` مقادیر `stopColor="#38bdf8"` را به `stopColor="rgb(var(--color-primary-hover-rgb))"` (یا هر رنگ توکن‌محور معادل) و `stopColor="#D8F066"` را به `stopColor="rgb(var(--color-primary-rgb))"` (یا مشابه) جایگزین کن تا رنگ‌بندی SVG با تم پویا همگام شود.
-2. در `features/dashboard/components/HabitTracker.tsx` لیترال‌های `bg-orange-600/20 text-orange-400` و `text-orange-400` را با `bg-primary/20 text-primary` و توکن‌های primary جایگزین کن (یا اگر هشدار مدنظر است، `warning`). لیترال‌های `bg-green-500/20` و `text-green-300` به توکن‌های معنایی `bg-success/20` و `text-success` تبدیل شوند. کلاسِ حاشیه‌ی موفقیت `border-green-400` به `border-success` تغییر یابد.
-3. در `features/dashboard/components/TodaysNotes.tsx`، آیکون نوت‌بوک که رنگ `text-purple-400` دارد به `text-[var(--text-muted)]` یا `text-primary` تغییر یابد و کلاس `hover:border-purple-500/30` به `hover:border-primary/30` جایگزین شود.
-
-**محدودیت‌های اختصاصی تسک:**
-- **نباید:** تغییری در مسیر (`L` و `C` هایِ Catmull-Rom) در نمودار داده شود. فقط مقادیرِ رنگِ `defs > linearGradient` تغییر یابند.
-
-**معیار پذیرش میکرو:**
-- نمودار بدون خطای SVG کار می‌کند و با سوییچ تم کاملاً رنگ‌بندی خود را آپدیت می‌کند (همانطور که عادت‌ها سبز/قرمزِ هاردکد ندارند).
-
-**آرایه کانتکست ماشین‌خوان:**
-```json
-CONTEXT_FILES: ["features/dashboard/components/ProductivityChart.tsx", "features/dashboard/components/HabitTracker.tsx", "features/dashboard/components/TodaysNotes.tsx"]
-```
-
----
-
-### تسک M-7: مهار و اصلاحِ کامپوننت‌هایِ چت، پیکرها و فرم‌ها (Pickers & Chat & Modals)
-
-**عنوان:** جایگزینی کاملِ لیترال‌های `sky/purple/red/zinc` پراکنده در کامپوننت‌های تعاملی با توکن‌های سیستم.
-
-**راهنمای پیاده‌سازی فنی:**
-1. در `features/chat/ChatView.tsx`، سه دکمه‌ی `bg-red-500`/`bg-red-600` و `shadow-red-500` (مربوط به حذفِ تصویرِ پیوست و ریکورد میکروفون) به توکن‌های معنایی `bg-error`/`hover:bg-error/90`/`shadow-error/30` و کلاس `border-red-500/20` به `border-error/20` تغییر یابد.
-2. در `features/chat/components/MoreCitationsModal.tsx`، این فایل را یکپارچه بازنویسی/ریفکتورِ کلاسی کن تا از معماری خاکستری/آبیِ هاردکد (`bg-gray-900`, `text-white`, `border-white/10`, `text-sky-400`, `border-sky-500`...) رها شود و از کلاس‌های توکنی استاندارد (`bg-[var(--bg-card)]`, `text-[var(--text-main)]`, `text-[var(--text-muted)]`, `border-[var(--border-subtle)]`, `text-primary`, `border-primary`...) استفاده کند (دقیقاً مطابق لیستِ ممیزیِ ChatView).
-3. در `features/notes/components/LinkTaskPicker.tsx`، تمام ارجاعات به `bg-zinc-*`، `text-zinc-*`، و `*-sky-*` را به معادل‌های سیستم طراحی (`bg-[var(--bg-card)]`, `text-[var(--text-muted)]`, `*-primary-*`) تبدیل کن (پالتِ تاریکِ هاردکد ممنوع).
-4. در `features/tasks/components/LinkNotePicker.tsx`، عیناً همان الگوی شماره ۳ را پیاده کن (فقط با این تفاوت که اینجا لیترال‌های بنفش `purple` هاردکد بوده‌اند که همه باید به `primary` تبدیل شوند).
-5. در `components/PersianDatePicker.tsx` و `components/TimePicker.tsx`، کلاس‌های `slate` و `sky` هاردکد (نظیر `bg-slate-800/60`, `text-slate-400`, `focus:ring-sky-500` و غیره) را با متغیرهای توکنی اپلیکیشن (`bg-[var(--bg-card)]`, `text-[var(--text-muted)]`, `focus:ring-[var(--color-primary)]`...) جایگزین کن تا با لایت/دارک و تمِ رنگی همسو شوند.
-6. در `features/announcements/TemporaryModals/archive/_Example.tsx`، مقادیر هاردکد `sky` را با `primary`/`primary-hover`/`on-primary` مطابق کامنتِ ممیزی اصلاح کن.
-7. در `features/habits/components/HabitManagerModal.tsx`، کلاسِ `text-black` در کنار `bg-primary` را به `text-on-primary` تغییر بده. در `features/notes/components/NoteEditorModal.tsx` نیز همین اصلاحِ `text-black` → `text-on-primary` (همراه با تیکت و آیکون آن) را انجام بده.
-8. در `features/projects/components/ProjectDetailsModal.tsx`، آیکون تسک (`text-green-500` → `text-success`) و آیکون یادداشت (`text-purple-400` → `text-[var(--text-muted)]`) را اصلاح کن.
-
-**محدودیت‌های اختصاصی تسک:**
-- **باید:** دقت صددرصدی در جایگزینیِ لایه-به-لایهٔ مودال‌های تودرتو (استایل‌ها مثل `glass-card`، `bg-[var(--bg-card)]` یا `hover:bg-primary/10`).
-- **نباید:** دستکاری در بیزینس لاجیکِ تب‌ها یا رویدادهای onClick.
-
-**معیار پذیرش میکرو:**
-- پس از اجرا، هیچ رشته‌ای مانند `"sky-"`, `"purple-"`, `"zinc-"`, `"slate-"` در نام کلاس‌های این فایل‌ها پیدا نمی‌شود و همه با تمِ کاربریِ فعلی سازگارند.
-
-**آرایه کانتکست ماشین‌خوان:**
-```json
-CONTEXT_FILES: ["features/chat/ChatView.tsx", "features/chat/components/MoreCitationsModal.tsx", "features/notes/components/LinkTaskPicker.tsx", "features/tasks/components/LinkNotePicker.tsx", "components/PersianDatePicker.tsx", "components/TimePicker.tsx", "features/announcements/TemporaryModals/archive/_Example.tsx", "features/habits/components/HabitManagerModal.tsx", "features/notes/components/NoteEditorModal.tsx", "features/projects/components/ProjectDetailsModal.tsx"]
-```
-
----
-
-### تسک M-8: رفعِ رنگ‌های هاردکد در فایل‌های بخشِ مالی (Billing) و پروفایل [DONE]
-
-**عنوان:** استانداردسازیِ پالتِ مودال‌هایِ پرداخت، آپلودِ رسید و تیکت‌ها با توکن‌های اصلیِ اپلیکیشن.
-
-**راهنمای پیاده‌سازی فنی:**
-1. در `features/billing/components/PaymentMethodModal.tsx` تمامِ کلاس‌های `indigo-950/40`، `indigo-400`، `indigo-600` و `emerald-600/teal-500` را به رنگ‌هایِ استاندارد و معناییِ اپ (`primary/10`، `text-primary`، `bg-primary`، `success`) تبدیل کن (پیروِ جدول ممیزی).
-2. در `features/billing/components/ReceiptUploadModal.tsx` ارجاعات مشابه `indigo-*` و مقادیر رنگیِ هشداردهنده (تغییر از قرمز هاردکد به `var(--semantic-error)`) را اصلاح کن.
-3. در `features/billing/components/RenewReminderModal.tsx` کلاس‌های `red-500/red-600` را با توکن‌های معنایی `bg-warning` / `bg-error` / `border-[var(--semantic-warning)]` برحسب کاربردشان آپدیت کن.
-4. در `features/billing/components/SubscriptionModal.tsx` لیترال‌های `amber-*` را با کلاس‌های معناییِ `warning` (مثل `bg-warning/20`) یکسان‌سازی کن.
-5. در `components/SupportTicketModal.tsx` تمام پالت‌های هاردکدِ مختص‌به‌تیکت (`indigo`, `sky`, `emerald`, `red`, گرادیان `purple-600`) را با توکن‌های سیستم (`bg-[var(--bg-card)]`, `text-primary`, `bg-primary/10`، و توکن‌های semantic) جابجا کن و پالتِ دکمه‌های CTA را مطابق با رویه‌ی `SubscriptionPage` هماهنگ ساز.
-
-**محدودیت‌های اختصاصی تسک:**
-- **نباید:** تغییری در متون خطا، ترجمه‌ها یا روند `startCheckout` / `verifyPayment` ایجاد شود.
-
-**معیار پذیرش میکرو:**
-- صفحات مربوط به Subscription و Billing بدون توجه به اینکه تم کاربر سبز، آبی یا بنفش است همخوانی ۱۰۰٪ رنگی و کانتراست استاندارد دارند.
-
-**آرایه کانتکست ماشین‌خوان:**
-```json
-CONTEXT_FILES: ["features/billing/components/PaymentMethodModal.tsx", "features/billing/components/ReceiptUploadModal.tsx", "features/billing/components/RenewReminderModal.tsx", "features/billing/components/SubscriptionModal.tsx", "components/SupportTicketModal.tsx"]
-```
-
----
-
-### تسک M-9: اعمالِ `themeManager` در UI و تکمیل توگلِ تم (`ProfileModal.tsx`, `Sidebar.tsx`) [DONE]
-
-**عنوان:** سیم‌کشیِ دکمه‌هایِ UI برای فراخوانیِ توابعِ `themeManager.ts` و فعال‌سازیِ ۳ تم رنگی.
-
-**راهنمای پیاده‌سازی فنی:**
-1. در `components/ProfileModal.tsx` و `components/Sidebar.tsx`، تابع `import { toggleDarkMode, getStoredColorTheme, applyColorTheme, COLOR_THEMES, ColorTheme } from '../utils/themeManager';` را وارد کن.
-2. هندلرِ `handleToggleTheme` فعلیِ درونِ هر دو کامپوننت را پاک کرده و به تماس به `toggleDarkMode()` هدایت کن؛ وضعیتِ خروجی (true/false) را در استیتِ محلی `isDarkTheme` ذخیره کن.
-3. **فقط در `ProfileModal.tsx`**:
-   - یک state محلیِ جدید به نام `selectedColorTheme` تعریف کن (مقدارِ اولیه‌اش با `getStoredColorTheme()` تنظیم شود).
-   - یک `<div className="flex gap-2 ...">` جذاب در همان بخش‌هایِ تنظیمی مودال (درست زیر یا کنار توگل دارک مود) اضافه کن که سه دکمه‌ی کوچک و دایره‌ای رندر کند. هر دکمه یکی از سه تم (سبز/آبی/بنفش) را نمایندگی می‌کند.
-   - هر دکمه `onClick={() => { applyColorTheme(theme.id); setSelectedColorTheme(theme.id); }}` را صدا بزند. رنگِ درونی دکمه‌ها را به‌صورت hardcode فقط برای خود دکمه (مثلاً `bg-[#D8F066]`, `bg-[#66B6F0]`, `bg-[#A666F0]`) تنظیم کن تا بصری کاربر بتواند ببیند روی چه رنگی کلیک می‌کند؛ دکمه‌ی تمِ فعال را با رینگ (`ring-2 ring-white/50` یا مشابه) برجسته کن.
-
-**محدودیت‌های اختصاصی تسک:**
-- **باید:** منطق تمِ رنگیِ جدید و دارک مودِ قدیمی هر دو توسط `themeManager` کپسوله و اعمال شوند.
-- **نباید:** دکمه‌های تم رنگی به `Sidebar.tsx` اضافه شوند (در سایدبار فقط توگل خورشید/ماه/دارک‌مود می‌ماند).
-
-**معیار پذیرش میکرو:**
-- کاربر در `ProfileModal.tsx` سه دایره‌ی رنگی می‌بیند؛ کلیک روی هر یک بی‌درنگ رنگ‌بندی تمام `primary` ها در اپلیکیشن را تغییر می‌دهد. توگلِ دارک‌مود هم بدون نقص همچنان کار می‌کند.
-
-**آرایه کانتکست ماشین‌خوان:**
-```json
-CONTEXT_FILES: ["components/ProfileModal.tsx", "components/Sidebar.tsx"]
-```
-
----
-
-### تسک M-10: ممیزیِ نهایی و Verification Gate (بدون کدنویسی)
-
-**عنوان:** تضمین کیفیت (QA)، اجرای بیلد نهایی، و تست کارکردی اپلیکیشن.
-
-**راهنمای پیاده‌سازی فنی:**
-1. هیچ فایلِ TypeScript یا CSS در این مرحله ویرایش نمی‌شود.
-2. با اجرای فرمان `npm run build` مطمئن شو که حذف فایل‌های تسک M-3 و refactorهای بعدیِ M-4 تا M-9 **و M-11** هیچ شکستی در ایمپورت‌ها به جا نگذاشته‌اند (M-11 باید پیش از این تسک، طبقِ ترتیبِ اجرای فاز، کامل شده باشد).
-3. خطاهای تایپ‌اسکریپت و ESLint بررسی شوند. اگر اروری بود، با ارائه‌ی دلیل ریشه‌ای (Root Cause Analysis) در پرامپت، خطاها مرتفع گردند (در صورت نیاز فایل‌های مورد نظر ویرایش می‌شوند).
-
-**محدودیت‌های اختصاصی تسک:**
-- **باید:** خروجی Terminal و CLI دقیقاً خوانده شده و بررسی شود.
-
-**معیار پذیرش میکرو:**
-- اپلیکیشن بدونِ خطا build شده، هیچ فایل dead code وجود ندارد و تمام ویژگی‌های رنگی آماده استفاده‌ی پروداکشن هستند.
-
-**آرایه کانتکست ماشین‌خوان:**
-```json
-CONTEXT_FILES: []
-```
-
----
-
-### تسک M-11: اصلاحِ کنتراستِ رنگِ برند روی سطحِ روشن (توکنِ جدیدِ `--color-primary-text`)
-
-**عنوان:** جداسازیِ توکنِ «رنگِ متن/آیکونِ برند» از توکنِ «رنگِ پس‌زمینه‌ی برند» برای تضمینِ خوانایی در هر ۳ تم و هر دو مد.
-
-**راهنمای پیاده‌سازی فنی:**
-1. در `index.css`، دقیقاً بلوک‌های زیر را اضافه کن (کنارِ توکن‌های `--color-primary` موجود؛ این توکن‌ها فقط اضافه می‌شوند، چیزی حذف نمی‌شود):
-```css
-:root {
-  --color-primary-text-rgb: 109 126 27;
-  --color-primary-text: #6D7E1B;
-}
-[data-color-theme="blue"] {
-  --color-primary-text-rgb: 39 123 183;
-  --color-primary-text: #277BB7;
-}
-[data-color-theme="purple"] {
-  --color-primary-text-rgb: 153 76 240;
-  --color-primary-text: #994CF0;
-}
-.dark {
-  --color-primary-text-rgb: var(--color-primary-rgb);
-  --color-primary-text: var(--color-primary);
-}
-[data-color-theme="purple"].dark {
-  --color-primary-text-rgb: 172 117 235;
-  --color-primary-text: #AC75EB;
-}
-```
-2. در `index.html`، داخلِ همان آبجکتِ `colors` در `tailwind.config` (کنارِ `primary`, `primary-hover`, `on-primary`, ...)، یک کلیدِ جدید اضافه کن:
+2. در همان `index.html`، داخل بلوک `tailwind.config = { ... theme: { extend: { ... } } }` یک کلیدِ `fontFamily` اضافه کن:
 ```js
-'primary-text': 'rgb(var(--color-primary-text-rgb) / <alpha-value>)',
+fontFamily: {
+  sans: ['"Vazirmatn FD"', 'Vazirmatn', 'sans-serif'],
+  mono: ['"Vazirmatn FD"', 'Vazirmatn', 'monospace'],
+}
 ```
-3. در تمامِ ۳۰ فایلِ فهرست‌شده در ARCHITECTURE §M.9، هر رخدادِ کلاسِ `text-primary` (شاملِ حالت‌های اپاسیتی مثلِ `text-primary/70`, `text-primary/50` و...) را به `text-primary-text` (با همان پسوندِ اپاسیتیِ اصلی، مثلِ `text-primary-text/70`) و هر رخدادِ `text-[var(--color-primary)]` را به `text-[var(--color-primary-text)]` تغییر بده.
+(توجه: نام فونت با فاصله در quotes قرار می‌گیرد)
+
+3. در بلوک `<style>` داخل `<head>`، مقدار `font-family: 'Vazirmatn', sans-serif` را به `font-family: 'Vazirmatn FD', 'Vazirmatn', sans-serif` تغییر بده.
 
 **محدودیت‌های اختصاصی تسک:**
-- **باید:** این تغییر فقط رویِ کلاسِ `text-*`/مقدارِ متنیِ arbitrary اعمال شود.
-- **نباید:** به هیچ‌وجه `bg-primary`, `border-primary`, `ring-primary`, `shadow-primary`, `from-primary`, `via-primary`, `to-primary` یا خودِ متغیرِ `--color-primary` تغییر کند — این‌ها برایِ پس‌زمینه/حاشیه/سایه‌اند و همان رنگِ زنده و پرکنتراستِ فعلی باید بمانند.
-- **نباید:** فایل‌هایِ خارج از فهرستِ ۳۰‌تایی دست بخورند (فقط همان‌ها `text-primary`/`text-[var(--color-primary)]` دارند؛ اگر موردِ جدیدی هنگامِ جست‌وجو پیدا شد که در لیست نیست، قبل از تغییر با معمار هماهنگ شود).
+- **باید:** فقط `index.html` تغییر کند. هیچ کامپوننتی لمس نشود.
+- **نباید:** وزن‌های فونت (300;400;500;600;700) تغییر کنند.
+- **نباید:** هیچ کتابخانه یا پکیج جدیدی نصب شود.
+- **نباید:** `toLocaleString('fa-IR')` در کامپوننت‌ها اضافه یا حذف شود (فونت این کار را خودکار انجام می‌دهد).
 
 **معیار پذیرش میکرو:**
-- در سراسرِ کدِ زنده، هیچ رخدادِ باقی‌مانده‌ای از کلاسِ خامِ `text-primary` یا `text-[var(--color-primary)]` وجود ندارد (`grep -rn "text-primary\b\|text-\[var(--color-primary)\]"` روی `components/` و `features/` باید صفر نتیجه بدهد، به‌جز مواردی که خودِ `text-primary-text` است که با `\b` از `text-primary` جدا تشخیص داده می‌شود).
-- در هر ۳ تم × هر ۲ مد (۶ حالت)، هر متن/آیکونِ برندی که رویِ زمینه‌ی روشن (`--bg-card` یا سفید) رندر می‌شود، به‌وضوح و بدونِ فشارِ چشم خوانا است.
+- در مرورگر، تایمر FocusTimer (`25:00`)، درصد ProductivityChart، و تاریخ‌های PersianDatePicker همگی با ارقام فارسی (۲۵:۰۰، ٪، ۱) نمایش داده می‌شوند.
+- هیچ صفحه‌ای کرش یا خالی نمی‌شود.
+- فونت در هر مودال و صفحه یکدست Vazirmatn است.
 
 **آرایه کانتکست ماشین‌خوان:**
 ```json
-CONTEXT_FILES: ["index.css", "index.html", "components/Auth.tsx", "components/PaywallModal.tsx", "components/ProfileModal.tsx", "components/ui/ToastNotifications.tsx", "features/billing/components/SubscriptionModal.tsx", "features/billing/components/UsageMeter.tsx", "features/billing/pages/SubscriptionPage.tsx", "features/chat/ChatView.tsx", "features/chat/components/ActionResultCard.tsx", "features/chat/components/ChatHistoryDrawer.tsx", "features/chat/components/CitationCard.tsx", "features/chat/components/ProposalCard.tsx", "features/dashboard/components/AiComposerPanel.tsx", "features/dashboard/components/FocusTimer.tsx", "features/dashboard/components/OverdueTasksModal.tsx", "features/dashboard/components/ProductivityChart.tsx", "features/dashboard/components/WeeklyReportModal.tsx", "features/habits/components/HabitManagerModal.tsx", "features/habits/components/HabitStatsView.tsx", "features/notes/NotesView.tsx", "features/notes/components/NoteCard.tsx", "features/notes/components/NoteEditorModal.tsx", "features/onboarding/components/NameStep.tsx", "features/onboarding/components/SlideCard.tsx", "features/onboarding/components/WelcomeChoice.tsx", "features/projects/components/ProjectCard.tsx", "features/projects/components/ProjectDetailsModal.tsx", "features/tasks/TasksView.tsx", "features/tasks/components/TaskCard.tsx", "features/tasks/components/TaskEditorModal.tsx"]
+CONTEXT_FILES: ["index.html"]
 ```
-
-> **نکته‌ی توالی:** M-11 باید پس از **M-1** (چون به توکن‌های پایه‌ی `--color-primary-rgb` هر تم وابسته است) اجرا شود. چون M-11 روی ۳۰ فایل کار می‌کند و برخی از آن‌ها (`ProfileModal.tsx`, `ChatView.tsx`, `ProductivityChart.tsx`, `FocusTimer.tsx`, `OverdueTasksModal.tsx`, `NoteEditorModal.tsx`, `HabitManagerModal.tsx`, `ProjectDetailsModal.tsx`, `TaskCard.tsx`, `ProjectCard.tsx`, `NotesView.tsx`, `AiComposerPanel.tsx`) هم توسطِ M-2/M-4/M-5/M-6/M-7/M-9 ویرایش می‌شوند، **M-11 باید بعد از اتمامِ همه‌ی M-2 تا M-9 روی این فایل‌های مشترک اجرا شود** (آخرین لایه‌ی ویرایش، تا با تغییراتِ آن‌ها تداخل/Merge نداشته باشد). `index.css`/`index.html` هم چون در M-1 ویرایش می‌شوند، این بخش از M-11 باید بعد از M-1 (نه هم‌زمانش) انجام شود.
 
 ---
 
-## ترتیب اجرای توصیه‌شده‌ی فاز M (رعایتِ تداخلِ Read/Write)
-هیچ دو تسکی در فاز M به‌طور متقاطع روی فایل‌های حیاتی Write هم‌زمان ندارند به جز وقتی که `M-1` پیش‌نیاز است:
+### تسک N-2: اصلاح موقعیت Toast بالای BottomNav [DONE]
 
-1. **M-1 (`index.css` و `index.html`)** — باید **اولین** قدم باشد. زیرساخت تم را پی‌ریزی می‌کند.
-2. **M-2 و M-3 و M-4** — هم‌زمان (مستقل) قابل اجرا هستند.
-3. **M-5 تا M-8** (پاکسازی لیترال‌ها) — این تسک‌ها چون بر فایل‌های متفاوتی اثر می‌گذارند **کاملاً موازی‌پذیر**ند.
-4. **M-9** (افزودن دکمه‌های سوییچ تم به `ProfileModal`) — پس از اینکه توکن‌ها آماده‌اند و `themeManager` در M-2 ایجاد شد، اجرا شود.
-5. **M-11** (اصلاحِ کنتراستِ `text-primary`) — چون با فایل‌هایِ چندین تسکِ دیگر (M-2, M-4, M-5, M-6, M-7, M-9) هم‌پوشانی دارد، باید **آخرین تسکِ ویرایش‌کننده‌ی کد** باشد؛ یعنی پس از اتمامِ کاملِ M-1 تا M-9 اجرا شود.
-6. **M-10** (ممیزیِ نهایی) — واقعاً آخرین گام، پس از M-11.
+**عنوان:** رفع تداخل Toast با BottomNav در موبایل و اصلاح position در RTL.
 
-## معیار پذیرش نهایی‌ِ فاز M
-۱. امکان تعویضِ ۳ تم (سبز/آبی/بنفش) در پروفایل بدون هیچ رفرش صفحه‌ای عمل کند. ۲. در هر سه تم، هیچ دکمه و متنِ `primary`ای با پس‌زمینه‌اش ناخوانا نشود (کنتراست در همه حالت‌ها رعایت شده باشد). ۳. انتخاب رنگِ پروژه‌ها، به عنوان یک هویت مجزا (Sky, Red, Yellow...) زنده مانده و هرکدام رندرِ رنگیِ منحصر‌به‌خود را فارغ از تم برندِ اپلیکیشن نمایش دهند. ۴. در هیچ کجای فایل‌های اجرایی (`src/features` و `src/components`) رشته‌هایی نظیر `bg-lime`, `indigo-`, `purple-600`، مقادیرِ hex غیرِمرتبط با تم (`#D8F066`، `#3B82F6`) یا `bg-[rgba...]` برای استایل‌های معنایی/برند وجود ندارد و همگی توسط سیستمِ CSS Variables مدیریت می‌شوند. ۵. `npm run build` کاملاً موفق عمل می‌کند و فایل‌های زائد معماری قبل از دیسک محو شده‌اند. ۶. **هیچ متن/آیکونِ رنگِ‌برندی روی هیچ سطحِ روشنی (در هیچ‌کدام از ۳ تم) کنتراستِ کمتر از ۴.۵:۱ ندارد** — یعنی کلاسِ خامِ `text-primary`/`text-[var(--color-primary)]` در هیچ فایلِ زنده‌ای باقی نمانده (همه به `text-primary-text` منتقل شده‌اند).
+**راهنمای پیاده‌سازی فنی:**
+1. در `components/ui/ToastNotifications.tsx`، کلاس container را از:
+   `"fixed bottom-24 right-4 z-[100] w-full max-w-sm space-y-3"`
+   به کلاس با `left-4 right-4 mx-auto` و `style` محاسباتی تغییر بده:
+
+```tsx
+<div 
+  className="fixed z-[100] w-full max-w-sm space-y-3 left-4 right-4 mx-auto"
+  style={{ bottom: 'calc(var(--bottom-nav-space, 5rem) + env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
+  id="toast-container"
+>
+```
+
+**محدودیت‌های اختصاصی تسک:**
+- **باید:** فقط `components/ui/ToastNotifications.tsx` تغییر کند.
+- **نباید:** استایل‌های هر toast card (رنگ، فونت، محتوا) تغییر کند.
+- **نباید:** `z-[100]` تغییر کند.
+
+**معیار پذیرش میکرو:**
+- در موبایل، Toast بالای BottomNav نمایش داده می‌شود و کاملاً قابل خواندن است.
+- در دسکتاپ هم Toast در جای مناسب است.
+- action «لغو» (که در N-3 اضافه می‌شود) روی Toast قابل کلیک است.
+
+**آرایه کانتکست ماشین‌خوان:**
+```json
+CONTEXT_FILES: ["components/ui/ToastNotifications.tsx", "index.css"]
+```
+
+---
+
+### تسک N-3: آندو ۳ ثانیه‌ای برای همه‌ی عملیات حذف [DONE]
+
+**عنوان:** افزودن مکانیزم undo با سیستم notification موجود به تمام handler‌های delete.
+
+**راهنمای پیاده‌سازی فنی:**
+تمام تغییرات فقط در `hooks/useDataManager.ts` است.
+
+**برای هر یک از این ۴ handler: `deleteTask`, `deleteNote`, `deleteProject`, `deleteHabit`:**
+
+1. ابتدا یک ارجاع به آیتمی که حذف می‌شود ذخیره کن.
+2. state را optimistically آپدیت کن (مثل الان) و snapshot ذخیره کن.
+3. به‌جای ارسال فوری به DB، یک `setTimeout` 3000ms بساز که commit واقعی را انجام می‌دهد.
+4. `addNotification` را با یک `action` برای undo صدا بزن.
+5. در action.onClick: `clearTimeout(timeoutId)` + rollback state + rollback snapshot.
+
+**نمونه برای `deleteTask`:**
+```typescript
+const deleteTask = useCallback(async (id: string) => {
+  const taskToDelete = tasks.find(t => t.id === id);
+  if (!taskToDelete) return;
+
+  const originalTasks = [...tasks];
+  const nextTasks = tasks.filter(t => t.id !== id);
+  setTasks(nextTasks);
+  await saveSnapshot(userId, 'tasks', nextTasks);
+
+  const commitDelete = async () => {
+    if (!navigator.onLine) {
+      await enqueue({ id, entity: 'tasks', action: 'delete', payload: null });
+      return;
+    }
+    try {
+      await taskService.deleteTask(id);
+    } catch (error) {
+      setTasks(originalTasks);
+      await saveSnapshot(userId, 'tasks', originalTasks);
+      addNotification('خطا در حذف کار.', 'error');
+    }
+  };
+
+  const timeoutId = setTimeout(commitDelete, 3000);
+
+  addNotification(
+    `کار «${taskToDelete.title.substring(0, 20)}» حذف شد.`,
+    'info',
+    {
+      label: 'لغو',
+      onClick: async () => {
+        clearTimeout(timeoutId);
+        setTasks(originalTasks);
+        await saveSnapshot(userId, 'tasks', originalTasks);
+      }
+    }
+  );
+}, [tasks, userId, addNotification]);
+```
+
+**همین pattern را دقیقاً برای `deleteNote`, `deleteProject`, `deleteHabit` هم پیاده کن.** نام آیتم برای note: `noteToDelete.title`, برای project: `projectToDelete.title`, برای habit: `habitToDelete.name`.
+
+**محدودیت‌های اختصاصی تسک:**
+- **باید:** فقط `hooks/useDataManager.ts` تغییر کند.
+- **نباید:** هیچ Context جدیدی ساخته شود.
+- **نباید:** سرویس‌های `taskService`/`noteService`/... تغییر کنند.
+- **نباید:** `addNotification` در `useDataManager` تغییر کند.
+- **باید:** در هر handler، قبل از commit به DB، آنلاین بودن چک شود.
+
+**معیار پذیرش میکرو:**
+- بعد از حذف هر تسک/یادداشت/پروژه/عادت، آیتم از UI برمی‌دارد و یک notification با دکمه‌ی «لغو» نمایش می‌دهد.
+- اگر «لغو» زده شود (قبل از ۳ ثانیه)، آیتم به UI برمی‌گردد و هیچ request به DB نمی‌رود.
+- اگر ۳ ثانیه بگذرد و لغو نشود، آیتم در DB حذف می‌شود.
+- رگرسیون در عملکرد offline/outbox رخ نمی‌دهد.
+
+**آرایه کانتکست ماشین‌خوان:**
+```json
+CONTEXT_FILES: ["hooks/useDataManager.ts", "services/taskService.ts", "services/noteService.ts", "services/projectService.ts"]
+```
+
+---
+
+### تسک N-4: رفع باگ ذخیره‌ی دوم تسک (sanitization در handleSave) [DONE]
+
+**عنوان:** اصلاح `handleSave` در `TaskEditorModal` با sanitization صریح payload قبل از ارسال.
+
+**راهنمای پیاده‌سازی فنی:**
+فقط در `features/tasks/components/TaskEditorModal.tsx`:
+
+در تابع `handleSave` (حدود خط ۱۴۴)، قبل از صدا کردن `onSave`، `formState` را به یک payload تمیز تبدیل کن:
+
+```typescript
+const handleSave = async () => {
+  if (!formState.title?.trim()) return;
+
+  let finalDueDate: string | null = null;
+
+  if (hasDate && formState.due_date) {
+    const dateObj = new Date(formState.due_date);
+    if (hasTime) {
+      const [h, m] = selectedTime.split(':').map(Number);
+      dateObj.setHours(h, m, 0, 0);
+    } else {
+      dateObj.setHours(12, 0, 0, 0);
+    }
+    finalDueDate = dateObj.toISOString();
+  }
+
+  // Sanitization: فقط فیلدهای معتبر DB را ارسال کن
+  const cleanPayload: Partial<Task> & { title: string } = {
+    title: formState.title.trim(),
+    description: formState.description ?? null,
+    status: formState.status,
+    priority: formState.priority ?? Priority.Medium,
+    due_date: finalDueDate,
+    project_id: formState.project_id ?? null,
+    tags: Array.isArray(formState.tags) ? formState.tags : [],
+    checklist: Array.isArray(formState.checklist) ? formState.checklist : [],
+    completed_at: formState.completed_at ?? null,
+  };
+  if (formState.id) {
+    cleanPayload.id = formState.id;
+  }
+
+  try {
+    const savedTask = await onSave(cleanPayload);
+    if (isNew && savedTask?.id && pendingLinkIds.length > 0) {
+      for (const noteId of pendingLinkIds) {
+        await linkTaskNote(savedTask.id, noteId);
+      }
+    }
+  } catch (err) {
+    console.error('Error saving task and committing links:', err);
+  }
+  onClose();
+};
+```
+
+**محدودیت‌های اختصاصی تسک:**
+- **باید:** فقط `handleSave` تغییر کند. بقیه‌ی کامپوننت دست‌نخورده بماند.
+- **نباید:** امضای `onSave` prop تغییر کند.
+- **نباید:** منطق لینک‌کردن یادداشت‌ها (pendingLinkIds) تغییر کند.
+- **باید:** همه‌ی فیلدهای Task که در DB ذخیره می‌شوند در cleanPayload حضور داشته باشند.
+
+**معیار پذیرش میکرو:**
+- ویرایش یک تسک برای اولین بار: ذخیره موفق.
+- باز کردن همان تسک و ویرایش دوباره (هر نوع تغییری): ذخیره موفق بدون خطا.
+- ویرایش سوم و چندم: همچنان موفق.
+- هیچ رگرسیونی در ساخت تسک جدید یا لینک یادداشت رخ نمی‌دهد.
+
+**آرایه کانتکست ماشین‌خوان:**
+```json
+CONTEXT_FILES: ["features/tasks/components/TaskEditorModal.tsx", "services/taskService.ts", "types.ts"]
+```
+
+---
+
+### تسک N-5: فوکوس مود — فقط تسک‌های امروز در picker [DONE]
+
+**عنوان:** فیلتر `activeTasks` در `FocusTimer` برای نمایش فقط تسک‌های روز جاری.
+
+**راهنمای پیاده‌سازی فنی:**
+فقط در `features/dashboard/components/FocusTimer.tsx`:
+
+1. در بالای فایل، `isSameTehranDay` را از `utils/dateUtils` ایمپورت کن:
+```typescript
+import { isSameTehranDay } from '../../../utils/dateUtils';
+```
+
+2. `activeTasks` useMemo را تغییر بده:
+```typescript
+const activeTasks = useMemo(() => {
+  const today = new Date();
+  return tasks.filter((t) => {
+    if (t.status === 'done') return false;
+    if (!t.due_date) return true;
+    return isSameTehranDay(t.due_date, today);
+  });
+}, [tasks]);
+```
+
+**محدودیت‌های اختصاصی تسک:**
+- **باید:** فقط `activeTasks` useMemo تغییر کند.
+- **نباید:** هیچ چیز دیگری در این فایل تغییر کند (این تسک).
+
+**معیار پذیرش میکرو:**
+- در task picker، فقط تسک‌هایی که due_date امروز دارند (یا due_date ندارند) نمایش داده می‌شوند.
+- گزینه‌های سریع («تمرکز آزاد» و «مطالعه و یادگیری») همچنان نمایش دارند.
+
+**آرایه کانتکست ماشین‌خوان:**
+```json
+CONTEXT_FILES: ["features/dashboard/components/FocusTimer.tsx", "utils/dateUtils.ts"]
+```
+
+---
+
+### تسک N-6: اصلاح نمودار بهره‌وری — تاریخچه‌ی immutable برای روزهای گذشته [DONE]
+
+**عنوان:** محاسبه‌ی نمودار روزهای گذشته بر اساس `completed_at` نه `due_date`.
+
+**راهنمای پیاده‌سازی فنی:**
+فقط در `features/dashboard/components/ProductivityChart.tsx`:
+
+`weekData` useMemo را به‌طور کامل با منطق زیر جایگزین کن:
+
+```typescript
+const weekData = useMemo(() => {
+  const today = new Date();
+  return weekDays.map((day) => {
+    const isToday = isSameTehranDay(day, today);
+
+    if (isToday) {
+      const dayTasks = tasks.filter((t) => t.due_date && isSameTehranDay(t.due_date, day));
+      const completedCount = dayTasks.filter((t) => t.status === 'done').length;
+      const progress = dayTasks.length > 0 ? Math.round((completedCount / dayTasks.length) * 100) : 0;
+      return { day, progress, isToday: true };
+    } else {
+      const completedOnDay = tasks.filter(
+        (t) => t.completed_at && isSameTehranDay(t.completed_at, day)
+      ).length;
+      const DAILY_TARGET = 5;
+      const progress = Math.min(100, Math.round((completedOnDay / DAILY_TARGET) * 100));
+      return { day, progress, isToday: false };
+    }
+  });
+}, [tasks, weekDays]);
+```
+
+**محدودیت‌های اختصاصی تسک:**
+- **باید:** فقط `weekData` useMemo تغییر کند.
+- **نباید:** `weeklyRate` یا `monthlyRate` تغییر کنند.
+- **نباید:** هیچ تغییری در SVG، رنگ‌ها، مسیر منحنی یا layout.
+
+**معیار پذیرش میکرو:**
+- نمودار روزهای گذشته وقتی تسکی از آن روز به امروز جابه‌جا می‌شود تغییر نمی‌کند.
+- نمودار امروز همچنان بر اساس due_date محاسبه می‌شود.
+
+**آرایه کانتکست ماشین‌خوان:**
+```json
+CONTEXT_FILES: ["features/dashboard/components/ProductivityChart.tsx", "utils/dateUtils.ts", "types.ts"]
+```
+
+---
+
+### تسک N-7: رفع بسته شدن مودال + ویرایش زمان تایمر + دکمه استراحت زودهنگام [DONE]
+
+**عنوان:** رفع event propagation ساب‌تسک + زمان قابل تنظیم تایمر + دکمه‌ی رفتن زودهنگام به استراحت.
+
+**این تسک شامل دو فایل است که باید به‌ترتیب ویرایش شوند:**
+
+#### بخش الف — رفع بسته شدن مودال (`features/tasks/components/TaskEditorModal.tsx`)
+این تسک **باید بعد از N-4 اجرا شود**.
+
+در بخش «Checklist View» (mode === 'view')، روی هر دکمه‌ی checkbox ساب‌تسک:
+
+پیدا کن:
+```tsx
+<button 
+  onClick={() => handleToggleChecklistItem(item.id)}
+```
+تبدیل کن به:
+```tsx
+<button 
+  onClick={(e) => { e.stopPropagation(); handleToggleChecklistItem(item.id); }}
+```
+**دقت کن:** این تغییر فقط روی دکمه‌های checkbox ساب‌تسک در view mode است.
+
+#### بخش ب — ویرایش زمان تایمر و دکمه‌ی استراحت زودهنگام (`features/dashboard/components/FocusTimer.tsx`)
+این تسک **باید بعد از N-5 اجرا شود**.
+
+**۱. اضافه کردن constants و state‌های قابل تنظیم (قبل از کامپوننت / داخل کامپوننت):**
+```typescript
+// بیرون از کامپوننت:
+const STORED_FOCUS_KEY = 'hexer-focus-minutes';
+const STORED_BREAK_KEY = 'hexer-break-minutes';
+
+// داخل کامپوننت، بعد از سایر state‌ها:
+const [focusMinutes, setFocusMinutes] = useState(() => {
+  const stored = localStorage.getItem(STORED_FOCUS_KEY);
+  const val = stored ? parseInt(stored, 10) : 25;
+  return isNaN(val) || val < 1 ? 25 : Math.min(99, val);
+});
+const [breakMinutes, setBreakMinutes] = useState(() => {
+  const stored = localStorage.getItem(STORED_BREAK_KEY);
+  const val = stored ? parseInt(stored, 10) : 5;
+  return isNaN(val) || val < 1 ? 5 : Math.min(99, val);
+});
+const [isEditingTimer, setIsEditingTimer] = useState(false);
+```
+
+**۲. تبدیل ثابت‌ها به متغیرهای محاسباتی:**
+```typescript
+// قبل:
+const FOCUS_SECONDS = 25 * 60;
+const BREAK_SECONDS = 5 * 60;
+// بعد:
+const FOCUS_SECONDS = focusMinutes * 60;
+const BREAK_SECONDS = breakMinutes * 60;
+```
+
+**۳. اضافه کردن هندلرهای ذخیره‌سازی:**
+```typescript
+const handleSaveFocusMinutes = (val: number) => {
+  const clamped = Math.max(1, Math.min(99, val));
+  setFocusMinutes(clamped);
+  localStorage.setItem(STORED_FOCUS_KEY, String(clamped));
+  if (!isBreak) { setTimeLeft(clamped * 60); setIsRunning(false); }
+};
+const handleSaveBreakMinutes = (val: number) => {
+  const clamped = Math.max(1, Math.min(99, val));
+  setBreakMinutes(clamped);
+  localStorage.setItem(STORED_BREAK_KEY, String(clamped));
+  if (isBreak) { setTimeLeft(clamped * 60); setIsRunning(false); }
+};
+```
+
+**۴. افزودن دکمه‌ی settings و mini-panel در ویجت اصلی (در «Top Row»):**
+```tsx
+{/* دکمه‌ی settings کنار عنوان */}
+<button
+  onClick={() => setIsEditingTimer(v => !v)}
+  className="w-6 h-6 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white/70 transition"
+  title="تنظیم زمان"
+>
+  <PencilIcon className="w-3.5 h-3.5" />
+</button>
+
+{/* Mini-panel ویرایش (بلافاصله زیر Top Row) */}
+{isEditingTimer && (
+  <div className="flex gap-3 z-10 bg-white/5 rounded-xl p-2.5" onClick={e => e.stopPropagation()}>
+    <div className="flex flex-col gap-1 flex-1">
+      <span className="text-[9px] text-white/40 font-bold">فوکوس (دقیقه)</span>
+      <input
+        type="number" min="1" max="99"
+        value={focusMinutes}
+        onChange={e => handleSaveFocusMinutes(parseInt(e.target.value) || 1)}
+        className="w-full bg-white/10 border border-white/10 rounded-lg px-2 py-1 text-xs text-white text-center focus:outline-none focus:border-primary"
+      />
+    </div>
+    <div className="flex flex-col gap-1 flex-1">
+      <span className="text-[9px] text-white/40 font-bold">استراحت (دقیقه)</span>
+      <input
+        type="number" min="1" max="99"
+        value={breakMinutes}
+        onChange={e => handleSaveBreakMinutes(parseInt(e.target.value) || 1)}
+        className="w-full bg-white/10 border border-white/10 rounded-lg px-2 py-1 text-xs text-white text-center focus:outline-none focus:border-primary"
+      />
+    </div>
+  </div>
+)}
+```
+
+**۵. دکمه‌ی رفتن زودهنگام به استراحت در zen mode (در «Bottom Controls»):**
+```tsx
+{!isBreak && (
+  <button
+    onClick={handleToggleMode}
+    className="px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-xs font-bold text-white/60 hover:text-white transition active:scale-95 cursor-pointer"
+    title="رفتن زودهنگام به استراحت"
+  >
+    استراحت زودهنگام
+  </button>
+)}
+```
+
+**محدودیت‌های اختصاصی تسک:**
+- **باید:** N-4 قبل از بخش الف این تسک اجرا شده باشد.
+- **باید:** N-5 قبل از بخش ب این تسک اجرا شده باشد.
+- **نباید:** منطق تایمر (setInterval، useEffect) تغییر کند.
+- **نباید:** localStorage برای هیچ داده‌ی دائمی غیر از این دو تنظیم استفاده شود.
+- **باید:** مقادیر focusMinutes/breakMinutes بعد از رفرش صفحه حفظ شوند.
+
+**معیار پذیرش میکرو:**
+- تیک زدن ساب‌تسک در view mode مودال را نمی‌بندد.
+- با کلیک روی آیکون ویرایش، دو input عددی نمایش داده می‌شود.
+- تغییر عدد فوکوس به ۳۰: تایمر ریست می‌شود به ۳۰:۰۰.
+- بعد از رفرش، مقادیر ذخیره‌شده حفظ می‌شوند.
+- در zen mode، دکمه‌ی «استراحت زودهنگام» فقط در حالت focus نمایش دارد و با کلیک تایمر به break mode سوییچ می‌کند.
+
+**آرایه کانتکست ماشین‌خوان:**
+```json
+CONTEXT_FILES: ["features/tasks/components/TaskEditorModal.tsx", "features/dashboard/components/FocusTimer.tsx", "components/icons.tsx", "utils/dateUtils.ts"]
+```
+
+---
+
+## ترتیب اجرای توصیه‌شده‌ی فاز N
+**موازی (مستقل از هم):** N-1، N-2، N-3، N-5، N-6
+**ترتیبی:** N-4 → N-7 (بخش الف) | N-5 → N-7 (بخش ب)
+**پیشنهاد:** N-1 → N-2 → N-3 → N-4 → N-5 → N-6 → N-7
