@@ -403,7 +403,7 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <div className="min-h-screen text-main" style={{ fontFamily: "'Vazirmatn', sans-serif" }} id="app-root">
+    <div className="min-h-screen text-main font-sans" id="app-root">
       <div className="bg-nature" />
       <AuthProvider>
         <AppContent />

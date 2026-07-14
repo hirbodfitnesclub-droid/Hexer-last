@@ -14,32 +14,40 @@
     <script>
       tailwind.config = {
         darkMode: 'class',
-        theme: { extend: { colors: {
-          primary:        'rgb(var(--color-primary-rgb) / <alpha-value>)',
-          'primary-hover':'rgb(var(--color-primary-hover-rgb) / <alpha-value>)',
-          'primary-text': 'rgb(var(--color-primary-text-rgb) / <alpha-value>)',
-          'on-primary':   'rgb(var(--on-primary-rgb) / <alpha-value>)',
-          main:           'rgb(var(--text-main-rgb) / <alpha-value>)',
-          muted:          'rgb(var(--text-muted-rgb) / <alpha-value>)',
-          subtle:         'rgb(var(--border-subtle-rgb) / <alpha-value>)',
-          success:        'rgb(var(--success-rgb) / <alpha-value>)',
-          error:          'rgb(var(--error-rgb) / <alpha-value>)',
-          warning:        'rgb(var(--warning-rgb) / <alpha-value>)',
-          'project-sky': 'rgb(var(--project-color-sky-rgb) / <alpha-value>)',
-          'project-red': 'rgb(var(--project-color-red-rgb) / <alpha-value>)',
-          'project-green': 'rgb(var(--project-color-green-rgb) / <alpha-value>)',
-          'project-yellow': 'rgb(var(--project-color-yellow-rgb) / <alpha-value>)',
-          'project-purple': 'rgb(var(--project-color-purple-rgb) / <alpha-value>)',
-          'project-gray': 'rgb(var(--project-color-gray-rgb) / <alpha-value>)',
-        } } }
+        theme: { extend: {
+                  fontFamily: {
+                    sans: ['"Vazirmatn FD"', 'Vazirmatn', 'system-ui', 'sans-serif'],
+                    mono: ['"Vazirmatn FD"', 'Vazirmatn', 'ui-monospace', 'monospace'],
+                  },
+                  colors: {
+                  primary:        'rgb(var(--color-primary-rgb) / <alpha-value>)',
+                  'primary-hover':'rgb(var(--color-primary-hover-rgb) / <alpha-value>)',
+                  'primary-text': 'rgb(var(--color-primary-text-rgb) / <alpha-value>)',
+                  'on-primary':   'rgb(var(--on-primary-rgb) / <alpha-value>)',
+                  main:           'rgb(var(--text-main-rgb) / <alpha-value>)',
+                  muted:          'rgb(var(--text-muted-rgb) / <alpha-value>)',
+                  subtle:         'rgb(var(--border-subtle-rgb) / <alpha-value>)',
+                  success:        'rgb(var(--success-rgb) / <alpha-value>)',
+                  error:          'rgb(var(--error-rgb) / <alpha-value>)',
+                  warning:        'rgb(var(--warning-rgb) / <alpha-value>)',
+                  'project-sky': 'rgb(var(--project-color-sky-rgb) / <alpha-value>)',
+                  'project-red': 'rgb(var(--project-color-red-rgb) / <alpha-value>)',
+                  'project-green': 'rgb(var(--project-color-green-rgb) / <alpha-value>)',
+                  'project-yellow': 'rgb(var(--project-color-yellow-rgb) / <alpha-value>)',
+                  'project-purple': 'rgb(var(--project-color-purple-rgb) / <alpha-value>)',
+                  'project-gray': 'rgb(var(--project-color-gray-rgb) / <alpha-value>)',
+                } } }
       };
     </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Vazirmatn FD (Farsi Digits) — official package; NOT available on Google Fonts -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link
+      href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/misc/Farsi-Digits/Vazirmatn-FD-font-face.css"
+      rel="stylesheet"
+    >
     <style>
       body {
-        font-family: 'Vazirmatn', sans-serif;
+        font-family: 'Vazirmatn FD', Vazirmatn, system-ui, sans-serif;
         background-color: transparent;
       }
     </style>
