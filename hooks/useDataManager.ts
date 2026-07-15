@@ -387,6 +387,7 @@ export const useDataManager = (user: any) => {
         setTasks(originalTasks);
         await saveSnapshot(userId, 'tasks', originalTasks);
         addNotification("خطا در به‌روزرسانی کار.", "error");
+        throw error;
       }
     }
   }, [tasks, userId, addNotification]);
