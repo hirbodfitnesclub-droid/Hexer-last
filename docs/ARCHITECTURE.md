@@ -2371,3 +2371,172 @@ TaskEditorModal
 2. ویرایش متوالی + ساب‌تسک بدون error toast/400.
 3. create بعد از save بسته می‌شود؛ delete می‌بندد.
 4. object کامل Task از هر caller به service امن است.
+
+# §O2 — لنگرگاه سیستمی فاز «پایداری UX استاندارد اپل»
+
+## O2.0. منطق مسیردهی فایل (پروژه موجود — عمدتاً ویرایش)
+
+```
+components/ui/ToastNotifications.tsx
+  └── (O2-1) موقعیت responsive: موبایل bottom-above-nav | دسکتاپ top-center
+
+features/dashboard/components/TodaysPlan.tsx
+  └── (O2-2) کلیک سطر → hexer:open-task-editor؛ checkbox stopPropagation
+
+features/dashboard/components/StatsOverview.tsx
+  └── (O2-3) progress حلقه = weekly ratio واقعی
+  └── (O2-4) glance: high-priority tasks امروز + میله track/fill/dash + floor 30% empty
+
+features/dashboard/components/FocusTimer.tsx
+  └── (O2-5) zen overlay → createPortal(document.body)
+  └── (O2-6) حذف عدد دقیقه زیر دکمه استراحت/فوکوس در bottom bar
+
+features/dashboard/components/WeekCalendar.tsx
+  └── (O2-7) کوچک‌کردن font-size اعداد روز
+
+hooks/useReminderScheduler.ts
+  └── (O2-8) status !== 'done' + گارد Notification.permission
+
+App.tsx
+  └── دست‌نخورده ترجیحاً (listener hexer:open-task-editor و zen-mode از قبل موجود)
+  └── فقط اگر z-index/portal با glass-app clash جدی داشت: بررسی؛ تغییر حداقلی
+
+features/dashboard/Dashboard.tsx
+  └── دست‌نخورده مگر prop جدید لازم شود (ترجیح: نه)
+
+services/reminderService.ts / public/sw.js / ProfileModal
+  └── خارج از اسکوپ پیش‌فرض O2-8؛ فقط اگر پس از fix کلاینت هنوز fail بود → گزارش به معمار
+```
+
+**ساخته نمی‌شود:** فایل جدید دائمی، SQL، Edge، dependency.
+**حذف نمی‌شود:** هیچ کامپوننتی.
+
+## O2.1. رجیستر باگ — ریشه‌یابی با شواهد فایل
+
+### O2-B1: Toast / پیام‌ها جای غیراستاندارد (موبایل + دسکتاپ)
+| لایه | شواهد |
+|------|--------|
+| UI | `components/ui/ToastNotifications.tsx`: container `fixed` + `bottom: calc(var(--bottom-nav-space)+safe-area+0.75rem)` + `left-4 right-4 mx-auto` |
+| Desktop shell | `App.tsx`: `main.glass-app` ارتفاع محدود؛ BottomNav مخفی در lg؛ toast پایینِ viewport دسکتاپ «آویزان» و غیراپل است |
+| Z | toast `z-[100]` — درست نسبت به BottomNav `z-50` |
+
+جریان درست:
+- `<lg`: پایین، بالای BottomNav (فرمول CSS var موجود).
+- `≥lg`: `top` + safe-area-top + فاصلهٔ 0.75–1rem، افقی center، `bottom: auto`.
+
+### O2-B2: کلیک تسک در «برنامه امروز» Task View باز نمی‌کند
+| لایه | شواهد |
+|------|--------|
+| UI | `TodaysPlan.tsx`: کارت فقط checkbox `toggleTaskCompletion` دارد؛ روی title/card `onClick` باز کردن مودال نیست |
+| الگوی درست | `OverdueTasksModal.handleTaskClick` → `hexer:open-task-editor` |
+| Host | `App.tsx` listener از قبل `setEditingTask` |
+
+### O2-B3: نمودار/حلقه «وضعیت هفته» کار نمی‌کند
+| لایه | شواهد |
+|------|--------|
+| Data | `StatsOverview` `progress` از `selectedDate` day tasks — نه week |
+| Label | عنوان UI: «وضعیت هفته» |
+| Modal | `WeeklyReportModal` جدا و سالم است (دکمه مشاهده OK) |
+| SVG | `strokeDasharray="219.9"` و offset از progress؛ `stroke="var(--color-primary)"` — اگر progress همیشه ۰/غلط یا stroke نامرئی روی پس‌زمینه تیره، «کار نمی‌کند» حس می‌شود |
+
+قرارداد محاسبهٔ هفته (هم‌راستا با ProductivityChart / WeeklyReport):
+- شنبه→جمعه نسبت به «الان» تهران.
+- `weekTasks = tasks where due_date in [sat, fri]`
+- `progress = done(weekTasks)/len(weekTasks)*100` یا ۰ اگر خالی.
+
+### O2-B4: میله‌های «امروز در یک نگاه» + عدد مهم غلط
+| لایه | شواهد |
+|------|--------|
+| مهم | `stats.highPriorityProjects / projects.length` — پروژه نه تسک |
+| تعداد | `completedToday/totalTodayTasks` نسبتاً درست (امروز) اما layout fill/dash با `dashW(inProgressPercent)` متن را در لبه‌ها می‌شکند |
+| UX خواسته | default visual ~۳۰٪ وقتی خالی/برای جلوگیری از بیرون‌زدن متن؛ با done شدن fill↑ dash↓؛ مهم = `highDone/highTotal` **امروز** |
+
+مدل میلهٔ هدف (ساده):
+```
+[========fill========][---dash---]   // یک ردیف relative/flex، عرض fill = max(minPx, ratio*100%)
+ratio = total===0 ? 0.30 : done/total
+label داخل fill یا روی track با padding امن
+```
+
+### O2-B5: Zen fullscreen دسکتاپ — بالای صفحه بریده می‌شود
+| لایه | شواهد |
+|------|--------|
+| Overlay | `FocusTimer` zen: `fixed inset-0 z-[60] ... h-[100dvh]` داخل درخت ویجت |
+| Ancestor | `App.tsx` desktop: `main.glass-app ... overflow-hidden` → fixed child به containing block محدود/clip می‌شود |
+| Top bar | `pt-app-safe` وجود دارد ولی اگر clip شود «بالا را نشان نمی‌دهد» |
+
+درمان: `createPortal(zenTree, document.body)`.
+
+### O2-B6: عدد «۵» زیر متن استراحت — ارتفاع اضافه
+| لایه | شواهد |
+|------|--------|
+| UI | bottom control: دو `<span>` — label + `` `${breakMinutes}′` `` |
+| خواسته | فقط متن «استراحت» / «فوکوس» |
+
+### O2-B7: اعداد روز تقویم کمی بزرگ
+| لایه | شواهد |
+|------|--------|
+| UI | `WeekCalendar` day number: `text-sm sm:text-base md:text-lg` |
+| Fix | یک پله کوچک‌تر؛ بدون redesign |
+
+### O2-B8: نوتیفیکیشن ارسال نمی‌شود
+| لایه | شواهد |
+|------|--------|
+| Scheduler | `hooks/useReminderScheduler.ts` فیلتر `!task.completed` — **فیلد وجود ندارد** روی `Task` |
+| Correct | `task.status !== 'done'` |
+| Permission | `showViaSW` اگر permission ≠ granted خاموش برمی‌گردد؛ scheduler باید صریح short-circuit کند |
+| Layer B | boot در App فقط `pruneShown`؛ subscribe فقط از Profile — درست؛ خارج از O2 مگر residual |
+
+## O2.2. جریان دادهٔ هدف (خلاصه)
+
+```
+TodaysPlan row click
+  → CustomEvent('hexer:open-task-editor', { detail: task })
+  → App.setEditingTask → TaskEditorModal
+
+StatsOverview week ring
+  → tasks filtered by current Jalaali week due_date
+  → done/total → strokeDashoffset
+
+StatsOverview glance
+  → today (Tehran) tasks counts + high-priority subset
+  → fillRatio → CSS width
+
+FocusTimer zen
+  → createPortal(body) fullscreen shell
+
+useReminderScheduler
+  → today && status!=='done' && dueMs rules
+  → permission granted? → showViaSW + dedup messageId
+```
+
+## O2.3. Conflict Map (Read/Write — موازی ممنوع روی فایل مشترک)
+
+| فایل | O2-1 | O2-2 | O2-3 | O2-4 | O2-5 | O2-6 | O2-7 | O2-8 |
+|------|:----:|:----:|:----:|:----:|:----:|:----:|:----:|:----:|
+| ToastNotifications.tsx | W | | | | | | | |
+| TodaysPlan.tsx | | W | | | | | | |
+| StatsOverview.tsx | | | W | W | | | | |
+| FocusTimer.tsx | | | | | W | W | | |
+| WeekCalendar.tsx | | | | | | | W | |
+| useReminderScheduler.ts | | | | | | | | W |
+
+**ترتیب اجباری روی فایل مشترک:**
+- O2-3 → O2-4 (هر دو StatsOverview؛ سریال)
+- O2-5 → O2-6 (هر دو FocusTimer؛ سریال)
+- بقیه پس از استقلال فایل موازی‌پذیرند: O2-1 ‖ O2-2 ‖ O2-7 ‖ O2-8
+
+ترتیب پیشنهادی اجرا برای کدنویس تک‌نفره:
+`O2-8 → O2-2 → O2-3 → O2-4 → O2-1 → O2-5 → O2-6 → O2-7`
+(اول logic/data bugs، بعد visual shell)
+
+## O2.4. پذیرش نهایی فاز O2
+1. Toast موبایل/دسکتاپ مطابق D1.
+2. TodaysPlan → task editor؛ checkbox مجزا.
+3. حلقه هفته = weekly؛ زنده.
+4. glance مهم/تعداد امروز؛ میله ۳۰٪ empty + grow.
+5. Zen portal؛ top bar کامل دسکتاپ.
+6. استراحت بدون عدد زیر label.
+7. calendar day nums کوچک‌تر.
+8. scheduler با `status` و permission؛ no false filter.
+9. بدون رگرسیون فاز O/N و بدون SQL.

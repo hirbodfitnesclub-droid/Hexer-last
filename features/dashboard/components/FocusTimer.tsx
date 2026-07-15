@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useData } from '../../../contexts/DataContext';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -265,7 +266,9 @@ const DurationPickerModal: React.FC<DurationPickerModalProps> = ({
     };
   }, [isOpen]);
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -347,7 +350,8 @@ const DurationPickerModal: React.FC<DurationPickerModalProps> = ({
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 
@@ -612,7 +616,9 @@ export const FocusTimer: React.FC = () => {
         </button>
       </div>
 
-      {/* Task picker */}
+      {/* Task picker — portaled to avoid glass-app overflow clip */}
+      {typeof document !== 'undefined' &&
+        createPortal(
       <AnimatePresence>
         {isTaskPickerOpen && (
           <motion.div
@@ -695,9 +701,13 @@ export const FocusTimer: React.FC = () => {
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+        document.body
+      )}
 
-      {/* Immersive Zen Mode — non-scrolling shell; only session card scrolls if needed */}
+      {/* Immersive Zen Mode — portaled to body so glass-app overflow cannot clip top bar */}
+      {typeof document !== 'undefined' &&
+        createPortal(
       <AnimatePresence>
         {isZenMode && (
           <motion.div
@@ -705,7 +715,7 @@ export const FocusTimer: React.FC = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-[60] bg-black/95 backdrop-blur-2xl flex flex-col text-white h-[100dvh] overflow-hidden"
+            className="fixed inset-0 z-[60] bg-black/95 backdrop-blur-2xl flex flex-col text-white h-[100dvh] w-full overflow-hidden"
             dir="rtl"
           >
             {/* Top bar */}
@@ -884,21 +894,20 @@ export const FocusTimer: React.FC = () => {
               <button
                 type="button"
                 onClick={handleToggleMode}
-                className="min-w-[48px] h-12 px-3 rounded-full bg-white/10 border border-white/20 hover:bg-white/20 flex flex-col items-center justify-center transition active:scale-95"
+                className="min-w-[48px] min-h-[44px] h-12 px-3 rounded-full bg-white/10 border border-white/20 hover:bg-white/20 flex items-center justify-center transition active:scale-95"
                 title={isBreak ? 'بازگشت به تمرکز' : 'رفتن به استراحت'}
                 aria-label={isBreak ? 'شروع فوکوس' : 'استراحت زودهنگام'}
               >
                 <span className="text-[11px] font-black text-white/90 leading-none">
                   {isBreak ? 'فوکوس' : 'استراحت'}
                 </span>
-                <span className="text-[9px] text-white/40 font-bold mt-0.5 leading-none">
-                  {isBreak ? `${focusMinutes}′` : `${breakMinutes}′`}
-                </span>
               </button>
             </div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+        document.body
+      )}
 
       {/* Duration picker modal (shared by widget + zen) */}
       <DurationPickerModal

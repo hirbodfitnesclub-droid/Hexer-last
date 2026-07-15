@@ -105,9 +105,9 @@ export const WeekCalendar: React.FC<WeekCalendarProps> = ({ selectedDate, onDate
               w-full flex-1 flex flex-col items-center justify-center rounded-xl mt-1 py-0.5 xs:py-1
               ${isSelected ? 'bg-black/10' : 'bg-transparent'}
             `}>
-              <span className={`text-sm sm:text-base md:text-lg font-bold leading-none ${isSelected ? 'text-black' : 'text-main opacity-70 group-hover:opacity-100'}`}>
-                {dayNumber}
-              </span>
+              <span className={`text-xs sm:text-sm md:text-base font-bold leading-none ${isSelected ? 'text-black' : 'text-main opacity-70 group-hover:opacity-100'}`}>
+                              {dayNumber}
+                            </span>
               
               {/* Dot for today - positioned inside the inner container */}
               {isToday && (

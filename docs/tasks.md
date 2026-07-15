@@ -629,3 +629,236 @@ CONTEXT_FILES: ["features/tasks/components/TaskEditorModal.tsx", "services/taskS
 3. بدون PATCH 400 از فیلد غیرمجاز.
 4. create/delete/toggle-from-list بدون رگرسیون.
 5. دفاع عمق service حتی اگر UI object کامل بفرستد.
+
+# فاز O2 — پایداری UX استاندارد اپل (Dashboard · Toast · Focus · Notifications)
+
+> پیش‌نیاز: فاز O (O-1…O-3) = DONE. این فاز **کد اجرایی UI/hook** است؛ معمار اسکوپ را قفل کرده.
+> اصل: هیچ تسکی روی فایل یکسان با تسک دیگر موازی Write نشود مگر Conflict Map بگوید OK.
+
+---
+
+### تسک O2-1: Toast دوگانه — موبایل bottom / دسکتاپ top-center
+
+**راهنمای پیاده‌سازی فنی:**
+1. فقط `components/ui/ToastNotifications.tsx` را ویرایش کن.
+2. container واحد را responsive کن:
+   - پیش‌فرض (موبایل): همان bottom با `calc(var(--bottom-nav-space, 5rem) + env(safe-area-inset-bottom, 0px) + 0.75rem)`، افقی `left-4 right-4 mx-auto` یا inset امن معادل.
+   - از `lg:` به بالا: `bottom-auto`، `top` با `calc(env(safe-area-inset-top, 0px) + 1rem)`، افقی center (`left-1/2 -translate-x-1/2` یا left-0 right-0 mx-auto با max-w-sm).
+3. `z-[100]` و استایل کارت (blur، border token، action button) حفظ شود.
+4. RTL: متن و آیکون درست بمانند؛ جای container مرکز/اینست امن مهم‌تر از right/left سخت است.
+5. اگر Tailwind arbitrary calc لازم شد، معتبر بنویس؛ کلاس نامعتبر نساز.
+
+**محدودیت‌های اختصاصی:**
+- انجام بده: فقط جایدهی container + در صورت نیاز padding کارت.
+- نکن: library جدید، context جدید، تغییر `addNotification` API، تغییر z-index سایر لایه‌ها، hardcode رنگ.
+
+**معیارهای قبولی:**
+- [ ] موبایل: toast بالای BottomNav، بدون پوشش دکمه‌های nav.
+- [ ] دسکتاپ (≥1024): toast نزدیک بالای viewport/shell، خوانا، نه چسبیده به لبهٔ پایین.
+- [ ] success/error/info + action «آندو» همچنان کامل کار می‌کند.
+- [ ] چند toast هم‌زمان فاصلهٔ `space-y` درست دارند.
+- [ ] dark/light و color-theme نمی‌شکنند.
+
+CONTEXT_FILES: ["components/ui/ToastNotifications.tsx", "index.css", "App.tsx", "components/BottomNav.tsx", "docs/ARCHITECTURE.md", "docs/PROJECT.md"]
+
+---
+
+### تسک O2-2: کلیک سطر «برنامه امروز» → باز شدن Task View
+
+**راهنمای پیاده‌سازی فنی:**
+1. فقط `features/dashboard/components/TodaysPlan.tsx`.
+2. روی کارت/ناحیهٔ اصلی هر تسک (نه checkbox) handler:
+   `window.dispatchEvent(new CustomEvent('hexer:open-task-editor', { detail: task }))`
+   — عیناً الگوی `OverdueTasksModal`.
+3. checkbox: `onClick` با `e.stopPropagation()` سپس `toggleTaskCompletion(task.id)`.
+4. دسترس‌پذیری: cursor-pointer روی سطر، Enter/Space اگر role تعاملی می‌گذاری؛ `aria` مناسب.
+5. وضعیت done (line-through) همچنان قابل باز شدن برای مشاهده/ویرایش باشد.
+
+**محدودیت‌های اختصاصی:**
+- انجام بده: event سراسری + تفکیک checkbox/card.
+- نکن: import/render `TaskEditorModal` در Dashboard؛ prop drilling `onEditTask` از App مگر مجبور (event کافی است)؛ تغییر sort/filter لیست.
+
+**معیارهای قبولی:**
+- [ ] کلیک title/card → مودال تسک همان task باز می‌شود (مسیر App global).
+- [ ] کلیک checkbox فقط complete/uncomplete می‌کند و مودال باز نمی‌شود.
+- [ ] چند کلیک پشت‌سرهم بدون crash.
+- [ ] Overdue badge/button رفتار قبلی را حفظ می‌کند.
+
+CONTEXT_FILES: ["features/dashboard/components/TodaysPlan.tsx", "features/dashboard/components/OverdueTasksModal.tsx", "App.tsx", "features/tasks/components/TaskEditorModal.tsx", "docs/ARCHITECTURE.md"]
+
+---
+
+### تسک O2-3: حلقهٔ «وضعیت هفته» — progress هفتگی واقعی
+
+**راهنمای پیاده‌سازی فنی:**
+1. `features/dashboard/components/StatsOverview.tsx` (فقط بخش Box1 / week ring در این تسک؛ glance را در O2-4 دست نزن اگر ممکن است — یا موقت بگذار بعداً O2-4 بازنویسی کند).
+2. محاسبهٔ `weekProgress`:
+   - بازهٔ شنبه…جمعه جاری با منطق هم‌خانواده `ProductivityChart` / `WeeklyReportModal` (Tehran-safe؛ از `isSameTehranDay` / `getTehranDateString` استفاده کن؛ timezone offset دستی شکننده ننویس اگر util موجود کافی است).
+   - `due_date` داخل هفته → total؛ `status === 'done'` → completed.
+   - `progress = total ? round(completed/total*100) : 0`.
+3. `strokeDashoffset` از همین progress؛ محیط دایره همیشه دیده شود.
+4. متن وسط حلقه: درصد با ارقام فارسی (`toLocaleString('fa-IR')`).
+5. دکمه «مشاهده» → همان `onOpenWeeklyReport` بدون تغییر contract.
+6. stroke color: توکن معتبر قابل‌دیدن روی پس‌زمینهٔ تیرهٔ باکس (`var(--color-primary)` یا معادل تثبیت‌شده). اگر progress عوض می‌شود ولی رنگ نامرئی است، رنگ را درست کن — نه با hex تصادفی خارج سیستم تم.
+
+**محدودیت‌های اختصاصی:**
+- انجام بده: data source حلقه + نمایش درصد + اطمینان از visible stroke.
+- نکن: بازنویسی WeeklyReportModal؛ عوض کردن معنای دکمه مشاهده؛ استفاده از selectedDate برای این حلقه؛ وابستگی به پروژه.
+
+**معیارهای قبولی:**
+- [ ] با ۰ تسک در هفته → 0٪ و حلقهٔ خالی (track دیده می‌شود).
+- [ ] با N تسک due این هفته و K done → حدود K/N٪.
+- [ ] complete کردن یک تسک due این هفته درصد را بالا می‌برد بدون رفرش سخت.
+- [ ] تغییر selectedDate در تقویم **نباید** به‌تنهایی درصد «وضعیت هفته» را عوض کند.
+- [ ] مودال مشاهده همچنان باز/بسته می‌شود.
+
+CONTEXT_FILES: ["features/dashboard/components/StatsOverview.tsx", "features/dashboard/components/ProductivityChart.tsx", "features/dashboard/components/WeeklyReportModal.tsx", "utils/dateUtils.ts", "types.ts", "docs/ARCHITECTURE.md"]
+
+---
+
+### تسک O2-4: باکس «امروز در یک نگاه» — دادهٔ درست + میله‌های مدرن پایدار
+
+**راهنمای پیاده‌سازی فنی:**
+1. ادامه روی `StatsOverview.tsx` (پس از O2-3).
+2. متریک‌ها (فقط **امروز تهران** با `isSameTehranDay(..., new Date())`):
+   - ردیف1: `doneToday / totalToday`
+   - ردیف2: `highDoneToday / highTotalToday` که high = `priority === Priority.High || priority === 'high'`
+   - ردیف3: `overdue` مثل قبل + کلیک مودال
+3. **حذف کامل** وابستگی glance به `projects` / highPriorityProjects برای این دو میله.
+4. میله:
+   - ساختار ساده: ظرف full-width، fill جامد از راست (RTL) با width٪، بخش باقی‌مانده border-dashed.
+   - `ratio = total===0 ? 0.30 : done/total` (0.30 فقط empty visual).
+   - وقتی total>0: ratio واقعی 0…1؛ در 0٪ می‌توانی min visual خیلی کوچک برای fill نداشته باشی ولی **label بیرون نزند** (padding + truncate + min-width برای pill متن).
+   - transition ملایم width مجاز است.
+5. لیبل‌ها فارسی و خوانا؛ legend «در حال انجام / انجام شده» اگر ماند، با معنای dash/fill هم‌خوان باشد.
+
+**محدودیت‌های اختصاصی:**
+- انجام بده: metrics امروز + layout میله پایدار + important=tasks.
+- نکن: chart library؛ canvas؛ انتخاب selectedDate به‌جای امروز برای این باکس؛ اعداد لاتین؛ اورانجینیری.
+
+**معیارهای قبولی:**
+- [ ] اگر امروز 8 تسک مهم و 2 done → نمایش `۲/۸` (فا).
+- [ ] complete یک high-priority امروز → هم عدد و هم fill به‌روز.
+- [ ] total=0 → حدود ۳۰٪ fill بصری و `۰/۰` بدون overflow متن.
+- [ ] 100٪ → fill تقریباً کامل، dash محو/صفر.
+- [ ] عقب‌افتاده همچنان مودال باز می‌کند.
+- [ ] حلقهٔ هفته از O2-3 خراب نشده.
+
+CONTEXT_FILES: ["features/dashboard/components/StatsOverview.tsx", "types.ts", "utils/dateUtils.ts", "docs/PROJECT.md", "docs/ARCHITECTURE.md"]
+
+---
+
+### تسک O2-5: Zen Mode fullscreen — portal به document.body
+
+**راهنمای پیاده‌سازی فنی:**
+1. `features/dashboard/components/FocusTimer.tsx`.
+2. درخت UI مربوط به `isZenMode` را با `createPortal(..., document.body)` از `react-dom` رندر کن (import نام‌دار/پیش‌فرض مطابق پروژه).
+3. کلاس shell: `fixed inset-0 z-[60]` (یا z منطبق قرارداد)، `h-[100dvh] w-full`, `overflow-hidden`, `flex flex-col`, پس‌زمینهٔ فعلی.
+4. top bar: `pt-app-safe` / safe-area؛ دکمه‌های خروج و تنظیم زمان **همیشه** در viewport دیده شوند (موبایل و دسکتاپ).
+5. `hexer:zen-mode` event همچنان روی set/unset fire شود (BottomNav hide logic در App بماند).
+6. اگر body scroll lock اضافه کردی: در close/unmount حتماً revert.
+7. Task picker و DurationPicker: اگر داخل zen از fixed استفاده می‌کنند و clip می‌شدند، یا خارج portal بمانند با z بالاتر، یا همراه portal؛ هر دو picker باید قابل استفاده بمانند.
+
+**محدودیت‌های اختصاصی:**
+- انجام بده: portal + تضمین دیده شدن top bar.
+- نکن: بازنویسی منطق تایمر؛ تغییر FOCUS/BREAK defaults؛ حذف session card؛ z-index جنگ با toast مگر ضروری (toast 100 > zen 60 OK).
+
+**معیارهای قبولی:**
+- [ ] دسکتاپ glass-app: ورود به zen → بالا بریده نیست؛ «خروج» دیده و کار می‌کند.
+- [ ] موبایل: safe-area بالا رعایت می‌شود.
+- [ ] خروج zen ویجت را به حالت عادی برمی‌گرداند؛ event false می‌فرستد.
+- [ ] تایمر در zen tick می‌کند مثل قبل.
+
+CONTEXT_FILES: ["features/dashboard/components/FocusTimer.tsx", "App.tsx", "index.css", "docs/ARCHITECTURE.md"]
+
+---
+
+### تسک O2-6: دکمه استراحت — حذف عدد دقیقه زیر label
+
+**راهنمای پیاده‌سازی فنی:**
+1. همان `FocusTimer.tsx` پس از O2-5.
+2. در bottom controls zen، دکمه `handleToggleMode`: فقط یک span متنی «استراحت» یا «فوکوس».
+3. span دوم (`${breakMinutes}′` / `${focusMinutes}′`) را **حذف** کن.
+4. دکمه تک‌خطی بماند (`flex items-center justify-center` بدون `flex-col` اگر دیگر لازم نیست)؛ touch target ≥44px عرض/ارتفاع منطقی.
+5. دقیقه همچنان در دایرهٔ تایمر و DurationPicker نمایش داده شود.
+
+**محدودیت‌های اختصاصی:**
+- انجام بده: حذف subtitle عددی + تنظیم layout دکمه.
+- نکن: حذف کل دکمه؛ تغییر handleToggleMode semantics؛ تغییر storage دقیقه‌ها.
+
+**معیارهای قبولی:**
+- [ ] زیر «استراحت» هیچ «5» یا دقیقه دیده نمی‌شود.
+- [ ] زیر «فوکوس» هیچ دقیقه‌ای نیست.
+- [ ] دکمه ارتفاع غیرعادی ندارد.
+- [ ] toggle mode همچنان کار می‌کند.
+
+CONTEXT_FILES: ["features/dashboard/components/FocusTimer.tsx", "docs/PROJECT.md"]
+
+---
+
+### تسک O2-7: کوچک‌کردن اعداد روز در WeekCalendar
+
+**راهنمای پیاده‌سازی فنی:**
+1. فقط `features/dashboard/components/WeekCalendar.tsx`.
+2. className عدد روز را یک پله کاهش بده (مثلاً از `text-sm sm:text-base md:text-lg` به `text-xs sm:text-sm md:text-base`).
+3. نام روز، ارتفاع دکمه، selected styles را فقط اگر overflow پیش آمد مینیمال تنظیم کن — هدف redesign نیست.
+4. اعداد همچنان fa-IR بمانند.
+
+**محدودیت‌های اختصاصی:**
+- انجام بده: scale تایپوگرافی عدد.
+- نکن: تغییر منطق weekDays؛ حذف next-week section؛ رنگ جدید.
+
+**معیارهای قبولی:**
+- [ ] اعداد روز کوچک‌تر از قبل و خوانا.
+- [ ] selected/today state نشکسته.
+- [ ] موبایل و دسکتاپ بدون شکستن گرید 7 ستونه.
+
+CONTEXT_FILES: ["features/dashboard/components/WeekCalendar.tsx", "docs/PROJECT.md"]
+
+---
+
+### تسک O2-8: رفع ارسال نوتیفیکیشن foreground (ریشه: status + permission)
+
+**راهنمای پیاده‌سازی فنی:**
+1. فقط `hooks/useReminderScheduler.ts` در اسکوپ پیش‌فرض.
+2. فیلتر today tasks:
+   - غلط: `!task.completed`
+   - درست: `task.status !== 'done'` (و due_date امروز مثل قبل).
+3. در ابتدای `evaluate` یا قبل از show:
+   - اگر `typeof Notification === 'undefined' || Notification.permission !== 'granted'` → return آرام از مسیر show (interval می‌تواند بماند ولی show نکن).
+4. حفظ: messageId `task-${id}-${dueMs}`، dedup `notifiedTaskIdsRef` + `checkIfShownAndRegister`، daily nudge، interval 60s، listeners visibility/online.
+5. تسک بدون due زمانی (ساعت 00:00 الگوی formatTime خالی) را با قوانین فعلی dueMs بفهم؛ رفتار catch-up را بی‌دلیل گسترده‌تر نکن (فقط bugfix).
+6. **لاگ کم**؛ production noise نساز.
+7. اگر بعد از این fix هنوز push وقتی اپ kill است کار نکرد: در خلاصهٔ تسک بنویس «نیاز بررسی Layer B / VAPID» — خودت Edge/SQL را عوض نکن.
+
+**محدودیت‌های اختصاصی:**
+- انجام بده: فیلتر status + گارد permission + حفظ dedup.
+- نکن: auto requestPermission؛ تغییر ProfileModal flow؛ دست زدن به sw.js مگر bug قطعی کلاینت-only نبود؛ invent فیلد `completed`.
+
+**معیارهای قبولی:**
+- [ ] کد دیگر به `task.completed` ارجاع ندارد.
+- [ ] با permission=granted و تسک due امروز undone، وقتی dueMs فرا می‌رسد (یا catch-up)، `showViaSW` فراخوانی‌پذیر است.
+- [ ] تسک‌های `status==='done'` نوتیف نمی‌گیرند.
+- [ ] permission=denied/default → بدون throw UI.
+- [ ] nudge روزانه double-fire نمی‌شود (localStorage + messageId).
+
+CONTEXT_FILES: ["hooks/useReminderScheduler.ts", "services/reminderService.ts", "types.ts", "App.tsx", "utils/notificationCopy.ts", "docs/ARCHITECTURE.md", "docs/PROJECT.md"]
+
+---
+
+## ترتیب اجرای توصیه‌شده‌ی فاز O2
+1. **O2-8** (نوتیفیکیشن — logic خالص، بدون UI conflict)
+2. **O2-2** (TodaysPlan click)
+3. **O2-3** سپس **O2-4** (StatsOverview سریال)
+4. **O2-1** (Toast)
+5. **O2-5** سپس **O2-6** (FocusTimer سریال)
+6. **O2-7** (WeekCalendar)
+
+موازی مجاز فقط اگر دو کدنویس و فایل‌ها در Conflict Map تداخل W/W ندارند.
+
+## معیار پذیرش نهایی فاز O2
+1. هر ۸ باگ گزارش‌شده کاربر برطرف و روی موبایل+دسکتاپ smoke شده‌اند.
+2. استاندارد اپل برای toast/focus/safe-area رعایت شده (نه pixel-perfect iOS copy؛ رفتار و hierarchy درست).
+3. هیچ رگرسیونی در save تسک (فاز O)، undo delete (فاز N)، offline queue.
+4. بدون dependency جدید، بدون SQL/Edge در این فاز.
+5. اعداد کاربر-نما فارسی؛ RTL سالم.

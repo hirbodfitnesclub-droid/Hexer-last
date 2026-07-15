@@ -6,6 +6,9 @@ import { showViaSW, checkIfShownAndRegister } from '../services/reminderService'
 import { getRandomDailyNudge } from '../utils/notificationCopy';
 import { getTehranDateString, isSameTehranDay } from '../utils/dateUtils';
 
+/** Max age for overdue catch-up (prevents storm of old due tasks on open). */
+const CATCH_UP_MS = 15 * 60 * 1000;
+
 /**
  * React hook to schedule foreground (Layer A) reminders:
  * 1. Timed tasks due today: setInterval periodic polling with exact margin setup and catch-up.
@@ -29,6 +32,11 @@ export function useReminderScheduler() {
 
     const evaluate = async () => {
       try {
+        // Quiet no-op when permission is missing — never auto-prompt.
+        if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+          return;
+        }
+
         const nowMs = Date.now();
         const todayStr = getTehranDateString();
 
@@ -37,7 +45,7 @@ export function useReminderScheduler() {
         // ------------------------------------------
         const todayTasks = tasks.filter(
           (task) =>
-            !task.completed &&
+            task.status !== 'done' &&
             task.due_date &&
             isSameTehranDay(task.due_date, new Date())
         );
@@ -47,29 +55,11 @@ export function useReminderScheduler() {
           const dueMs = new Date(task.due_date).getTime();
           const taskMessageId = `task-${task.id}-${dueMs}`;
 
-          // CASE 1: Task is already overdue (Catch-up / Recovery)
-          if (dueMs <= nowMs) {
+          // CASE 1: Recent overdue only (catch-up window — no full-day storm)
+          if (dueMs <= nowMs && nowMs - dueMs <= CATCH_UP_MS) {
             if (!notifiedTaskIdsRef.current.has(taskMessageId)) {
-              notifiedTaskIdsRef.current.add(taskMessageId);
-              const isShown = await checkIfShownAndRegister(taskMessageId);
-              if (!isShown) {
-                console.log(`[Scheduler] Firing overdue catch-up task: "${task.title}"`);
-                await showViaSW(task.title, task.description || 'زمان انجام این کار فرا رسیده است.', {
-                  tag: `task-${task.id}`,
-                  messageId: taskMessageId,
-                  data: { taskId: task.id }
-                });
-              }
-            }
-          }
-          // CASE 2: Task is upcoming within the next 60 seconds (Dynamic exact margin Reservation)
-          else if (dueMs > nowMs && dueMs <= nowMs + 60000) {
-            if (!notifiedTaskIdsRef.current.has(taskMessageId)) {
-              notifiedTaskIdsRef.current.add(taskMessageId);
-              const delay = dueMs - nowMs;
-              console.log(`[Scheduler] Reserving task "${task.title}" to fire exactly in ${Math.round(delay / 1000)}s`);
-
-              const tId = window.setTimeout(async () => {
+              notifiedTaskIdsRef.current.add(taskMessageId); // claim to avoid parallel double-fire
+              try {
                 const isShown = await checkIfShownAndRegister(taskMessageId);
                 if (!isShown) {
                   await showViaSW(task.title, task.description || 'زمان انجام این کار فرا رسیده است.', {
@@ -77,6 +67,35 @@ export function useReminderScheduler() {
                     messageId: taskMessageId,
                     data: { taskId: task.id }
                   });
+                }
+              } catch {
+                // Roll back claim only when notification was not successfully handled.
+                notifiedTaskIdsRef.current.delete(taskMessageId);
+              }
+            }
+          }
+          // CASE 2: Task is upcoming within the next 60 seconds (Dynamic exact margin Reservation)
+          else if (dueMs > nowMs && dueMs <= nowMs + 60000) {
+            if (!notifiedTaskIdsRef.current.has(taskMessageId)) {
+              notifiedTaskIdsRef.current.add(taskMessageId); // claim reservation
+              const delay = dueMs - nowMs;
+
+              const tId = window.setTimeout(async () => {
+                try {
+                  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+                    notifiedTaskIdsRef.current.delete(taskMessageId);
+                    return;
+                  }
+                  const isShown = await checkIfShownAndRegister(taskMessageId);
+                  if (!isShown) {
+                    await showViaSW(task.title, task.description || 'زمان انجام این کار فرا رسیده است.', {
+                      tag: `task-${task.id}`,
+                      messageId: taskMessageId,
+                      data: { taskId: task.id }
+                    });
+                  }
+                } catch {
+                  notifiedTaskIdsRef.current.delete(taskMessageId);
                 }
               }, delay);
 
@@ -106,7 +125,6 @@ export function useReminderScheduler() {
               const isShown = await checkIfShownAndRegister(nudgeMessageId);
               if (!isShown) {
                 const nudgeCopy = getRandomDailyNudge();
-                console.log('[Scheduler] Dispatching daily nudge.');
                 await showViaSW("👋 یادآوری روزانه", nudgeCopy, {
                   tag: `daily-nudge-${user.id}`,
                   messageId: nudgeMessageId,

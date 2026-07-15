@@ -167,27 +167,37 @@ export const TodaysPlan: React.FC<TodaysPlanProps> = ({ onOpenOverdueModal }) =>
                   )}
                 </div>
 
-                {/* Card Column (Left) */}
+                {/* Card Column (Left) — sibling controls: complete vs open (no nested interactive) */}
                 <div className="flex-1 glass-card p-3 rounded-[var(--radius-md)] flex items-center gap-3">
                   <button
+                    type="button"
                     onClick={() => toggleTaskCompletion(task.id)}
                     className={`task-check w-5 h-5 shrink-0 rounded-full border-[1.5px] flex items-center justify-center transition ${task.status === 'done' ? 'is-done' : 'border-[var(--text-muted)] hover:border-[var(--text-main)]'}`}
                     aria-label={task.status === 'done' ? `لغو انجام ${task.title}` : `انجام ${task.title}`}
                   >
                     {task.status === 'done' && <CheckIcon className="w-3 h-3 text-black stroke-[3px]"/>}
                   </button>
-                  <span className={`flex-1 text-sm ${task.status === 'done' ? 'line-through text-[var(--text-muted)]' : 'text-[var(--text-main)]'}`}>
-                    {task.title}
-                  </span>
-                  <div 
-                    className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                      task.priority === Priority.High 
-                        ? 'bg-error shadow-[0_0_8px_rgb(var(--error-rgb)/0.5)]' 
-                        : task.priority === Priority.Medium 
-                        ? 'bg-warning shadow-[0_0_8px_rgb(var(--warning-rgb)/0.5)]' 
-                        : 'bg-primary/80 shadow-[0_0_8px_rgb(var(--color-primary-rgb)/0.3)]'
-                    }`}
-                  ></div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('hexer:open-task-editor', { detail: task }));
+                    }}
+                    className="flex-1 min-w-0 flex items-center gap-3 text-right cursor-pointer bg-transparent border-0 p-0"
+                    aria-label={`مشاهده ${task.title}`}
+                  >
+                    <span className={`flex-1 text-sm text-right ${task.status === 'done' ? 'line-through text-[var(--text-muted)]' : 'text-[var(--text-main)]'}`}>
+                      {task.title}
+                    </span>
+                    <div
+                      className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                        task.priority === Priority.High
+                          ? 'bg-error shadow-[0_0_8px_rgb(var(--error-rgb)/0.5)]'
+                          : task.priority === Priority.Medium
+                          ? 'bg-warning shadow-[0_0_8px_rgb(var(--warning-rgb)/0.5)]'
+                          : 'bg-primary/80 shadow-[0_0_8px_rgb(var(--color-primary-rgb)/0.3)]'
+                      }`}
+                    ></div>
+                  </button>
                 </div>
               </div>
             );

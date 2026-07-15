@@ -848,3 +848,132 @@ formState محلی منبع UI مودالِ باز است. در این فاز sy
 3. `taskService.updateTask` در برابر object کامل `Task` مقاوم است.
 4. flush آفلاین از sanitize سرویس بهره می‌برد (منبع حقیقت service است).
 5. بدون رگرسیون create/delete/toggle-from-list/link-note.
+
+# فاز O2 — پایداری UX استاندارد اپل (Dashboard · Toast · Focus · Notifications)
+
+> ادامهٔ فاز O پس از داونِ Integrity تسک (O-1…O-3 = DONE).
+> تمرکز: ۸ باگ باز UI/UX + نوتیفیکیشن؛ صفر فیچر جدید، صفر مهاجرت DB.
+> مخاطب محصول: صدها کاربر پرمیوم — هر تغییر باید production-ready، کم‌ریسک و قابل‌برگشت باشد.
+
+## O2.1. هدف بیزینسی
+رسیدنِ تجربهٔ داشبورد و سیستم بازخورد (Toast/Notification/Focus) به سطح استاندارد اپل روی **هر دو** viewport موبایل و دسکتاپ: جای درست پیام‌ها، نمودارهای زنده و قابل‌اعتماد، کلیک‌پذیریِ طبیعی روی کارت‌های کار، و ارسال قطعی یادآورها.
+
+## O2.2. پرسونای هدف
+کاربر حرفه‌ایِ فارسی‌زبان که هم از موبایل (PWA/Safari) و هم از دسکتاپ (layout سه ستونه با glass-app) استفاده می‌کند؛ انتظار UX پیش‌بینی‌پذیر، اعداد فارسی، و رفتار بدون «تظاهر کار کردن» دارد.
+
+## O2.3. پشته‌ی تثبیت‌شده (بدون تغییر)
+- React 19 + TypeScript + Vite
+- Tailwind v4 (token-driven via `index.css` CSS variables)
+- Supabase (Auth / Postgres / RPC / Edge) — **بدون اسکیمای جدید در O2**
+- Service Worker + Web Push (VAPID) + IndexedDB (`idb`) برای dedup
+- `motion/react` برای انیمیشن مودال/zen
+- توابع تاریخ: `utils/dateUtils` (Asia/Tehran)
+- رویداد سراسری مودال تسک: `hexer:open-task-editor`
+
+## O2.4. تصمیمات معماری کلیدی (پاسخ معمار به ۸ باگ)
+
+### D1 — Toast: موقعیت دوگانهٔ Apple-standard
+- **موبایل (<lg):** پایین، بالاتر از BottomNav با توکن `--bottom-nav-space` + safe-area (وضعیت فعلی تقریباً درست است؛ refinement لازم).
+- **دسکتاپ (≥lg):** **بالا-وسط** (top toast) — الگوی iOS/macOS برای app shell بدون bottom-nav شناور؛ نه bottom-fixed که روی glass-app بد می‌نشیند.
+- پیاده‌سازی فقط با CSS responsive روی **یک** container موجود (`ToastNotifications.tsx`)؛ بدون کتابخانهٔ toast جدید، بدون portal اجباری مگر clip شدن ثابت شود.
+- max-width ~sm، inset افقی امن، z-index بالای مودال‌های معمول (قرارداد z موجود: toast = 100).
+
+### D2 — کلیک روی کارت «برنامه امروز» → Task View
+- الگوی **موجود و تثبیت‌شده** را reuse کن:  
+  `window.dispatchEvent(new CustomEvent('hexer:open-task-editor', { detail: task }))`  
+  (همان OverdueTasksModal / App listener).
+- checkbox فقط `toggleTaskCompletion` + `stopPropagation`.
+- بقیهٔ سطر کارت (title/time/priority) کلیک‌پذیر و keyboard-accessible (role=button یا button wrapper؛ Enter/Space).
+- **هیچ** instance محلی `TaskEditorModal` داخل Dashboard ساخته نشود.
+
+### D3 — حلقهٔ «وضعیت هفته»: weekly progress واقعی (نه selectedDate day)
+- باگ ریشه‌ای: `StatsOverview` progress فعلی = completed/total برای **selectedDate**، در حالی که برچسب UI «وضعیت هفته» است.
+- قرارداد درست:
+  - مخرج: تسک‌های `due_date` در بازهٔ هفتهٔ جلالی جاری (شنبه→جمعه، Asia/Tehran).
+  - صورت: از همان مجموعه، `status === 'done'`.
+  - درصد 0…100، عدد فارسی.
+- دکمهٔ «مشاهده» فقط مودال (`WeeklyReportModal`) را باز می‌کند — دست‌نخورده بماند.
+- رینگ SVG: stroke از توکن معتبر (`var(--color-primary)` به‌عنوان color واقعی یا rgb channel درست)؛ **نه** مقدار خراب/نامرئی. محیط (`strokeDasharray` کامل) همیشه دیده شود حتی وقتی progress=0.
+- **حدس نزن دربارهٔ CSS variable ناشناخته**؛ اگر `--color-primary` hex است، برای SVG stroke همان hex/var را بگذار و از `--color-primary-rgb` فقط در `rgb()` استفاده کن.
+
+### D4 — «کارهای امروز در یک نگاه»: مدل داده + پر شدن میله‌ها
+ریشه‌ها:
+1. ردیف «مهم» الان `highPriorityProjects / projects.length` است — **غلط**؛ باید **تسک‌های مهمِ امروز** باشد.
+2. میله‌ها relative flex + dash width وابسته به «باقیمانده» است و در 0٪/100٪ متن بیرون می‌زند؛ پیش‌فرض بصری خالی/شکسته به‌نظر می‌رسد.
+
+قرارداد داده (فقط **امروز تقویم تهران**، نه selectedDate):
+- `totalToday` = count tasks با due_date امروز
+- `doneToday` = از همان‌ها status === 'done'
+- `highTotalToday` = count tasks امروز با priority high (enum/`'high'`)
+- `highDoneToday` = از همان‌ها done
+- `overdue` = مثل قبل (undone + due قبل از امروز)
+
+قرارداد بصری میله (هر ردیف تعداد/مهم):
+- ردیف = track تمام‌عرض + **یک** fill جامد + **باقی** dash (نه دو جزء flex ناپایدار).
+- `fillRatio` واقعی = done/total ؛ اگر total=0 → **fillRatio پیش‌فرض بصری = 0.30** (فقط empty-state تا label نشکند) و اعداد `۰/۰`.
+- با تکمیل کارها: fill بزرگ‌تر، dash کوچک‌تر؛ در 100٪ dash ≈ 0.
+- حداقل عرض fill وقتی total>0 و done>0: طوری که متن داخل fill (`done/total`) نریزد (min-width منطقی ~۳rem یا measure با padding کافی + truncate).
+- اعداد با `toLocaleString('fa-IR')`.
+- ردیف عقب‌افتاده: بدون میلهٔ پیشرفت؛ کلیک = `onOpenOverdueModal` مثل قبل.
+
+### D5 — Zen Mode fullscreen: portal به `document.body`
+- ریشه: layout دسکتاپ `App.tsx` → `main.glass-app` با `overflow-hidden`؛ ancestor با overflow/transform باعث clip شدن `position:fixed` zen می‌شود → نوار بالای zen (خروج/عنوان) دیده نمی‌شود.
+- درمان اصولی: render zen overlay با **`createPortal(..., document.body)`** (ReactDOM). همان z-index فعلی (≥60) کافی است اگر portal درست باشد؛ با BottomNav/Sidebar تداخل visual نباید بماند چون fullscreen سیاه.
+- shell: `fixed inset-0 h-[100dvh] w-screen overflow-hidden flex flex-col`؛ top bar همیشه `pt-app-safe` + visible؛ بدون اتکا به stacking context داشبورد.
+- موبایل و دسکتاپ یک مسیر.
+
+### D6 — دکمهٔ استراحت: فقط label متنی
+- در bottom controls zen، دکمهٔ `handleToggleMode` الان دو خط دارد: «استراحت»/«فوکوس» + `{breakMinutes}′` / `{focusMinutes}′`.
+- **حذف کامل خط دوم (عدد)**؛ فقط متن «استراحت» یا «فوکوس».
+- ارتفاع دکمه نرمال (یک خط، `h-12`/`min-h-[44px]` طبق touch target اپل)؛ بدون بزرگ‌شدن عمودی اضافه.
+- دقیقه همچنان در UI دایرهٔ تایمر (`استراحت N′`) و DurationPicker باقی می‌ماند.
+
+### D7 — اعداد روز تقویم کوچک‌تر
+- فقط در `WeekCalendar.tsx`، span عدد روز: یک پله کوچک‌تر از `text-sm sm:text-base md:text-lg` → مثلاً `text-xs sm:text-sm md:text-base` (یا معادل token-safe).
+- day name و layout کلی دست نخورد مگر overflow قبلی برگردد.
+- next-week capsules در lg در صورت نیاز هم‌آهنگ جزئی (اختیاری، فقط اگر ناهماهنگ شوند).
+
+### D8 — نوتیفیکیشن: درمان ریشه‌ای فیلتر اشتباه + گارد permission
+شواهد کد (`hooks/useReminderScheduler.ts`):
+```ts
+!task.completed  // فیلد در types.Task وجود ندارد → تقریباً همیشه truthy path غلط / فیلتر شکننده
+```
+- قرارداد کامل‌بودن تسک در کل اپ: `status === 'done'` (+ `completed_at` در جاهای دیگر). Scheduler باید `t.status !== 'done'` باشد.
+- قبل از هر `showViaSW`: اگر `Notification.permission !== 'granted'` → no-op آرام (بدون throw، بدون spam console error).
+- `messageId` و dedup IndexedDB دست‌نخورده بماند.
+- Layer B (push background) همچنان opt-in صریح از ProfileModal است؛ **auto-prompt ممنوع** (H anti-pattern).
+- این تسک **کلاینت-only** است مگر پس از fix هنوز background push نرسد — آن‌وقت معمار جداگانه VAPID/Edge را می‌خواهد. کدنویس **حق حدس secrets/SQL Edge ندارد**.
+
+### D9 — محدودهٔ ریسک پروداکشن
+- بدون تغییر schema / RPC / Edge مگر تسک صریح بگوید.
+- بدون retro-fit تم رنگ یا refactor داشبورد.
+- هر تسک باید روی موبایل **و** دسکتاپ دستی قابل‌تأیید باشد.
+- رفتار offline-first و outbox دست‌نخورده.
+
+## O2.5. [حیاتی] نبایدهای سخت‌گیرانهٔ فاز O2
+101. **کتابخانهٔ toast/notification جدید ممنوع** (لایهٔ موجود کافی است).
+102. **ساخت `TaskEditorModal` محلی در Dashboard/TodaysPlan ممنوع**؛ فقط event سراسری.
+103. **استفاده از `task.completed` ممنوع**؛ منبع حقیقت `status === 'done'`.
+104. **مبنای «مهم» = پروژه ممنوع**؛ فقط تسک‌های priority=high همان روز.
+105. **selectedDate به‌جای «امروز تهران» برای glance/weekly-label گمراه‌کننده ممنوع**  
+    (glance و برچسب «امروز» = `new Date()` تهران؛ تقویم selectedDate فقط برای TodaysPlan list).
+106. **پر کردن میله فقط با width ثابت هک‌شده بدون نسبت داده ممنوع**؛ 30٪ فقط empty-state بصری وقتی total=0.
+107. **Zen بدون portal (اگر داخل overflow ancestor بماند) ممنوع** پس از این فاز.
+108. **نمایش عدد دقیقه زیر دکمه استراحت/فوکوس در bottom bar zen ممنوع**.
+109. **درخواست خودسرانهٔ Notification permission در boot ممنوع**.
+110. **تغییر VAPID/Edge/SQL بدون شواهد post-fix و دستور معمار ممنوع**.
+111. **کلاس Tailwind نامعتبر / رنگ هاردکد hex جدید خارج توکن ممنوع** (قوانین فاز M پابرجا).
+112. **قفل‌کردن اسکرول body بدون cleanup در unmount zen ممنوع** اگر lock اضافه شد.
+113. **شکستن RTL / اعداد لاتین در UI کاربر-نما ممنوع** (فاز N).
+114. **اورانجینیری flex/grid برای میله‌ها** (بیش از track+fill+dash ساده) ممنوع.
+
+## O2.6. تعریف «انجام‌شده» برای فاز O2
+1. Toast در موبایل بالای BottomNav و در دسکتاپ top-center/ایمن؛ دکمه‌ی action خوانا؛ بدون پوشش nav.
+2. کلیک روی هر سطر «برنامه امروز» TaskEditor را باز می‌کند؛ checkbox فقط complete می‌کند.
+3. حلقهٔ وضعیت هفته درصد weekly واقعی را نشان می‌دهد و با انجام کار همان هفته زنده به‌روز می‌شود؛ مودال مشاهده سالم است.
+4. glance: `done/total` امروز و `highDone/highTotal` امروز؛ میله‌ها از ≈۳۰٪ empty تا پر شدن واقعی؛ متن بیرون نمی‌زند.
+5. Zen fullscreen در دسکتاپ و موبایل top bar کامل دارد (خروج + عنوان دیده می‌شود).
+6. دکمه استراحت فقط متن است؛ بدون عدد ۵/۲۵ زیر آن.
+7. اعداد روز تقویم یک پله کوچک‌تر و خوانا.
+8. یادآور foreground برای تسک due امروز (با permission=granted) ارسال می‌شود؛ تسک‌های done نادیده گرفته می‌شوند.
+9. بدون رگرسیون O-1…O-3، تم، offline queue، PWA.
