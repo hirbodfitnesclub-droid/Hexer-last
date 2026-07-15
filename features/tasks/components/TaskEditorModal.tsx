@@ -141,6 +141,29 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
     onClose();
   };
 
+  /** Writable fields only (+ id for parent/manager routing). Never join/immutable fields. */
+  const buildTaskWritePayload = (
+    state: Task | Partial<Task>,
+    overrides: Partial<Task> = {}
+  ): Partial<Task> & { id?: string } => {
+    const merged: Task | Partial<Task> = { ...state, ...overrides };
+    const payload: Partial<Task> & { id?: string } = {
+      title: typeof merged.title === 'string' ? merged.title.trim() : merged.title,
+      description: merged.description ?? null,
+      status: merged.status,
+      priority: merged.priority ?? Priority.Medium,
+      due_date: merged.due_date ?? null,
+      project_id: merged.project_id ?? null,
+      tags: Array.isArray(merged.tags) ? merged.tags : [],
+      checklist: Array.isArray(merged.checklist) ? merged.checklist : [],
+      completed_at: merged.completed_at ?? null,
+    };
+    if (merged.id) {
+      payload.id = merged.id;
+    }
+    return payload;
+  };
+
   const handleSave = async () => {
     if (!formState.title?.trim()) return;
 
@@ -159,21 +182,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
       finalDueDate = dateObj.toISOString();
     }
 
-    // Sanitization: فقط فیلدهای معتبر DB را ارسال کن
-    const cleanPayload: Partial<Task> & { title: string } = {
-      title: formState.title.trim(),
-      description: formState.description ?? null,
-      status: formState.status,
-      priority: formState.priority ?? Priority.Medium,
-      due_date: finalDueDate,
-      project_id: formState.project_id ?? null,
-      tags: Array.isArray(formState.tags) ? formState.tags : [],
-      checklist: Array.isArray(formState.checklist) ? formState.checklist : [],
-      completed_at: formState.completed_at ?? null,
-    };
-    if (formState.id) {
-      cleanPayload.id = formState.id;
-    }
+    const cleanPayload = buildTaskWritePayload(formState, { due_date: finalDueDate });
 
     try {
       const savedTask = await onSave(cleanPayload);
@@ -182,10 +191,11 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
           await linkTaskNote(savedTask.id, noteId);
         }
       }
+      onClose();
     } catch (err) {
       console.error('Error saving task and committing links:', err);
+      // Keep modal open on failure so the user does not lose in-progress edits.
     }
-    onClose();
   };
 
   const handleDelete = () => {
@@ -198,10 +208,10 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
   const toggleStatus = () => {
     const newStatus = formState.status === 'done' ? 'todo' : 'done';
     const completed_at = newStatus === 'done' ? new Date().toISOString() : null;
-    const updatedTask = { ...formState, status: newStatus, completed_at, id: formState.id };
-    setFormState(updatedTask);
-    if (mode === 'view' && !isNew) {
-      onSave(updatedTask);
+    setFormState(prev => ({ ...prev, status: newStatus, completed_at }));
+    if (mode === 'view' && !isNew && formState.id) {
+      // Minimal patch — never whole formState, never close.
+      onSave({ id: formState.id, status: newStatus, completed_at });
     }
   };
 
@@ -221,14 +231,14 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
   };
 
   const handleToggleChecklistItem = (itemId: string) => {
-    const updatedChecklist = (formState.checklist || []).map(item => 
+    const updatedChecklist = (formState.checklist || []).map(item =>
       item.id === itemId ? { ...item, isCompleted: !item.isCompleted } : item
     );
-    const updatedTask = { ...formState, checklist: updatedChecklist };
-    setFormState(updatedTask);
-    
-    if (mode === 'view' && !isNew) {
-      onSave(updatedTask);
+    setFormState(prev => ({ ...prev, checklist: updatedChecklist }));
+
+    if (mode === 'view' && !isNew && formState.id) {
+      // Minimal patch — never whole formState, never close.
+      onSave({ id: formState.id, checklist: updatedChecklist });
     }
   };
 
