@@ -94,26 +94,27 @@ export const TasksView: React.FC = () => {
   }, [expandedProjects]);
 
   const handleSaveTask = (taskToSave: Task | Partial<Task>) => {
+    // Update path: never auto-close — modal owns close via onClose after full edit save.
+    // Partial view-mode patches (checklist/status) intentionally omit title.
+    if ('id' in taskToSave && taskToSave.id) {
+      return updateTask(taskToSave);
+    }
+
     if (!taskToSave.title?.trim()) {
       setEditingTask(null);
       return;
     }
 
-    if ('id' in taskToSave && taskToSave.id) {
-      updateTask(taskToSave);
-    } else {
-      const { title, description, due_date, priority, tags, project_id, checklist } = taskToSave as Partial<Task>;
-      addTask({ 
-        title: title || '', 
-        description: description || null, 
-        due_date: due_date || null, 
-        priority: priority || Priority.Medium, 
-        tags: tags || [], 
-        project_id: project_id || null, 
-        checklist: checklist || [] 
-      });
-    }
-    setEditingTask(null);
+    const { title, description, due_date, priority, tags, project_id, checklist } = taskToSave as Partial<Task>;
+    return addTask({
+      title: title || '',
+      description: description || null,
+      due_date: due_date || null,
+      priority: priority || Priority.Medium,
+      tags: tags || [],
+      project_id: project_id || null,
+      checklist: checklist || []
+    });
   };
 
   const handleAddNewTask = () => {
