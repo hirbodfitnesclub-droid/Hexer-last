@@ -181,21 +181,24 @@ export const ProductivityChart: React.FC = () => {
             const y = baselineY - barHeight;
 
             if (d.isToday) {
+              // Complementary vertical segments: solid = completed, dashed = remaining only
+              const remainH = Math.max(0, maxBarHeight - barHeight);
+              const topY = 5;
               return (
                 <g key={index}>
-                  {/* Outer dashed indicator for today's target container */}
-                  <rect
-                    x={x}
-                    y={5}
-                    width={colWidth}
-                    height={maxBarHeight}
-                    rx={8}
-                    fill="none"
-                    stroke="rgba(255,255,255,0.6)"
-                    strokeWidth="1.5"
-                    strokeDasharray="4 3"
-                  />
-                  {/* Solid inner actual progress for today */}
+                  {remainH > 0 && (
+                    <rect
+                      x={x}
+                      y={topY}
+                      width={colWidth}
+                      height={remainH}
+                      rx={8}
+                      fill="none"
+                      stroke="rgba(255,255,255,0.6)"
+                      strokeWidth="1.5"
+                      strokeDasharray="4 3"
+                    />
+                  )}
                   {barHeight > 0 && (
                     <rect
                       x={x}

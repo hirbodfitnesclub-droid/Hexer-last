@@ -27,9 +27,12 @@ function getCurrentWeekDays(): Date[] {
   return days;
 }
 
+/** Visual fill width: floor at 30% (label safety), then grows with real progress toward 100%. */
 function fillRatio(done: number, total: number): number {
-  if (total === 0) return EMPTY_FILL_RATIO;
-  return Math.min(1, Math.max(0, done / total));
+  if (total <= 0) return EMPTY_FILL_RATIO;
+  const real = Math.min(1, Math.max(0, done / total));
+  // Map [0, 1] → [EMPTY_FILL_RATIO, 1] so 0/N stays ~30% and each completion visibly expands fill.
+  return EMPTY_FILL_RATIO + (1 - EMPTY_FILL_RATIO) * real;
 }
 
 function faNum(n: number): string {
@@ -142,29 +145,40 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
         </div>
 
         <div className="flex flex-col gap-1.5 mt-1">
-          {/* Row 1: count — pure-ratio fill + independent label chip */}
-          <div className="relative w-full h-[24px] rounded-full overflow-hidden">
-            <div className="absolute inset-0 rounded-full border-[1.5px] border-dashed border-black/40" />
-            <div
-              className="absolute inset-y-0 right-0 bg-[var(--ink-bg)] rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${Math.round(glance.countRatio * 100)}%` }}
-            />
-            <div className="relative z-10 h-full flex items-center pr-0.5">
-              <span className="inline-flex max-w-full items-center h-[20px] px-3 rounded-full bg-[var(--ink-bg)] text-[11px] font-bold text-white whitespace-nowrap truncate">
+          {/* Row 1: fill|track complementary geometry; label = plain text overlay (no second pill) */}
+          <div className="relative w-full h-[24px]">
+            <div className="absolute inset-0 flex overflow-hidden rounded-full" dir="rtl">
+              <div
+                className="h-full shrink-0 bg-[var(--ink-bg)] rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${Math.round(glance.countRatio * 100)}%` }}
+              />
+              <div
+                className="h-full shrink-0 min-w-0 rounded-full border-[1.5px] border-dashed border-black/40 transition-all duration-500 ease-out"
+                style={{ width: `${Math.round((1 - glance.countRatio) * 100)}%` }}
+              />
+            </div>
+            {/* Typography only — never paints a second fill layer */}
+            <div className="absolute inset-0 z-10 flex items-center justify-start pointer-events-none px-3">
+              <span className="max-w-full text-[11px] font-bold text-white whitespace-nowrap truncate">
                 تعداد: {faNum(glance.doneToday)}/{faNum(glance.totalToday)}
               </span>
             </div>
           </div>
 
-          {/* Row 2: high priority tasks today */}
-          <div className="relative w-full h-[24px] rounded-full overflow-hidden">
-            <div className="absolute inset-0 rounded-full border-[1.5px] border-dashed border-black/40" />
-            <div
-              className="absolute inset-y-0 right-0 bg-[var(--ink-bg)] rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${Math.round(glance.highRatio * 100)}%` }}
-            />
-            <div className="relative z-10 h-full flex items-center pr-0.5">
-              <span className="inline-flex max-w-full items-center h-[20px] px-3 rounded-full bg-[var(--ink-bg)] text-[11px] font-bold text-white whitespace-nowrap truncate">
+          {/* Row 2: high priority — same contract */}
+          <div className="relative w-full h-[24px]">
+            <div className="absolute inset-0 flex overflow-hidden rounded-full" dir="rtl">
+              <div
+                className="h-full shrink-0 bg-[var(--ink-bg)] rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${Math.round(glance.highRatio * 100)}%` }}
+              />
+              <div
+                className="h-full shrink-0 min-w-0 rounded-full border-[1.5px] border-dashed border-black/40 transition-all duration-500 ease-out"
+                style={{ width: `${Math.round((1 - glance.highRatio) * 100)}%` }}
+              />
+            </div>
+            <div className="absolute inset-0 z-10 flex items-center justify-start pointer-events-none px-3">
+              <span className="max-w-full text-[11px] font-bold text-white whitespace-nowrap truncate">
                 مهم: {faNum(glance.highDoneToday)}/{faNum(glance.highTotalToday)}
               </span>
             </div>
