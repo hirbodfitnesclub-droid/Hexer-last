@@ -2262,89 +2262,112 @@ features/dashboard/components/ProductivityChart.tsx
 ۷. تیک زدن ساب‌تسک مودال را نمی‌بندد.
 ۸. کاربر می‌تواند زمان فوکوس/استراحت را ویرایش کند (persist در localStorage) و از zen mode زودتر به استراحت برود.
 
+---
 
-# §O — لنگرگاه سیستمی «Apple Duration Picker + Zen Polish»
+# §O — لنگرگاه سیستمی فاز «درمان ریشه‌ای مسیر به‌روزرسانی تسک»
 
-> مرجع: `docs/PROJECT.md §O` و `docs/tasks.md` فاز O.
-> اصول §۷ (رنگ، z-index، مودال، safe-area) بدون تغییر. صفر backend.
-
-## O.0. ریشه‌یابی (از سورسِ N-7)
-
-| # | مشکل | ریشه |
-|---|------|------|
-| O-B1 | ویجت موبایل زشت/کش‌آمده | `isEditingTimer` یک ردیف دو-input داخل ویجت min-h ثابت اضافه می‌کرد |
-| O-B2 | Zen اسکرول اجباری | Bottom Controls = ردیف سه‌تایی + دکمهٔ دوم «استراحت زودهنگام» → ارتفاع > viewport |
-| O-B3 | نبود edit در Zen | فقط ویجت `setIsEditingTimer` داشت؛ overlay مداد/ورود به picker نداشت |
-| O-B4 | UX غیر اپلی | `<input type="number">` خام؛ نه wheel، نه tap-to-type |
-
-## O.1. معماری انتخاب‌شده
+## O.0. منطق مسیردهی فایل (پروژه موجود — فقط ویرایش)
 
 ```
-FocusTimer.tsx  (تنها فایلِ touch این فاز)
-├── helpers: readStoredMinutes / clampMinutes
-├── DurationWheel          (module scope — scroll-snap y + tap-to-type)
-├── DurationPickerModal    (module scope — draft state, z-[80])
-└── FocusTimer             (widget + task picker z-[70] + zen z-[60])
+services/taskService.ts
+  └── (O-1) Canonical whitelist sanitizer در updateTask
+
+features/tasks/TasksView.tsx
+  └── (O-2) حذف close اجباری بعد از onSave
+
+features/tasks/components/TaskEditorModal.tsx
+  └── (O-3) همه مسیرهای onSave از builder/minimal payload؛ close فقط successِ handleSave
+
+hooks/useDataManager.ts
+  └── دست‌نخورده ترجیحاً؛ sanitize در service کافی است
+
+App.tsx
+  └── دست‌نخورده (مرجع رفتار صحیح host: close نمی‌کند)
 ```
 
-### DurationWheel
-- ارتفاع ثابت: `WHEEL_ITEM_H (44) × WHEEL_VISIBLE (5)`.
-- `scroll-snap-type: y mandatory` + pad بالا/پایین = ((5-1)/2)*44.
-- settle debounce ~۹۰ms پس از scroll → `onChange(clamped)`.
-- click/tap روی ستون → `isTyping`؛ `<input inputMode="numeric" pattern="[0-9]*">`؛ blur/Enter → clamp ۱..۹۹.
-- programmatic scroll با flag تا loop نشود.
+**ساخته/حذف نمی‌شود:** هیچ فایل جدید دائمی، هیچ SQL، هیچ Edge.
+(فایل‌های موقت `_phase_o_*.md` فقط برای نوشتن معمار هستند و پس از merge حذف می‌شوند.)
 
-### DurationPickerModal
-- open → copy props به draftFocus/draftBreak.
-- confirm → `onConfirm(draftFocus, draftBreak)` فقط.
-- cancel/backdrop → unmount drafts discarded.
-- body scroll lock هنگام open.
-- mobile: bottom sheet (`items-end`, rounded-t-28) + handle؛ sm+: center card.
-- z-[80] > zen z-[60] و task picker z-[70].
+## O.1. رجیستر باگ — ریشه‌یابی نهایی (Supersede N-B4 و N-B7)
 
-### applyDurations (در FocusTimer)
+### O-B1: بسته شدن پنل هنگام تیک ساب‌تسک — OPEN (N-7 اشتباه بود)
+| لایه | شواهد |
+|------|--------|
+| UI | `handleToggleChecklistItem` → `onSave(updatedTask)` در view mode |
+| Host App | `handleSaveModalTask` فقط `updateTask` — close ندارد |
+| Host Tasks | `handleSaveTask` → بعد از save **`setEditingTask(null)`** |
+| Attempt N | `stopPropagation` روی checkbox — موجود، کافی نیست |
+
+جریان غلط:
+`checkbox → onSave → TasksView.handleSaveTask → setEditingTask(null) → close`
+
+جریان درست:
+`checkbox → onSave(minimal) → updateTask → editingTask unchanged → modal open`
+
+Commit فرم:
+`handleSave → onSave → onClose() فقط در success → parent onClose`
+
+### O-B2: PATCH 400 / «خطا در به‌روزرسانی کار» — OPEN (N-4 ناقص)
+| لایه | شواهد |
+|------|--------|
+| UX | `useDataManager.updateTask` → `addNotification("خطا در به‌روزرسانی کار.", "error")` |
+| Network | `PATCH /rest/v1/tasks?id=eq.<uuid>&select=* 400` |
+| Service | فقط `project` حذف می‌شود؛ `id/user_id/created_at/updated_at` می‌مانند |
+| UI partial | toggleها whole `formState` می‌فرستند |
+| handleSave | whitelist دارد ولی `id` را به service می‌دهد و service strip کامل ندارد |
+
+Whitelist writable از `supabase/sql/03_core.sql` برای PATCH body:
+`project_id, title, description, status, priority, due_date, completed_at, tags, checklist`
+
+ممنوع در body:
+`id, user_id, created_at, updated_at, embedding, project, *unknown*`
+
+الگوی اجباری (مفهومی):
+```typescript
+const ALLOWED = [
+  'title','description','status','priority','due_date',
+  'project_id','tags','checklist','completed_at'
+] as const;
+
+// فقط کلیدهای present && !== undefined
+// tags/checklist غیرآرایه → []
+// null برای nullableها OK
+// .eq('id', id) از آرگومان
+// .select همان getTasks (بدون embedding، بدون *)
 ```
-clamp → setState focus/break
-→ localStorage keys unchanged
-→ setIsRunning(false)
-→ setTimeLeft(isBreak ? break*60 : focus*60)
-→ close modal
+
+### O-B3: outbox آفلاین
+enqueue ممکن است object خام داشته باشد؛ flush از `taskService.updateTask` می‌گذرد → بعد از O-1 امن است. نیازی به sanitize دوم در manager نیست (یک منبع حقیقت).
+
+## O.2. جریان داده هدف
+
+```
+TaskEditorModal
+  buildTaskWritePayload / minimal patch (+ id فقط برای routing)
+       → onSave
+           → TasksView.handleSaveTask | App.handleSaveModalTask
+               → useDataManager.updateTask
+                   → taskService.updateTask(id, payload)
+                       → WHITELIST → PostgREST PATCH
 ```
 
-### Zen layout contract
-```
-fixed inset-0 z-[60] h-[100dvh] overflow-hidden flex flex-col
-├── top bar (pt-app-safe) — title + pencil + exit
-├── center (flex-1 min-h-0) — circular timer (tap = open picker)
-├── session card (max-h-[32vh] overflow-y-auto) — distractions + note
-└── bottom controls (pb-safe) — reset | play/pause | single mode toggle
-```
-Mode toggle label:
-- focus active → «استراحت» + breakMinutes′
-- break active → «فوکوس» + focusMinutes′
-همان `handleToggleMode`؛ بدون دکمهٔ دوم.
+## O.3. قرارداد builder مودال
+- `handleSave`: full writable fields + due_date محاسبه‌شده؛ close **فقط success**.
+- `handleToggleChecklistItem` view: `{ id, checklist }`؛ no close.
+- `toggleStatus` view: `{ id, status, completed_at }`؛ no close.
+- هیچ view-path با `{...formState}` خام.
 
-### Widget surface (بدون expand)
-- بدون بلوک `isEditingTimer`.
-- entry points: pencil، tap روی digital clock، chips «فوکوس N′ / استراحت M′».
+## O.4. Conflict Map
+| فایل | O-1 | O-2 | O-3 |
+|------|-----|-----|-----|
+| taskService.ts | W | | |
+| TasksView.tsx | | W | |
+| TaskEditorModal.tsx | | | W |
 
-## O.2. z-index (امتداد §۷.۲)
-| لایه | مقدار | کامپوننت |
-|---|---|---|
-| Zen overlay | `z-[60]` | FocusTimer zen |
-| Task picker | `z-[70]` | FocusTimer task modal |
-| Duration picker | `z-[80]` | DurationPickerModal |
+ترتیب: O-1 سپس O-2 (موازی‌پذیر با O-1) سپس O-3.
 
-## O.3. File routing
-```
-features/dashboard/components/FocusTimer.tsx   (edit only)
-docs/PROJECT.md / ARCHITECTURE.md / tasks.md   (docs)
-```
-هیچ فایل جدید، هیچ rename storage key، هیچ تغییر DataContext.
-
-## O.4. ریسک پروداکشن و گاردها
-- iOS rubber-band: `overscroll-contain` + no-scrollbar روی wheel.
-- input mode numeric روی iOS کیبورد عدد باز می‌کند (نه full keyboard).
-- private mode localStorage: try/catch؛ UI state همچنان کار می‌کند.
-- هنگام running: تغییر مدت → pause + reset segment (قابل‌پیش‌بینی؛ از half-written tick جلوگیری).
-- accessibility: role=dialog/listbox، aria-valuenow، min 44×44 controls.
+## O.5. پذیرش نهایی
+1. تیک ساب‌تسک ×۳ مودال را نمی‌بندد.
+2. ویرایش متوالی + ساب‌تسک بدون error toast/400.
+3. create بعد از save بسته می‌شود؛ delete می‌بندد.
+4. object کامل Task از هر caller به service امن است.

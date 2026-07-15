@@ -528,89 +528,104 @@ CONTEXT_FILES: ["features/tasks/components/TaskEditorModal.tsx", "features/dashb
 ## معیار پذیرش نهایی‌ِ فاز M
 ۱. امکان تعویضِ ۳ تم (سبز/آبی/بنفش) در پروفایل بدون هیچ رفرش صفحه‌ای عمل کند. ۲. در هر سه تم، هیچ دکمه و متنِ `primary`ای با پس‌زمینه‌اش ناخوانا نشود (کنتراست در همه حالت‌ها رعایت شده باشد). ۳. انتخاب رنگِ پروژه‌ها، به عنوان یک هویت مجزا (Sky, Red, Yellow...) زنده مانده و هرکدام رندرِ رنگیِ منحصر‌به‌خود را فارغ از تم برندِ اپلیکیشن نمایش دهند. ۴. در هیچ کجای فایل‌های اجرایی (`src/features` و `src/components`) رشته‌هایی نظیر `bg-lime`, `indigo-`, `purple-600`، مقادیرِ hex غیرِمرتبط با تم (`#D8F066`، `#3B82F6`) یا `bg-[rgba...]` برای استایل‌های معنایی/برند وجود ندارد و همگی توسط سیستمِ CSS Variables مدیریت می‌شوند. ۵. `npm run build` کاملاً موفق عمل می‌کند و فایل‌های زائد معماری قبل از دیسک محو شده‌اند. ۶. **هیچ متن/آیکونِ رنگِ‌برندی روی هیچ سطحِ روشنی (در هیچ‌کدام از ۳ تم) کنتراستِ کمتر از ۴.۵:۱ ندارد** — یعنی کلاسِ خامِ `text-primary`/`text-[var(--color-primary)]` در هیچ فایلِ زنده‌ای باقی نمانده (همه به `text-primary-text` منتقل شده‌اند).
 
-
 ---
 
-# فاز O — بازطراحی UX تایمر تمرکز (Apple Duration Picker + Zen Polish)
+# فاز O — درمان ریشه‌ای مسیر به‌روزرسانی تسک (Task Update Integrity)
 
-> مرجع: `docs/PROJECT.md §O` و `docs/ARCHITECTURE.md §O`.
-> قانون طلایی: فقط `FocusTimer.tsx` (+docs). صفر پکیج/RPC/فایل runtime جدید.
-> هدف: درمان بدهی UXِ N-7 با الگوی اپل، بدون چسب‌زخم.
+> جایگزینِ ناقصِ N-4 و N-7. دستورها خط‌به‌خط؛ خروجی سینیور.
 
----
+### تسک O-1: Canonical whitelist در `taskService.updateTask` (دفاع عمق)
 
-### تسک O-1: جایگزینی پنل این‌لاین با DurationPickerModal (Apple wheels)
+- **عنوان:** مقاوم‌سازی PATCH تسک در برابر object کامل و فیلدهای immutable
+- **راهنمای پیاده‌سازی فنی:**
+  1. فقط `services/taskService.ts` (مگر type کوچک همان‌جا).
+  2. در `updateTask(id, updates)` به‌جای `const { project, ...cleanUpdates } = updates`:
+     - allowlist: `title, description, status, priority, due_date, project_id, tags, checklist, completed_at`.
+     - فقط کلیدهای موجود در `updates` با مقدار `!== undefined` را کپی کن (partial واقعی).
+     - `null` برای `description | due_date | project_id | completed_at` مجاز و باید ارسال شود.
+     - اگر `tags`/`checklist` حاضر ولی غیرآرایه‌اند → `[]`.
+     - هرگز `id | user_id | created_at | updated_at | embedding | project` در body نباشد.
+  3. `.eq('id', id)` از آرگومان اول — id در body نیاید.
+  4. `.select(...)` هم‌تراز `getTasks` (بدون `*` و بدون embedding).
+  5. throw error مثل قبل.
+  6. helper داخلی اختیاری؛ export عمومی لازم نیست.
+- **محدودیت‌های اختصاصی:**
+  - **باید:** partial مثل `{ checklist: [...] }` بدون title کار کند.
+  - **باید:** `updateTask(id, fullTaskRow)` از نظر body امن باشد.
+  - **نباید:** SQL/RPC/createTask/noteService را در این تسک عوض کنی.
+  - **نباید:** کلید با value=`undefined` به supabase بدهی.
+- **معیار قبولی میکرو:**
+  - body شبکه فقط allowlist.
+  - update فقط checklist یا فقط status موفق.
+  - برگشت type Task بدون وابستگی به embedding.
+- **CONTEXT_FILES:**
+```json
+CONTEXT_FILES: ["services/taskService.ts", "types.ts", "hooks/useDataManager.ts"]
+```
 
-**عنوان:** حذف `isEditingTimer` UI از ویجت؛ ورود به مودال wheel با pencil / clock / chips.
+### تسک O-2: حذف close اجباری بعد از save در `TasksView`
 
-**راهنمای پیاده‌سازی فنی:**
-1. در `FocusTimer.tsx` state `isEditingTimer` را حذف کن و `isDurationPickerOpen` بگذار.
-2. `DurationWheel` و `DurationPickerModal` را در **module scope** همان فایل بساز (نه داخل بدنه‌ی `FocusTimer` — ضد remount).
-3. Wheel:
-   - مقادیر ۱..۹۹، item height ۴۴px، ۵ ردیف مرئی، snap-y mandatory.
-   - band انتخاب وسط + fade لبه‌ها با gradient از `#16161A`.
-   - debounced settle بعد از scroll → `onChange(clamp)`.
-   - tap → mode type با `inputMode="numeric"`؛ commit با blur/Enter.
-4. Modal:
-   - draft state؛ confirm نهایی می‌کند؛ cancel/backdrop discard.
-   - دو wheel افقی کنار هم: فوکوس | استراحت.
-   - `z-[80]`، bottom-sheet موبایل، `pb-safe-content`، body scroll lock.
-5. `applyDurations(f,b)`: clamp، setState، localStorage (`hexer-focus-minutes` / `hexer-break-minutes`)، pause، `timeLeft` را برای segment فعال reset، close.
-6. ویجت: chips «فوکوس N′» و «استراحت M′» + pencil ۴۴×۴۴ + tap روی `formatTime`.
+- **عنوان:** جدا کردن «ذخیره» از «بستن مودال» در میزبان TasksView
+- **راهنمای پیاده‌سازی فنی:**
+  1. فقط `features/tasks/TasksView.tsx`.
+  2. در `handleSaveTask`:
+     - عنوان خالی: `setEditingTask(null)` OK (invalid/cancel).
+     - update: فقط `return updateTask(taskToSave)` — **بدون** `setEditingTask(null)` انتهایی.
+     - create: فقط `return addTask(...)` — **بدون** close انتهایی؛ مودال بعد از success در `handleSave` خودش `onClose` می‌زند.
+  3. مثل `App.handleSaveModalTask` مقدار Promise را `return` کن تا `await onSave` مودال بشکند.
+  4. هیچ تغییر UI دیگر (search/accordion/group).
+- **محدودیت‌های اختصاصی:**
+  - **باید:** close فقط از prop `onClose` مودال.
+  - **نباید:** flag سراسری یا close داخل updateTask.
+  - **نباید:** App.tsx را «برای قشنگ شدن» دست بزنی مگر باگ موازی.
+  - **نباید:** stopPropagation را فیکس اصلی بدانی (می‌تواند بماند).
+- **معیار قبولی میکرو:**
+  - تیک ساب‌تسک در صفحه کارها مودال را نمی‌بندد.
+  - save حالت edit مودال را می‌بندد (onClose مودال).
+  - create بعد از save مودال را می‌بندد.
+- **CONTEXT_FILES:**
+```json
+CONTEXT_FILES: ["features/tasks/TasksView.tsx", "App.tsx", "features/tasks/components/TaskEditorModal.tsx"]
+```
 
-**محدودیت‌های اختصاصی:**
-- **نباید:** پنل این‌لاین دو-input برگردد.
-- **نباید:** range یا کلید storage عوض شود.
-- **نباید:** lib اسکرول/picker اضافه شود.
-- **باید:** تأیید فقط با CTA/چک؛ scroll alone persist نکند.
+### تسک O-3: یکسان‌سازی payload در همه‌ی مسیرهای `TaskEditorModal`
 
-**معیار پذیرش میکرو:**
-- کلیک مداد/عدد/چیپ → مودال؛ ویجت ارتفاعش جهش نمی‌کند.
-- چرخاندن + tap-type + تأیید → زمان و storage درست؛ کنسل → بدون تغییر.
-- iOS: کیبورد عددی روی type mode.
-
-**CONTEXT_FILES:** `["features/dashboard/components/FocusTimer.tsx"]`
-
----
-
-### تسک O-2: Zen Mode — یک mode-toggle + ادیت مدت + layout بدون اسکرول اجباری
-
-**عنوان:** حذف دکمهٔ دوم «استراحت زودهنگام»؛ افزودن pencil + tap-timer؛ shell غیر اسکرولی.
-
-**راهنمای پیاده‌سازی فنی:**
-1. Bottom controls فقط سه کنترل: Reset | Play/Pause | **Mode** (label پویا: استراحت/فوکوس + دقیقهٔ مقصد).
-2. Mode = همان `handleToggleMode` (early rest وقتی focus؛ early focus وقتی break).
-3. Top bar: `pt-app-safe` + pencil → `setIsDurationPickerOpen(true)` + «خروج».
-4. دایره‌ی تایمر بزرگ `button` است → همان picker.
-5. Shell: `h-[100dvh] overflow-hidden flex flex-col`.
-6. Session card: `max-h-[32vh] overflow-y-auto no-scrollbar` (تنها ناحیه‌ی scroll).
-7. دایره با `clamp` / `min(16rem,55vw)` تا روی گوشی‌های کوتاه جا شود.
-8. رنگ brand: `text-[var(--text-on-primary)]` نه `text-black`.
-
-**محدودیت‌های اختصاصی:**
-- **نباید:** دکمهٔ دوم «استراحت زودهنگام» برگردد.
-- **نباید:** کل overlay `overflow-y-auto` شود (shell ثابت).
-- **نباید:** autosave/exit flow (L4.1) تغییر کند.
-- **باید:** picker از zen بالای overlay باز شود (z-80 > z-60).
-
-**معیار پذیرش میکرو:**
-- iPhone SE-class: zen بدون scroll اجباری برای دیدن controls.
-- از focus → mode = رفتن به break؛ از break → برگشت به focus.
-- مداد و tap تایمر مودال را باز می‌کنند؛ تأیید مدت در zen اعمال می‌شود.
-
-**CONTEXT_FILES:** `["features/dashboard/components/FocusTimer.tsx"]`
+- **عنوان:** builder واحد + minimal patch برای view-mode + close-on-success
+- **راهنمای پیاده‌سازی فنی:**
+  1. فقط `features/tasks/components/TaskEditorModal.tsx`.
+  2. helper داخلی `buildTaskWritePayload` (یا نام هم‌ارز): خروجی = فیلدهای writable + `id?` برای routing.
+  3. `handleSave`: full writable + due_date منطقی فعلی؛ `await onSave(...)`؛ **`onClose` فقط بعد از success** (امروز بعد از catch هم close می‌شود — اصلاح شود).
+  4. `handleToggleChecklistItem` view: `onSave({ id: formState.id, checklist: updatedChecklist })`؛ local setState؛ هرگز onClose.
+  5. `toggleStatus` view: `onSave({ id, status, completed_at })`؛ هرگز onClose.
+  6. اگر `!formState.id` در partial → save نکن.
+  7. stopPropagation روی checkbox می‌تواند بماند.
+- **محدودیت‌های اختصاصی:**
+  - **باید:** صفر مسیر view با spread خام `formState` به onSave.
+  - **نباید:** دست زدن غیرضروری به timezone/date/link logic.
+  - **نباید:** dependency/modal/confirm جدید.
+  - **نباید:** effect `[isOpen, task]` را طوری بشکنی که mid-edit ریست شود.
+- **معیار قبولی میکرو:**
+  - PATCH تیک ساب‌تسک عمدتاً checklist.
+  - status toggle بدون close و بدون 400.
+  - edit save موفق می‌بندد؛ edit save ناموفق باز می‌ماند.
+  - reopen + save دوباره OK.
+- **CONTEXT_FILES:**
+```json
+CONTEXT_FILES: ["features/tasks/components/TaskEditorModal.tsx", "services/taskService.ts", "types.ts", "features/tasks/TasksView.tsx", "App.tsx"]
+```
 
 ---
 
 ## ترتیب اجرای توصیه‌شده‌ی فاز O
-1. O-1 (modal + widget entry points)
-2. O-2 (zen polish) — همان فایل؛ منطقاً بعد از O-1 تا از modal آماده‌شده استفاده کند.
-> چون هر دو Write فقط روی `FocusTimer.tsx` دارند، **سریالی** اجرا شوند (نه موازی).
+1. **O-1** (service)
+2. **O-2** (TasksView) — قابل موازی با O-1
+3. **O-3** (Modal) — بعد از O-1؛ ترجیحاً بعد از O-2
+
+**پیشنهاد:** O-1 → O-2 → O-3
 
 ## معیار پذیرش نهایی فاز O
-۱. ویجت فوکوس روی موبایل فشرده و پایدار است؛ بدون کش شدن برای edit.
-۲. ویرایش مدت فقط از مودال Apple-style (wheel + tap-to-type) انجام می‌شود.
-۳. Zen: ادیت مدت در دسترس است؛ فقط یک mode-toggle؛ بدون scroll اجباری صفحه.
-۴. localStorage و range ۱..۹۹ و رفتار pause-on-change حفظ شده.
-۵. z-index: duration `80` > task `70` ≥ zen `60`.
-۶. هیچ dependency/backend/تغییر فایل runtime دیگر.
+1. تیک ساب‌تسک مودال را در هیچ host نمی‌بندد.
+2. بدون «خطا در به‌روزرسانی کار» در ویرایش متوالی/ساب‌تسک آنلاین سالم.
+3. بدون PATCH 400 از فیلد غیرمجاز.
+4. create/delete/toggle-from-list بدون رگرسیون.
+5. دفاع عمق service حتی اگر UI object کامل بفرستد.

@@ -775,68 +775,76 @@ Toast در `right-4` قرار دارد که در RTL معنی «لبه‌ی شر
 7. تیک زدن ساب‌تسک مودال را نمی‌بندد.
 8. کاربر می‌تواند زمان فوکوس/استراحت را ویرایش کند و از zen mode زودتر به استراحت برود.
 
+---
 
-# فاز O — بازطراحی UX تایمر تمرکز (Apple Duration Picker + Zen Polish)
+# فاز O — درمان ریشه‌ای مسیر به‌روزرسانی تسک (Task Update Integrity Hotfix)
+
+> **زمینه:** دو باگ حیاتی پس از فاز N همچنان در پروداکشن بازتولید می‌شوند. فاز N روی «نشانه‌»ها کار کرد (`stopPropagation`، sanitization فقط در `handleSave`). فاز O ریشه را در قرارداد داده و lifecycle مودال درمان می‌کند. بک‌اند/SQL/RPC تغییر نمی‌کند مگر صراحتاً خلافش ثابت شود. مخاطب: صدها کاربر پریمیوم — ریسک صفر، تغییر سطحی ممنوع.
 
 ## O.1. هدف بیزینسی
-رفع بدهی UX ایجادشده در N-7 (ویرایش این‌لاین زمان تایمر + دکمهٔ تکراری استراحت):
-- ظاهر باکس فوکوس روی موبایل آسیب دیده بود (ارتفاع شناور + فشردگی).
-- Zen Mode با دو کنترلِ هم‌معنا اسکرول اجباری و حس غیر اپلی ایجاد می‌کرد.
-- ویرایش مدت‌زمان باید «اپل‌مانند» باشد: چرخ/اسکرول خفن + tap-to-type.
+- **اعتماد به ویرایش مکرر:** کاربر بتواند بار اول، دوم، سوم… هر تسک را بدون پیام «خطا در به‌روزرسانی کار» ویرایش کند (از جمله افزودن ساب‌تسک و تیک زدن آن).
+- **پایداری پنل مشاهده:** تیک ساب‌تسک در view mode فقط همان آیتم را تغییر می‌دهد؛ پنل مشاهده/مودال **نباید** بسته شود.
+- **صحت داده در PostgREST:** هر PATCH به `tasks` فقط ستون‌های writable واقعی را حمل کند تا 400 حذف شود.
 
-## O.2. پرسونا
-نسل Z موبایل‌محور؛ انتظار polish هم‌سطح Clock/Timer اپل، tap target ≥ ۴۴px، صفر وابستگی تازه.
+## O.2. پرسونای هدف
+کاربر پریمیوم موبایلی که روزانه چندبار تسک را باز می‌کند، ساب‌تسک تیک می‌زند، دوباره ویرایش می‌کند — انتظار UX بدون رگرسیون.
 
-## O.3. پشته (بدون تغییر)
-React + Vite + Tailwind CDN + motion + localStorage برای `hexer-focus-minutes` / `hexer-break-minutes`.
-هیچ RPC/DB/Edge/پکیج جدیدی.
+## O.3. پشته‌ی تثبیت‌شده (بدون تغییر)
+React 19 + TypeScript + Vite + Tailwind + Supabase JS (PostgREST) + `contexts/DataContext` + `hooks/useDataManager` + offline outbox. **هیچ dependency جدید.**
 
-## O.4. تصمیمات معماری کلیدی (۳ معیار: مدرن / اصولی / ساده)
+## O.4. تصمیمات معماری کلیدی (پاسخ به شکست فاز N)
 
-### O-D1 — ویرایش مدت‌زمان
-گزینه‌ها:
-1. پنل این‌لاین در ویجت (N-7 فعلی) — ساده اما layout موبایل را می‌شکند.
-2. input عددی ساده در bottom-sheet — اصولی ولی نه Gen-Z / نه اپل.
-3. **مودال Duration Picker با دو wheel عمودی کنار هم (snap) + tap روی عدد → type** ✅
+**تصمیم O‑الف — شکست تشخیص N-B7 (بسته شدن مودال) — Supersede:**
+فاز N فرض کرد ریشه = event bubble به backdrop و `e.stopPropagation()` را تجویز کرد. در کد فعلی `stopPropagation` **اعمال شده** ولی باگ زنده است.
+ریشه‌ی واقعی (خط‌به‌خط از سورس):
+1. دو میزبانِ مودال وجود دارد: `App.tsx` (`handleSaveModalTask` — مودال را نمی‌بندد) و `features/tasks/TasksView.tsx` (`handleSaveTask` — **بعد از هر `onSave` صریحاً `setEditingTask(null)` می‌زند** خط ~۹۶–۱۱۶).
+2. `TaskEditorModal.handleToggleChecklistItem` و `toggleStatus` در view mode با `onSave(updatedTask)` کال می‌شوند.
+3. وقتی مودال از مسیر TasksView باز است، هر تیک ساب‌تسک = save + **close اجباری**.
+**تصمیم:** بستن مودال فقط در lifecycle صریح «commit فرم edit / create» یا delete/cancel. مسیرهای **view-mode partial update** (checklist toggle، status toggle) هرگز نباید close را trigger کنند. اصلاح در `TasksView.handleSaveTask`: دیگر unconditional نبندد. `TaskEditorModal` خودش بعد از `handleSave` (فرم) `onClose` می‌زند. الگوی `App.handleSaveModalTask` مرجع صحیح است.
 
-انتخاب نهایی = **۳**:
-- مدرن‌ترین (گرامر بصری Apple Timer؛ دو ستون افقی، هر ستون scroll-snap عمودی).
-- اصولی‌ترین (جداسازی UI مودال از ویجت؛ draft state تا confirm؛ cancel = discard).
-- ساده‌ترین در سطح production (بدون lib؛ CSS scroll-snap + debounced settle؛ بدون physics engine).
+**تصمیم O‑ب — شکست تشخیص N-B4 (PATCH 400 / ذخیره‌ی دوم) — Supersede:**
+فاز N فقط در `TaskEditorModal.handleSave` whitelist ساخت. ولی:
+1. `handleToggleChecklistItem` و `toggleStatus` هنوز کل `{...formState}` (شامل `id`, `user_id`, `created_at`, `updated_at`, و هر فیلد join/UI) را به `onSave` می‌دهند.
+2. `taskService.updateTask` فقط `project` را destructure می‌کند؛ پس `id`/`user_id`/timestamps وارد bodyی `.update()` می‌شوند.
+3. PostgREST روی PATCH با فیلد غیرمجاز/immutable → **400 Bad Request** (لاگ کاربر: `PATCH .../tasks?id=eq.<uuid>&select=* 400`).
+4. cleanPayload فعلی `id` را برای routing می‌گذارد — درست است **اگر** service قبل از update strip کند؛ فعلاً strip کامل نیست.
+5. `useDataManager.updateTask` همان object را به service و outbox می‌دهد.
+**تصمیم — منبع واحد sanitization (Canonical Whitelist) در `services/taskService.updateTask`:**
+فقط: `title | description | status | priority | due_date | project_id | tags | checklist | completed_at`
+حذف اجباری: `id | user_id | created_at | updated_at | embedding | project` + هر کلید دیگر.
+`updated_at` را کلاینت در body نفرستد. این لایه defense-in-depth پروداکشن است.
 
-### O-D2 — کنترل استراحت در Zen
-گزینه‌ها:
-1. دو دکمه (mode + «استراحت زودهنگام») — N-7؛ duplicate و scroll.
-2. long-press روی play — مخفی، discoverability پایین.
-3. **یک دکمهٔ دوحالته «استراحت / فوکوس» با نمایش دقیقهٔ مقصد** ✅
+**تصمیم O‑ج — قرارداد onSave برای view-mode vs edit-commit:**
+- Edit-commit (`handleSave`): payload کاملِ writable + `onClose` فقط بعد از success.
+- View partial (toggle status/checklist): minimal patch (`{id, checklist}` یا `{id, status, completed_at}`)؛ **هرگز** onClose.
+- والد برای partial هرگز close نکند.
 
-انتخاب نهایی = **۳**: همان `handleToggleMode`؛ یک کنترل، بدون اسکرول اجباری.
+**تصمیم O‑د — prop task کهنه:**
+formState محلی منبع UI مودالِ باز است. در این فاز sync اجباری `editingTask` در والد لازم نیست. effect `[isOpen, task]` را طوری عوض نکن که mid-edit ریست شود.
 
-### O-D3 — جای ادیت در Zen
-گزینه‌ها: فقط آیکون مداد / فقط tap روی تایمر / **هر دو** ✅
-انتخاب = هر دو، یک entry-point واحد به همان مودال.
+**تصمیم O‑ه — Toast تکراری تیک:**
+خارج از اسکوپ؛ `addNotification("کار به‌روزرسانی شد.")` را در این فاز تغییر نده.
 
-### O-D4 — فایل جدید؟
-گزینه‌ها: فایل `DurationPickerModal.tsx` جدا / inline در `FocusTimer.tsx`.
-انتخاب = **هم‌فایلِ `FocusTimer.tsx`** (module-scope helpers): صفر routing debt، zero dead import risk، scope فقط focus؛ اگر بعداً reuse شد extract می‌شود (YAGNI).
+**تصمیم O‑و — بدون SQL:**
+اگر بعد از whitelist کامل هنوز 400 بود → متوقف شو و error body سوپابیس را از کاربر بخواه. قبل از آن migration ننویس.
 
-## O.5. [حیاتی] نبایدهای سخت‌گیرانه فاز O
-- O-1: هیچ dependency جدیدی (picker lib، hammerjs، …).
-- O-2: بازنگشتن به پنل این‌لاین `isEditingTimer` در ویجت.
-- O-3: دو دکمهٔ هم‌معنا برای استراحت ممنوع.
-- O-4: z-index مودال picker باید بالای zen (`z-[60]`) باشد → `z-[80]`؛ task picker `z-[70]` بماند.
-- O-5: تأیید مودال فقط با CTA/چک؛ اسکرول alone نباید localStorage بنویسد.
-- O-6: range همچنان ۱…۹۹؛ کلیدهای storage بدون rename.
-- O-7: overflow ویجت را برای settings منبسط نکن؛ ارتفاع ویجت پایدار بماند.
-- O-8: Zen shell = `h-[100dvh] overflow-hidden`؛ فقط کارت session در صورت نیاز scroll کند.
-- O-9: `text-black` روی brand ممنوع — `text-[var(--text-on-primary)]` / `text-on-primary`.
-- O-10: بدون تغییر backend / RPC / schema.
+## O.5. [حیاتی] نبایدهای سخت‌گیرانه‌ی فاز O
+| # | نباید | جایگزین |
+|---|-------|---------|
+| O-1 | تکیهٔ صرف به `stopPropagation` برای باز ماندن مودال | اصلاح close در `TasksView.handleSaveTask` |
+| O-2 | sanitization فقط در UI | whitelist اجباری در `taskService.updateTask` |
+| O-3 | ارسال `id`/`user_id`/`created_at`/`updated_at`/`embedding` در PATCH body | strip قبل از `.update()` |
+| O-4 | close مودال بعد از هر `onSave` در TasksView | close فقط از `onClose` مودال |
+| O-5 | تغییر RPC/SQL برای این دو باگ | فقط فرانت + service |
+| O-6 | breaking change روی `useData().updateTask` | همان امضا با `id` الزامی |
+| O-7 | ریست formState وسط تایپ | contract effect فعلی حفظ شود |
+| O-8 | کتابخانه form/validation جدید | plain object whitelist |
+| O-9 | گسترش به note/project/habit مگر ضروری | فقط tasks |
+| O-10 | بستن مودال در error path | مودال باز + toast error |
 
-## O.6. تعریف «انجام‌شده»
-1. مداد/عدد/چیپ‌های مدت در ویجت → مودال wheel؛ بدون کش شدن باکس.
-2. در Zen: مداد + tap روی تایمر بزرگ همان مودال را باز می‌کند.
-3. در Zen فقط یک کنترل mode (استراحت↔فوکوس)؛ بدون دکمهٔ دوم و بدون scroll اجباریِ کل صفحه.
-4. tap روی عدد wheel → type با `inputMode="numeric"`؛ Enter/blur = commit clamp.
-5. Confirm → persist localStorage + reset segment فعال + pause.
-6. Cancel / backdrop → discard draft.
-7. موبایل: tap ≥ ۴۴، safe-area، bottom-sheet روی گوشی / center card روی sm+.
+## O.6. تعریف «انجام‌شده» برای فاز O
+1. تیک ساب‌تسک در view mode مودال را در مسیر Tasks و App نمی‌بندد؛ UI و DB هم‌خوان‌اند.
+2. ویرایش متوالی / افزودن ساب‌تسک / تیک ساب‌تسک بدون toast خطا و بدون PATCH 400.
+3. `taskService.updateTask` در برابر object کامل `Task` مقاوم است.
+4. flush آفلاین از sanitize سرویس بهره می‌برد (منبع حقیقت service است).
+5. بدون رگرسیون create/delete/toggle-from-list/link-note.
