@@ -473,10 +473,15 @@ export const FocusTimer: React.FC = () => {
 
     try {
       if (distractionCount > 0) {
+        // Date-only for "today" — same convention as TaskEditorModal (local noon → ISO).
+        const dueToday = new Date();
+        dueToday.setHours(12, 0, 0, 0);
+
         await addTask({
           title: 'چیزایی که نیاز به بررسی دارن',
           priority: 'medium',
           tags: [],
+          due_date: dueToday.toISOString(),
           checklist: distractions.map(
             (text) =>
               ({
