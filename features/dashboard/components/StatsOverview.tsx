@@ -39,6 +39,41 @@ function faNum(n: number): string {
   return n.toLocaleString('fa-IR');
 }
 
+/** Module-level track row — never define components inside render. */
+interface GlanceTrackRowProps {
+  ratio: number;
+  label: string;
+}
+
+function GlanceTrackRow({ ratio, label }: GlanceTrackRowProps) {
+  const residual = 1 - ratio;
+  const showDash = residual > 0.001;
+
+  return (
+    <div className="relative w-full h-[24px]">
+      {/* No overflow-hidden: dashed border ends must stay unclipped. Gap + flexGrow (not width%). */}
+      <div className="absolute inset-0 flex items-stretch gap-1" dir="rtl">
+        <div
+          className="h-full min-w-0 shrink-0 rounded-full bg-black transition-all duration-500 ease-out"
+          style={{ flexGrow: ratio, flexBasis: 0 }}
+        />
+        {showDash && (
+          <div
+            className="h-full min-w-[8px] shrink-0 rounded-full border-[1.5px] border-dashed border-black/40 bg-transparent transition-all duration-500 ease-out"
+            style={{ flexGrow: residual, flexBasis: 0 }}
+          />
+        )}
+      </div>
+      {/* Typography only — never paints a second fill layer */}
+      <div className="absolute inset-0 z-10 flex items-center justify-start pointer-events-none px-3">
+        <span className="max-w-full text-[11px] font-bold text-white whitespace-nowrap truncate">
+          {label}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export const StatsOverview: React.FC<StatsOverviewProps> = ({
   onOpenWeeklyReport,
   onOpenOverdueModal,
@@ -138,57 +173,28 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
         </button>
       </div>
 
-      {/* Box 2: Today at a Glance */}
+      {/* Box 2: Today at a Glance — brand tile; solid controls must NOT use --ink-bg */}
       <div className="tile-brand flex-1 min-h-[115px] rounded-[var(--radius-lg)] p-3 relative flex flex-col justify-between hover:-translate-y-[2px] transition-all duration-200 shadow-sm text-black">
         <div className="text-right pr-1">
           <h3 className="font-black text-[13px] text-black">کارهای امروز در یک نگاه</h3>
         </div>
 
         <div className="flex flex-col gap-1.5 mt-1">
-          {/* Row 1: fill|track complementary geometry; label = plain text overlay (no second pill) */}
-          <div className="relative w-full h-[24px]">
-            <div className="absolute inset-0 flex overflow-hidden rounded-full" dir="rtl">
-              <div
-                className="h-full shrink-0 bg-[var(--ink-bg)] rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${Math.round(glance.countRatio * 100)}%` }}
-              />
-              <div
-                className="h-full shrink-0 min-w-0 rounded-full border-[1.5px] border-dashed border-black/40 transition-all duration-500 ease-out"
-                style={{ width: `${Math.round((1 - glance.countRatio) * 100)}%` }}
-              />
-            </div>
-            {/* Typography only — never paints a second fill layer */}
-            <div className="absolute inset-0 z-10 flex items-center justify-start pointer-events-none px-3">
-              <span className="max-w-full text-[11px] font-bold text-white whitespace-nowrap truncate">
-                تعداد: {faNum(glance.doneToday)}/{faNum(glance.totalToday)}
-              </span>
-            </div>
-          </div>
+          <GlanceTrackRow
+            ratio={glance.countRatio}
+            label={`تعداد: ${faNum(glance.doneToday)}/${faNum(glance.totalToday)}`}
+          />
 
-          {/* Row 2: high priority — same contract */}
-          <div className="relative w-full h-[24px]">
-            <div className="absolute inset-0 flex overflow-hidden rounded-full" dir="rtl">
-              <div
-                className="h-full shrink-0 bg-[var(--ink-bg)] rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${Math.round(glance.highRatio * 100)}%` }}
-              />
-              <div
-                className="h-full shrink-0 min-w-0 rounded-full border-[1.5px] border-dashed border-black/40 transition-all duration-500 ease-out"
-                style={{ width: `${Math.round((1 - glance.highRatio) * 100)}%` }}
-              />
-            </div>
-            <div className="absolute inset-0 z-10 flex items-center justify-start pointer-events-none px-3">
-              <span className="max-w-full text-[11px] font-bold text-white whitespace-nowrap truncate">
-                مهم: {faNum(glance.highDoneToday)}/{faNum(glance.highTotalToday)}
-              </span>
-            </div>
-          </div>
+          <GlanceTrackRow
+            ratio={glance.highRatio}
+            label={`مهم: ${faNum(glance.highDoneToday)}/${faNum(glance.highTotalToday)}`}
+          />
 
-          {/* Row 3: overdue */}
+          {/* Row 3: overdue — solid black on brand (not glass ink) */}
           <button
             type="button"
             onClick={onOpenOverdueModal}
-            className="bg-[var(--ink-bg)] hover:bg-[#202024] active:scale-[0.98] transition-all rounded-full h-[24px] w-full flex items-center justify-between p-[2px] cursor-pointer group"
+            className="bg-black hover:bg-[#202024] active:scale-[0.98] transition-all rounded-full h-[24px] w-full flex items-center justify-between p-[2px] cursor-pointer group"
           >
             <div className="text-white text-[11px] font-bold pr-2.5">
               عقب افتاده: {faNum(glance.overdue)}
