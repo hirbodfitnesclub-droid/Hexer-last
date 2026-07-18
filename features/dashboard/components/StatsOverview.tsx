@@ -50,26 +50,23 @@ function GlanceTrackRow({ ratio, label }: GlanceTrackRowProps) {
   const showDash = residual > 0.001;
 
   return (
-    <div className="relative w-full h-[24px]">
-      {/* No overflow-hidden: dashed border ends must stay unclipped. Gap + flexGrow (not width%). */}
-      <div className="absolute inset-0 flex items-stretch gap-1" dir="rtl">
-        <div
-          className="h-full min-w-0 shrink-0 rounded-full bg-black transition-all duration-500 ease-out"
-          style={{ flexGrow: ratio, flexBasis: 0 }}
-        />
-        {showDash && (
-          <div
-            className="h-full min-w-[8px] shrink-0 rounded-full border-[1.5px] border-dashed border-black/40 bg-transparent transition-all duration-500 ease-out"
-            style={{ flexGrow: residual, flexBasis: 0 }}
-          />
-        )}
-      </div>
-      {/* Typography only — never paints a second fill layer */}
-      <div className="absolute inset-0 z-10 flex items-center justify-start pointer-events-none px-3">
+    // Label lives INSIDE fill (mockup contract). Track has no overflow-hidden so dash ends stay unclipped.
+    // Fill may clip its own text. min-w keeps empty ~30% floor readable for «تعداد: ۰/۰».
+    <div className="flex items-stretch gap-1 w-full h-[24px]" dir="rtl">
+      <div
+        className="h-full min-w-[4.75rem] shrink-0 rounded-full bg-black flex items-center justify-start px-2.5 overflow-hidden transition-all duration-500 ease-out"
+        style={{ flexGrow: ratio, flexBasis: 0 }}
+      >
         <span className="max-w-full text-[11px] font-bold text-white whitespace-nowrap truncate">
           {label}
         </span>
       </div>
+      {showDash && (
+        <div
+          className="h-full min-w-[8px] shrink-0 rounded-full border-[1.5px] border-dashed border-black/40 bg-transparent transition-all duration-500 ease-out"
+          style={{ flexGrow: residual, flexBasis: 0 }}
+        />
+      )}
     </div>
   );
 }
