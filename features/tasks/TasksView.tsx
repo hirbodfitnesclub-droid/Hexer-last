@@ -8,6 +8,11 @@ import {
 import { TaskCard } from './components/TaskCard';
 import { TaskEditorModal } from './components/TaskEditorModal';
 import { groupTasks } from '../../utils/taskGrouping';
+import { getTehranDateString } from '../../utils/dateUtils';
+import {
+  isRecurringDoneOlderThan,
+  normalizeRecurrence,
+} from '../../utils/recurrenceUtils';
 
 const CollapsibleSection: React.FC<{ title: string; count: number; children: React.ReactNode }> = ({ title, count, children }) => {
   const [isCollapsed, setIsCollapsed] = useState(true);
@@ -15,8 +20,8 @@ const CollapsibleSection: React.FC<{ title: string; count: number; children: Rea
 
   return (
     <div className="border-t border-[var(--border-subtle)] pt-2 mt-4">
-      <button 
-        onClick={() => setIsCollapsed(!isCollapsed)} 
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
         className="w-full flex justify-between items-center px-1 py-2.5 text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
       >
         <span>{title} ({count})</span>
@@ -30,6 +35,36 @@ const CollapsibleSection: React.FC<{ title: string; count: number; children: Rea
     </div>
   );
 };
+
+/** Split completed list: old recurring dones (>14 Tehran days) vs recent (search shows all). */
+function partitionCompletedTasks<T extends Task>(
+  completed: T[],
+  searchActive: boolean,
+  todayYmd: string
+): { recent: T[]; oldRecurring: T[] } {
+  if (searchActive) {
+    return { recent: completed, oldRecurring: [] };
+  }
+  const recent: T[] = [];
+  const oldRecurring: T[] = [];
+  for (const t of completed) {
+    if (
+      t.status === 'done' &&
+      normalizeRecurrence(t.recurrence) &&
+      isRecurringDoneOlderThan(t.due_date, todayYmd, 14)
+    ) {
+      oldRecurring.push(t);
+    } else {
+      recent.push(t);
+    }
+  }
+  return { recent, oldRecurring };
+}
+
+const sortCompletedNewest = <T extends Task>(list: T[]) =>
+  [...list].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
 
 export const TasksView: React.FC = () => {
   const { 
@@ -105,7 +140,17 @@ export const TasksView: React.FC = () => {
       return;
     }
 
-    const { title, description, due_date, priority, tags, project_id, checklist } = taskToSave as Partial<Task>;
+    const {
+      title,
+      description,
+      due_date,
+      priority,
+      tags,
+      project_id,
+      checklist,
+      recurrence,
+      recurrence_series_id,
+    } = taskToSave as Partial<Task>;
     return addTask({
       title: title || '',
       description: description || null,
@@ -113,7 +158,9 @@ export const TasksView: React.FC = () => {
       priority: priority || Priority.Medium,
       tags: tags || [],
       project_id: project_id || null,
-      checklist: checklist || []
+      checklist: checklist || [],
+      recurrence: recurrence ?? null,
+      recurrence_series_id: recurrence_series_id ?? null,
     });
   };
 
@@ -243,23 +290,51 @@ export const TasksView: React.FC = () => {
                         <p className="text-xs text-[var(--text-muted)] text-center py-2.5 leading-relaxed">کار فعالی در این پروژه وجود ندارد.</p>
                       )}
 
-                      {group.completed.length > 0 && (
-                        <CollapsibleSection title="انجام‌شده‌ها" count={group.completed.length}>
-                          <div className="space-y-3">
-                            {group.completed
-                              .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                              .map(task => (
-                                <TaskCard 
-                                  key={task.id} 
-                                  task={task} 
-                                  onToggle={toggleTaskCompletion} 
-                                  onDelete={deleteTask} 
-                                  onEdit={setEditingTask} 
-                                />
-                              ))}
-                          </div>
-                        </CollapsibleSection>
-                      )}
+                      {(() => {
+                        const todayYmd = getTehranDateString();
+                        const { recent, oldRecurring } = partitionCompletedTasks(
+                          group.completed,
+                          !!searchQuery.trim(),
+                          todayYmd
+                        );
+                        return (
+                          <>
+                            {recent.length > 0 && (
+                              <CollapsibleSection title="انجام‌شده‌ها" count={recent.length}>
+                                <div className="space-y-3">
+                                  {sortCompletedNewest(recent).map(task => (
+                                    <TaskCard
+                                      key={task.id}
+                                      task={task}
+                                      onToggle={toggleTaskCompletion}
+                                      onDelete={deleteTask}
+                                      onEdit={setEditingTask}
+                                    />
+                                  ))}
+                                </div>
+                              </CollapsibleSection>
+                            )}
+                            {oldRecurring.length > 0 && (
+                              <CollapsibleSection
+                                title="تکراری‌های قدیمی‌تر"
+                                count={oldRecurring.length}
+                              >
+                                <div className="space-y-3">
+                                  {sortCompletedNewest(oldRecurring).map(task => (
+                                    <TaskCard
+                                      key={task.id}
+                                      task={task}
+                                      onToggle={toggleTaskCompletion}
+                                      onDelete={deleteTask}
+                                      onEdit={setEditingTask}
+                                    />
+                                  ))}
+                                </div>
+                              </CollapsibleSection>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
@@ -267,6 +342,12 @@ export const TasksView: React.FC = () => {
             }
 
             // Normal Group view (agenda & priority)
+            const todayYmd = getTehranDateString();
+            const { recent, oldRecurring } = partitionCompletedTasks(
+              group.completed,
+              !!searchQuery.trim(),
+              todayYmd
+            );
             return (
               <div key={group.id} className="space-y-3 pt-2">
                 <h2 className="font-extrabold text-sm text-[var(--text-main)] mb-2 border-r-2 border-[var(--color-primary)] pr-2">
@@ -274,29 +355,45 @@ export const TasksView: React.FC = () => {
                 </h2>
                 <div className="space-y-3">
                   {group.active.map(task => (
-                    <TaskCard 
-                      key={task.id} 
-                      task={task} 
-                      onToggle={toggleTaskCompletion} 
-                      onDelete={deleteTask} 
-                      onEdit={setEditingTask} 
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      onToggle={toggleTaskCompletion}
+                      onDelete={deleteTask}
+                      onEdit={setEditingTask}
                     />
                   ))}
                 </div>
-                {group.completed.length > 0 && (
-                  <CollapsibleSection title="انجام‌شده‌ها" count={group.completed.length}>
+                {recent.length > 0 && (
+                  <CollapsibleSection title="انجام‌شده‌ها" count={recent.length}>
                     <div className="space-y-3">
-                      {group.completed
-                        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                        .map(task => (
-                          <TaskCard 
-                            key={task.id} 
-                            task={task} 
-                            onToggle={toggleTaskCompletion} 
-                            onDelete={deleteTask} 
-                            onEdit={setEditingTask} 
-                          />
-                        ))}
+                      {sortCompletedNewest(recent).map(task => (
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          onToggle={toggleTaskCompletion}
+                          onDelete={deleteTask}
+                          onEdit={setEditingTask}
+                        />
+                      ))}
+                    </div>
+                  </CollapsibleSection>
+                )}
+                {oldRecurring.length > 0 && (
+                  <CollapsibleSection
+                    title="تکراری‌های قدیمی‌تر"
+                    count={oldRecurring.length}
+                  >
+                    <div className="space-y-3">
+                      {sortCompletedNewest(oldRecurring).map(task => (
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          onToggle={toggleTaskCompletion}
+                          onDelete={deleteTask}
+                          onEdit={setEditingTask}
+                        />
+                      ))}
                     </div>
                   </CollapsibleSection>
                 )}

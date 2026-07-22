@@ -21,6 +21,17 @@ export interface ChecklistItem {
   isCompleted: boolean;
 }
 
+/** End condition embedded in recurrence JSONB (no separate DB column). */
+export type TaskRecurrenceEnd =
+  | { kind: 'on_date'; date: string } // YYYY-MM-DD Tehran calendar day, inclusive
+  | { kind: 'after_n'; remaining: number }; // further occurrences after this open one
+
+export type TaskRecurrence =
+  | { type: 'daily'; end?: TaskRecurrenceEnd }
+  | { type: 'weekly'; weekdays: number[]; end?: TaskRecurrenceEnd } // Date.getDay(): 0=Sun … 6=Sat
+  | { type: 'monthly'; days: number[]; end?: TaskRecurrenceEnd } // 1..31
+  | { type: 'yearly'; dates: Array<{ month: number; day: number }>; end?: TaskRecurrenceEnd }; // Jalali month/day
+
 export interface Task {
   id: string; // uuid
   user_id: string; // uuid
@@ -33,6 +44,8 @@ export interface Task {
   completed_at?: string | null; // timestamptz
   tags?: string[] | null;
   checklist?: ChecklistItem[]; // New field for subtasks
+  recurrence?: TaskRecurrence | null;
+  recurrence_series_id?: string | null;
   created_at: string; // timestamptz
   updated_at: string; // timestamptz
 }
@@ -64,6 +77,12 @@ export interface Habit {
 
 export type ChatMode = 'auto' | 'action' | 'memory';
 
+/** Structured search filters for AI chat (memory / type-aware RAG). */
+export type ChatSearchFilters = {
+  types?: Array<'task' | 'note' | 'project'>;
+  timeRange?: 'all' | 'today' | 'last_week';
+};
+
 export interface Citation {
   id: string;
   type: 'task' | 'note' | 'project';
@@ -74,7 +93,7 @@ export interface Citation {
 export interface ActionResult {
     type: 'task' | 'note' | 'project' | 'habit';
     data: any; // The created/updated object
-    operation: 'create' | 'update';
+    operation: 'create' | 'update' | 'suggest_link';
 }
 
 export interface ChatMessage {
@@ -163,6 +182,8 @@ export interface ExtractionProposal {
     priority?: 'low' | 'medium' | 'high';
     tags?: string[];
     project_id?: string | null;
+    /** Sub-tasks — same shape as Task.checklist (AI / media parity) */
+    checklist?: ChecklistItem[];
   };
   confidence: number;
   status: 'pending' | 'approved' | 'rejected';

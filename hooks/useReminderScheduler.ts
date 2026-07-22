@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { showViaSW, checkIfShownAndRegister } from '../services/reminderService';
 import { getRandomDailyNudge } from '../utils/notificationCopy';
 import { getTehranDateString, isSameTehranDay } from '../utils/dateUtils';
+import { isRecurring, normalizeRecurrence } from '../utils/recurrenceUtils';
 
 /** Max age for overdue catch-up (prevents storm of old due tasks on open). */
 const CATCH_UP_MS = 15 * 60 * 1000;
@@ -54,6 +55,12 @@ export function useReminderScheduler() {
           if (!task.due_date) continue;
           const dueMs = new Date(task.due_date).getTime();
           const taskMessageId = `task-${task.id}-${dueMs}`;
+          // Phase U: recurring label only — filter (due today + !done) unchanged so new series occurrences notify via new id+dueMs.
+          const body =
+            task.description ||
+            (isRecurring(normalizeRecurrence(task.recurrence))
+              ? 'زمان انجام این کار تکراری فرا رسیده است.'
+              : 'زمان انجام این کار فرا رسیده است.');
 
           // CASE 1: Recent overdue only (catch-up window — no full-day storm)
           if (dueMs <= nowMs && nowMs - dueMs <= CATCH_UP_MS) {
@@ -62,7 +69,7 @@ export function useReminderScheduler() {
               try {
                 const isShown = await checkIfShownAndRegister(taskMessageId);
                 if (!isShown) {
-                  await showViaSW(task.title, task.description || 'زمان انجام این کار فرا رسیده است.', {
+                  await showViaSW(task.title, body, {
                     tag: `task-${task.id}`,
                     messageId: taskMessageId,
                     data: { taskId: task.id }
@@ -88,7 +95,7 @@ export function useReminderScheduler() {
                   }
                   const isShown = await checkIfShownAndRegister(taskMessageId);
                   if (!isShown) {
-                    await showViaSW(task.title, task.description || 'زمان انجام این کار فرا رسیده است.', {
+                    await showViaSW(task.title, body, {
                       tag: `task-${task.id}`,
                       messageId: taskMessageId,
                       data: { taskId: task.id }

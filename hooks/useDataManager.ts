@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '../services/supabaseClient';
-import { Page, Task, Note, ChatMessage, Habit, Project, ActionResult, EntityLink } from '../types';
+import { Page, Task, Note, ChatMessage, Habit, Project, ActionResult, EntityLink, TaskRecurrence } from '../types';
 import * as projectService from '../services/projectService';
 import * as taskService from '../services/taskService';
 import * as noteService from '../services/noteService';
@@ -10,6 +10,14 @@ import { loadSnapshot, saveSnapshot } from '../services/offline/snapshot';
 import { enqueue } from '../services/offline/outbox';
 import { useOfflineSync } from './useOfflineSync';
 import { newId } from '../utils/uuid';
+import { formatPersianDate, isSameTehranDay } from '../utils/dateUtils';
+import {
+  buildNextRecurrence,
+  canContinueRecurrence,
+  computeNextDueDate,
+  normalizeRecurrence,
+  resetChecklistItems,
+} from '../utils/recurrenceUtils';
 
 export interface AppNotification {
   id: number;
@@ -37,6 +45,11 @@ export const useDataManager = (user: any) => {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [entityLinks, setEntityLinks] = useState<EntityLink[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  /** Always-current task list for spawn/inject guards (avoids stale closure + double-spawn). */
+  const tasksRef = useRef<Task[]>([]);
+  useEffect(() => {
+    tasksRef.current = tasks;
+  }, [tasks]);
 
   // Pagination states
   const [tasksLimit, setTasksLimit] = useState(50);
@@ -312,17 +325,32 @@ export const useDataManager = (user: any) => {
   }, [projects, userId, addNotification]);
 
   // Tasks CRUD - Optimistic UI & Atomic checks & Offline Queue support
-  const addTask = useCallback(async (task: Omit<Task, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'status' | 'completed_at'>): Promise<Task> => {
+  type AddTaskOpts = { silent?: boolean };
+  type UpdateTaskOpts = { skipSeriesFanOut?: boolean; silent?: boolean };
+
+  const addTask = useCallback(async (
+    task: Omit<Task, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'status' | 'completed_at'>,
+    opts?: AddTaskOpts
+  ): Promise<Task> => {
     const originalTasks = [...tasks];
     const tempId = newId();
-    const tempTask: Task = {
+    const recurrence = normalizeRecurrence(task.recurrence);
+    const seriesId = recurrence
+      ? (task.recurrence_series_id || newId())
+      : null;
+    const payload = {
       ...task,
+      recurrence,
+      recurrence_series_id: seriesId,
+    };
+    const tempTask: Task = {
+      ...payload,
       id: tempId,
       status: 'todo',
       completed_at: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      user_id: user?.id || ''
+      user_id: user?.id || '',
     };
 
     const nextTasks = [tempTask, ...tasks];
@@ -330,67 +358,297 @@ export const useDataManager = (user: any) => {
     await saveSnapshot(userId, 'tasks', nextTasks);
 
     if (!navigator.onLine) {
-      await enqueue({ id: tempId, entity: 'tasks', action: 'insert', payload: task });
-      addNotification("کار جدید به صورت آفلاین ذخیره شد.", "info");
+      await enqueue({ id: tempId, entity: 'tasks', action: 'insert', payload });
+      if (!opts?.silent) addNotification('کار جدید به صورت آفلاین ذخیره شد.', 'info');
       return tempTask;
     }
 
     try {
-      const newTask = await taskService.createTask(task, tempId);
-      setTasks(prev => prev.map(t => t.id === tempId ? newTask : t));
-      const finalTasks = nextTasks.map(t => t.id === tempId ? newTask : t);
+      const newTask = await taskService.createTask(payload, tempId);
+      setTasks(prev => prev.map(t => (t.id === tempId ? newTask : t)));
+      const finalTasks = nextTasks.map(t => (t.id === tempId ? newTask : t));
       await saveSnapshot(userId, 'tasks', finalTasks);
-      addNotification("کار با موفقیت اضافه شد.");
+      if (!opts?.silent) addNotification('کار با موفقیت اضافه شد.');
       return newTask;
     } catch (error) {
       const msg = (error as any)?.message || '';
       const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
       if (isRetry) {
-        await enqueue({ id: tempId, entity: 'tasks', action: 'insert', payload: task });
-        addNotification("کار جدید به صورت آفلاین ثبت شد.", "info");
+        await enqueue({ id: tempId, entity: 'tasks', action: 'insert', payload });
+        if (!opts?.silent) addNotification('کار جدید به صورت آفلاین ثبت شد.', 'info');
         return tempTask;
       } else {
         setTasks(originalTasks);
         await saveSnapshot(userId, 'tasks', originalTasks);
-        addNotification("خطا در افزودن کار.", "error");
+        addNotification('خطا در افزودن کار.', 'error');
         throw error;
       }
     }
   }, [tasks, user, userId, addNotification]);
 
-  const updateTask = useCallback(async (task: Task | Partial<Task>) => {
-    if (!task.id) return;
-    const originalTasks = [...tasks];
-    const nextTasks = tasks.map(t => t.id === task.id ? { ...t, ...task } as Task : t);
-    setTasks(nextTasks);
-    await saveSnapshot(userId, 'tasks', nextTasks);
+  const addTaskRef = useRef(addTask);
+  useEffect(() => {
+    addTaskRef.current = addTask;
+  }, [addTask]);
 
-    if (!navigator.onLine) {
-      await enqueue({ id: task.id, entity: 'tasks', action: 'update', payload: task });
-      addNotification("تغییرات کار به صورت آفلاین ثبت شد.", "info");
-      return;
+  const maybeSpawnNextRecurrence = useCallback(async (completedTask: Task): Promise<boolean> => {
+    const r = normalizeRecurrence(completedTask.recurrence);
+    if (!r) return false;
+    const nextDue = computeNextDueDate(completedTask.due_date, r);
+    if (!nextDue) return false;
+    if (!canContinueRecurrence(r, nextDue)) return false;
+
+    // B5: stable series id — never invent a fresh series per spawn without persisting
+    let seriesId = completedTask.recurrence_series_id || null;
+    if (!seriesId) {
+      seriesId = newId();
+      // best-effort stamp on the completed row so later completes share the series
+      try {
+        if (navigator.onLine) {
+          await taskService.updateTask(completedTask.id, {
+            recurrence_series_id: seriesId,
+          } as any);
+        } else {
+          await enqueue({
+            id: completedTask.id,
+            entity: 'tasks',
+            action: 'update',
+            payload: { recurrence_series_id: seriesId },
+          });
+        }
+        setTasks(prev =>
+          prev.map(t =>
+            t.id === completedTask.id ? { ...t, recurrence_series_id: seriesId } : t
+          )
+        );
+      } catch {
+        // still spawn with seriesId; worst case history link is weak
+      }
     }
 
+    const hasOpenSameDay = tasksRef.current.some(
+      t =>
+        t.id !== completedTask.id &&
+        t.recurrence_series_id === seriesId &&
+        t.status !== 'done' &&
+        t.due_date &&
+        isSameTehranDay(t.due_date, nextDue)
+    );
+    if (hasOpenSameDay) return false;
+
+    const nextR = buildNextRecurrence(r);
     try {
-      const updatedTask = await taskService.updateTask(task.id, task);
-      setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
-      const finalTasks = nextTasks.map(t => t.id === updatedTask.id ? updatedTask : t);
-      await saveSnapshot(userId, 'tasks', finalTasks);
-      addNotification("کار به‌روزرسانی شد.");
+      const newTask = await addTaskRef.current(
+        {
+          title: completedTask.title,
+          description: completedTask.description ?? null,
+          project_id: completedTask.project_id ?? null,
+          priority: completedTask.priority,
+          tags: completedTask.tags ?? [],
+          due_date: nextDue,
+          checklist: resetChecklistItems(completedTask.checklist),
+          recurrence: nextR,
+          recurrence_series_id: seriesId,
+        },
+        { silent: true }
+      );
+      addNotification(
+        `نوبت بعدی ثبت شد · ${formatPersianDate(nextDue)}`,
+        'info',
+        {
+          label: 'مشاهده',
+          onClick: () => {
+            window.dispatchEvent(
+              new CustomEvent('hexer:open-task-editor', { detail: newTask })
+            );
+          },
+        }
+      );
+      return true;
+    } catch {
+      // addTask already notified on hard failure
+      return false;
+    }
+  }, [addNotification]);
+
+  const updateTask = useCallback(async (
+    task: Task | Partial<Task>,
+    opts?: UpdateTaskOpts
+  ) => {
+    if (!task.id) return;
+    const originalTasks = [...tasks];
+    const prevTask = tasks.find(t => t.id === task.id);
+
+    const hasRecurrenceKey = Object.prototype.hasOwnProperty.call(task, 'recurrence');
+    let patch: Task | Partial<Task> = { ...task };
+
+    if (hasRecurrenceKey) {
+      const normalized =
+        task.recurrence === null || task.recurrence === undefined
+          ? null
+          : normalizeRecurrence(task.recurrence);
+      if (normalized === null) {
+        patch = { ...patch, recurrence: null, recurrence_series_id: null };
+      } else {
+        const seriesId =
+          task.recurrence_series_id ||
+          prevTask?.recurrence_series_id ||
+          newId();
+        patch = {
+          ...patch,
+          recurrence: normalized,
+          recurrence_series_id: seriesId,
+        };
+      }
+    }
+
+    // Series-from-now: fan-out recurrence to other open tasks in series
+    let fanOutIds: string[] = [];
+    if (
+      hasRecurrenceKey &&
+      !opts?.skipSeriesFanOut &&
+      patch.recurrence_series_id
+    ) {
+      const seriesId = patch.recurrence_series_id as string;
+      const recVal = (patch.recurrence ?? null) as TaskRecurrence | null;
+      fanOutIds = tasks
+        .filter(
+          t =>
+            t.id !== task.id &&
+            t.recurrence_series_id === seriesId &&
+            t.status !== 'done'
+        )
+        .map(t => t.id);
+
+      const nextTasks = tasks.map(t => {
+        if (t.id === task.id) return { ...t, ...patch } as Task;
+        if (fanOutIds.includes(t.id)) {
+          return {
+            ...t,
+            recurrence: recVal,
+            recurrence_series_id: recVal ? seriesId : null,
+          } as Task;
+        }
+        return t;
+      });
+      setTasks(nextTasks);
+      await saveSnapshot(userId, 'tasks', nextTasks);
+    } else {
+      const nextTasks = tasks.map(t =>
+        t.id === task.id ? ({ ...t, ...patch } as Task) : t
+      );
+      setTasks(nextTasks);
+      await saveSnapshot(userId, 'tasks', nextTasks);
+    }
+
+    const persistOne = async (id: string, body: Partial<Task>) => {
+      if (!navigator.onLine) {
+        await enqueue({ id, entity: 'tasks', action: 'update', payload: body });
+        return;
+      }
+      try {
+        await taskService.updateTask(id, body);
+      } catch (error) {
+        const msg = (error as any)?.message || '';
+        const isRetry =
+          navigator.onLine === false ||
+          msg.includes('Failed to fetch') ||
+          error instanceof TypeError;
+        if (isRetry) {
+          await enqueue({ id, entity: 'tasks', action: 'update', payload: body });
+        } else {
+          throw error;
+        }
+      }
+    };
+
+    const becameDone =
+      !!prevTask &&
+      prevTask.status !== 'done' &&
+      (patch.status === 'done' || (task as Task).status === 'done');
+
+    try {
+      if (!navigator.onLine) {
+        await enqueue({ id: task.id, entity: 'tasks', action: 'update', payload: patch });
+        for (const fid of fanOutIds) {
+          await enqueue({
+            id: fid,
+            entity: 'tasks',
+            action: 'update',
+            payload: {
+              recurrence: patch.recurrence ?? null,
+              recurrence_series_id: patch.recurrence_series_id ?? null,
+            },
+          });
+        }
+        // B2: skip generic update toast when completing — spawn (or single done path) owns feedback
+        if (!opts?.silent && !becameDone) {
+          addNotification('تغییرات کار به صورت آفلاین ثبت شد.', 'info');
+        }
+      } else {
+        const updatedTask = await taskService.updateTask(task.id, patch);
+        setTasks(prev => prev.map(t => (t.id === updatedTask.id ? { ...t, ...updatedTask } : t)));
+        for (const fid of fanOutIds) {
+          await persistOne(fid, {
+            recurrence: (patch.recurrence ?? null) as any,
+            recurrence_series_id: (patch.recurrence_series_id ?? null) as any,
+          });
+        }
+        if (!opts?.silent && !becameDone) {
+          addNotification('کار به‌روزرسانی شد.');
+        }
+      }
+
+      // Spawn when transitioning to done (recurring → one "نوبت بعدی" toast; non-recurring → one done toast)
+      if (becameDone && prevTask) {
+        const completed: Task = {
+          ...prevTask,
+          ...patch,
+          status: 'done',
+        } as Task;
+        const spawned = await maybeSpawnNextRecurrence(completed);
+        if (!opts?.silent && !spawned) {
+          addNotification(
+            navigator.onLine ? 'کار به‌روزرسانی شد.' : 'تغییرات کار به صورت آفلاین ثبت شد.',
+            navigator.onLine ? 'success' : 'info'
+          );
+        }
+      }
     } catch (error) {
       const msg = (error as any)?.message || '';
-      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      const isRetry =
+        navigator.onLine === false ||
+        msg.includes('Failed to fetch') ||
+        error instanceof TypeError;
       if (isRetry) {
-        await enqueue({ id: task.id, entity: 'tasks', action: 'update', payload: task });
-        addNotification("تغییرات کار به صورت آفلاین ثبت شد.", "info");
+        await enqueue({ id: task.id, entity: 'tasks', action: 'update', payload: patch });
+        if (!opts?.silent) addNotification('تغییرات کار به صورت آفلاین ثبت شد.', 'info');
       } else {
         setTasks(originalTasks);
         await saveSnapshot(userId, 'tasks', originalTasks);
-        addNotification("خطا در به‌روزرسانی کار.", "error");
+        addNotification('خطا در به‌روزرسانی کار.', 'error');
         throw error;
       }
     }
-  }, [tasks, userId, addNotification]);
+  }, [tasks, userId, addNotification, maybeSpawnNextRecurrence]);
+
+  const skipRecurrenceOccurrence = useCallback(async (id: string) => {
+    const task = tasksRef.current.find(t => t.id === id) || tasks.find(t => t.id === id);
+    if (!task || task.status === 'done') return;
+    const r = normalizeRecurrence(task.recurrence);
+    if (!r) return;
+    const nextDue = computeNextDueDate(task.due_date, r);
+    // B6: explicit feedback when series cannot advance
+    if (!nextDue || !canContinueRecurrence(r, nextDue)) {
+      addNotification('نوبت بعدی در بازهٔ پایان این تکرار نیست.', 'info');
+      return;
+    }
+    const nextR = buildNextRecurrence(r);
+    await updateTask(
+      { id, due_date: nextDue, recurrence: nextR },
+      { skipSeriesFanOut: true }
+    );
+  }, [tasks, updateTask, addNotification]);
 
   const deleteTask = useCallback(async (id: string) => {
     const taskToDelete = tasks.find(t => t.id === id);
@@ -439,7 +697,9 @@ export const useDataManager = (user: any) => {
     const newStatus = task.status === 'done' ? 'todo' : 'done';
     const completed_at = newStatus === 'done' ? new Date().toISOString() : null;
 
-    const nextTasks = tasks.map(t => t.id === id ? { ...t, status: newStatus, completed_at } : t);
+    const nextTasks = tasks.map(t =>
+      t.id === id ? { ...t, status: newStatus, completed_at } : t
+    );
     setTasks(nextTasks);
     await saveSnapshot(userId, 'tasks', nextTasks);
 
@@ -447,26 +707,38 @@ export const useDataManager = (user: any) => {
 
     if (!navigator.onLine) {
       await enqueue({ id, entity: 'tasks', action: 'update', payload });
+      if (newStatus === 'done') {
+        await maybeSpawnNextRecurrence({ ...task, status: 'done', completed_at });
+      }
       return;
     }
 
     try {
       const updatedTask = await taskService.updateTask(id, payload);
-      setTasks(prev => prev.map(t => t.id === id ? updatedTask : t));
-      const finalTasks = nextTasks.map(t => t.id === id ? updatedTask : t);
+      setTasks(prev => prev.map(t => (t.id === id ? updatedTask : t)));
+      const finalTasks = nextTasks.map(t => (t.id === id ? updatedTask : t));
       await saveSnapshot(userId, 'tasks', finalTasks);
+      if (newStatus === 'done') {
+        await maybeSpawnNextRecurrence({ ...task, ...updatedTask, status: 'done' });
+      }
     } catch (error) {
       const msg = (error as any)?.message || '';
-      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      const isRetry =
+        navigator.onLine === false ||
+        msg.includes('Failed to fetch') ||
+        error instanceof TypeError;
       if (isRetry) {
         await enqueue({ id, entity: 'tasks', action: 'update', payload });
+        if (newStatus === 'done') {
+          await maybeSpawnNextRecurrence({ ...task, status: 'done', completed_at });
+        }
       } else {
         setTasks(originalTasks);
         await saveSnapshot(userId, 'tasks', originalTasks);
-        addNotification("خطا در تغییر وضعیت کار.", "error");
+        addNotification('خطا در تغییر وضعیت کار.', 'error');
       }
     }
-  }, [tasks, userId, addNotification]);
+  }, [tasks, userId, addNotification, maybeSpawnNextRecurrence]);
 
   // Notes CRUD - Optimistic UI & Offline Queue support
   const addNote = useCallback(async (note: Omit<Note, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<Note> => {
@@ -760,23 +1032,50 @@ export const useDataManager = (user: any) => {
       setter(prev => {
         if (operation === 'create') {
           return [data, ...prev.filter(i => i.id !== data.id)];
-        } else {
-          return prev.map(i => i.id === data.id ? data : i);
         }
+        // update: replace if present; upsert if missing (stale/paginated cache)
+        const idx = prev.findIndex(i => i.id === data.id);
+        if (idx === -1) {
+          return [data, ...prev];
+        }
+        const next = prev.slice();
+        next[idx] = data;
+        return next;
       });
     };
 
-    if (type === 'task') updateState(setTasks);
-    else if (type === 'note') updateState(setNotes);
+    if (type === 'task') {
+      // B3: only spawn on real transition non-done → done (never re-inject of already-done)
+      const prevTask = tasksRef.current.find(t => t.id === data?.id);
+      const shouldSpawn =
+        operation === 'update' &&
+        data?.status === 'done' &&
+        !!prevTask &&
+        prevTask.status !== 'done';
+
+      updateState(setTasks);
+
+      if (shouldSpawn) {
+        void maybeSpawnNextRecurrence({
+          ...prevTask!,
+          ...data,
+          status: 'done',
+        } as Task);
+      }
+    } else if (type === 'note') updateState(setNotes);
     else if (type === 'project') updateState(setProjects);
     else if (type === 'habit') {
       const habitData = operation === 'create' ? { ...data, completedDates: [] } : data;
       setHabits(prev => {
         if (operation === 'create') return [habitData, ...prev.filter(h => h.id !== habitData.id)];
-        return prev.map(h => h.id === habitData.id ? habitData : h);
+        const idx = prev.findIndex(h => h.id === habitData.id);
+        if (idx === -1) return [habitData, ...prev];
+        const next = prev.slice();
+        next[idx] = habitData;
+        return next;
       });
     }
-  }, []);
+  }, [maybeSpawnNextRecurrence]);
 
   const { isSyncing, pendingCount, flushOutbox } = useOfflineSync(userId, addNotification, loadInitial);
 
@@ -832,6 +1131,7 @@ export const useDataManager = (user: any) => {
     updateTask,
     deleteTask,
     toggleTaskCompletion,
+    skipRecurrenceOccurrence,
     addNote,
     updateNote,
     deleteNote,

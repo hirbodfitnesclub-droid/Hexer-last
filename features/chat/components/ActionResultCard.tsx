@@ -7,6 +7,11 @@ interface ActionResultCardProps {
   onClick: (result: ActionResult) => void;
 }
 
+function taskUpdateLabel(data: Task): string {
+  if (data?.status === 'done') return 'انجام‌شده';
+  return 'تسک به‌روز شد';
+}
+
 export const ActionResultCard: React.FC<ActionResultCardProps> = ({ result, onClick }) => {
   let icon = <CheckIcon className="w-5 h-5 text-on-primary"/>;
   let label = "آیتم ساخته شد";
@@ -14,24 +19,29 @@ export const ActionResultCard: React.FC<ActionResultCardProps> = ({ result, onCl
 
   if (result.type === 'task') {
     icon = <ListChecksIcon className="w-5 h-5 text-on-primary"/>;
-    label = "تسک جدید";
-    title = (result.data as Task).title;
+    const task = result.data as Task;
+    title = task?.title || '';
+    if (result.operation === 'update') {
+      label = taskUpdateLabel(task);
+    } else {
+      label = "تسک جدید";
+    }
   } else if (result.type === 'note') {
     icon = <NotebookIcon className="w-5 h-5 text-on-primary"/>;
-    label = "یادداشت جدید";
+    label = result.operation === 'update' ? 'یادداشت به‌روز شد' : 'یادداشت جدید';
     title = (result.data as Note).title;
   } else if (result.type === 'project') {
     icon = <BriefcaseIcon className="w-5 h-5 text-on-primary"/>;
-    label = "پروژه جدید";
+    label = result.operation === 'update' ? 'پروژه به‌روز شد' : 'پروژه جدید';
     title = (result.data as Project).title;
   } else if (result.type === 'habit') {
     icon = <FlameIcon className="w-5 h-5 text-on-primary"/>;
-    label = "عادت جدید";
+    label = result.operation === 'update' ? 'عادت به‌روز شد' : 'عادت جدید';
     title = (result.data as any).name;
   }
 
   return (
-    <div className="mt-3 flex">
+    <div className="mt-3 flex" dir="rtl">
       <button 
         onClick={() => onClick(result)}
         className="flex items-center gap-3 glass-card border-subtle p-3 rounded-xl hover:bg-[var(--nav-hover-bg)] transition-all group w-full sm:w-auto min-w-[200px]"

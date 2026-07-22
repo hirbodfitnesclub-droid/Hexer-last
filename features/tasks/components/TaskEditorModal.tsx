@@ -1,16 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { Task, Priority, Project, Note, ChecklistItem } from '../../../types';
-import { 
-  XIcon, TrashIcon, CheckIcon, CalendarIcon, FlagIcon, 
-  BriefcaseIcon, ClockIcon, PlusIcon, ListChecksIcon, 
-  ChevronDownIcon, PencilIcon, NotebookIcon 
+import {
+  XIcon, TrashIcon, CheckIcon, CalendarIcon, FlagIcon,
+  BriefcaseIcon, ClockIcon, PlusIcon, ListChecksIcon,
+  ChevronDownIcon, PencilIcon, NotebookIcon, RepeatIcon
 } from '../../../components/icons';
 import PersianDatePicker from '../../../components/PersianDatePicker';
 import TimePicker from '../../../components/TimePicker';
-import { formatPersianDate } from '../../../utils/dateUtils';
+import { formatPersianDate, getTehranDateString } from '../../../utils/dateUtils';
 import { useData } from '../../../contexts/DataContext';
 import { getLinkedNotes, unlinkTaskNote, linkTaskNote } from '../../../services/linkService';
 import { LinkNotePicker } from './LinkNotePicker';
+import { RecurrencePickerModal } from './RecurrencePickerModal';
+import {
+  buildNextRecurrence,
+  computeNextDueDate,
+  canContinueRecurrence,
+  describeRecurrenceFa,
+  normalizeRecurrence,
+  tehranDayAtWallClock,
+  tehranTodayNoonIso,
+} from '../../../utils/recurrenceUtils';
+import { TaskRecurrence } from '../../../types';
 
 interface TaskEditorModalProps {
   task: Task | Partial<Task>;
@@ -60,8 +71,10 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
   const [newItemText, setNewItemText] = useState('');
   const [linkedNotes, setLinkedNotes] = useState<Note[]>([]);
   const [pendingLinkIds, setPendingLinkIds] = useState<string[]>([]);
-  
+  const [recurrenceOpen, setRecurrenceOpen] = useState(false);
+
   const isNew = !('id' in task);
+  const { skipRecurrenceOccurrence } = useData();
 
   // Load linked notes
   const loadLinks = async () => {
@@ -147,6 +160,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
     overrides: Partial<Task> = {}
   ): Partial<Task> & { id?: string } => {
     const merged: Task | Partial<Task> = { ...state, ...overrides };
+    const recurrence = normalizeRecurrence(merged.recurrence ?? null);
     const payload: Partial<Task> & { id?: string } = {
       title: typeof merged.title === 'string' ? merged.title.trim() : merged.title,
       description: merged.description ?? null,
@@ -157,6 +171,10 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
       tags: Array.isArray(merged.tags) ? merged.tags : [],
       checklist: Array.isArray(merged.checklist) ? merged.checklist : [],
       completed_at: merged.completed_at ?? null,
+      recurrence,
+      recurrence_series_id: recurrence
+        ? (merged.recurrence_series_id ?? null)
+        : null,
     };
     if (merged.id) {
       payload.id = merged.id;
@@ -164,22 +182,82 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
     return payload;
   };
 
+  const handleRecurrenceChange = (v: TaskRecurrence | null) => {
+    const prev = normalizeRecurrence(formState.recurrence);
+    setFormState((s) => {
+      const next: Task | Partial<Task> = {
+        ...s,
+        recurrence: v,
+        recurrence_series_id: v ? (s.recurrence_series_id ?? null) : null,
+      };
+      // Auto-due: enabling recurrence without a date → today Tehran noon
+      if (v && !prev && (!hasDate || !s.due_date)) {
+        setHasDate(true);
+        setHasTime(false);
+        next.due_date = tehranTodayNoonIso();
+      }
+      return next;
+    });
+  };
+
+  const handleSkipOccurrence = async () => {
+    if (!formState.id || formState.status === 'done') return;
+    const r = normalizeRecurrence(formState.recurrence);
+    if (!r) return;
+    const nextDue = computeNextDueDate(formState.due_date, r);
+    // B6: data-layer skip shows info toast when end is exhausted; still no-op locally
+    if (!nextDue || !canContinueRecurrence(r, nextDue)) {
+      await skipRecurrenceOccurrence(formState.id);
+      return;
+    }
+    const nextR = buildNextRecurrence(r);
+    try {
+      await skipRecurrenceOccurrence(formState.id);
+      setFormState((s) => ({
+        ...s,
+        due_date: nextDue,
+        recurrence: nextR,
+      }));
+      setHasDate(true);
+      // Re-analyze time display for new due (Tehran wall-clock)
+      try {
+        const date = new Date(nextDue);
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'Asia/Tehran',
+          hour: 'numeric',
+          minute: 'numeric',
+          hour12: false,
+        });
+        const parts = formatter.formatToParts(date);
+        let h = parseInt(parts.find((p) => p.type === 'hour')?.value || '12', 10);
+        const m = parseInt(parts.find((p) => p.type === 'minute')?.value || '0', 10);
+        if (h === 24) h = 0;
+        const formattedTime = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        setSelectedTime(formattedTime);
+        setHasTime(!(h === 12 && m === 0));
+      } catch {
+        /* keep previous time UI */
+      }
+    } catch (err) {
+      console.error('Skip recurrence failed:', err);
+    }
+  };
+
   const handleSave = async () => {
     if (!formState.title?.trim()) return;
 
     let finalDueDate: string | null = null;
 
+    // B4: never browser-local setHours — compose ISO in Asia/Tehran wall-clock
     if (hasDate && formState.due_date) {
-      const dateObj = new Date(formState.due_date);
-
+      const ymd = getTehranDateString(new Date(formState.due_date));
       if (hasTime) {
         const [h, m] = selectedTime.split(':').map(Number);
-        dateObj.setHours(h, m, 0, 0);
+        finalDueDate = tehranDayAtWallClock(ymd, h || 0, m || 0, 0);
       } else {
-        // If no time is selected, explicit midday is used as our Tehran date-only standard
-        dateObj.setHours(12, 0, 0, 0);
+        // Product convention: 12:00 Tehran = date-only
+        finalDueDate = tehranDayAtWallClock(ymd, 12, 0, 0);
       }
-      finalDueDate = dateObj.toISOString();
     }
 
     const cleanPayload = buildTaskWritePayload(formState, { due_date: finalDueDate });
@@ -440,9 +518,31 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
                     </div>
                   </div>
                 )}
+
+                {normalizeRecurrence(formState.recurrence) && (
+                  <div className="flex items-center gap-3 p-3 bg-[var(--bg-card)] rounded-xl border border-[var(--border-subtle)] sm:col-span-2">
+                    <div className="p-2 bg-[var(--color-primary)]/10 rounded-lg text-[var(--color-primary-text)] shrink-0">
+                      <RepeatIcon className="w-5 h-5"/>
+                    </div>
+                    <div className="text-right flex-1 min-w-0">
+                      <p className="text-[10px] text-[var(--text-muted)] font-bold">تکرار</p>
+                      <p className="text-xs font-semibold text-[var(--text-main)] truncate">
+                        {describeRecurrenceFa(formState.recurrence, { dueDate: formState.due_date })}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
-
+              {normalizeRecurrence(formState.recurrence) && formState.status !== 'done' && formState.id && (
+                <button
+                  type="button"
+                  onClick={handleSkipOccurrence}
+                  className="w-full min-h-[44px] py-2.5 rounded-xl border border-[var(--border-subtle)] text-xs font-bold text-[var(--text-main)] hover:bg-[var(--nav-hover-bg)] transition-colors"
+                >
+                  رد کردن این نوبت
+                </button>
+              )}
 
               <div className="pt-6 flex gap-3">
                 <button 
@@ -596,9 +696,9 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
                 {/* Project Selection */}
                 <PropertyRow icon={<BriefcaseIcon className="w-5 h-5" />} label="پروژه مرتبط">
                   <div className="relative w-full">
-                    <select 
-                      value={formState.project_id || ''} 
-                      onChange={e => setFormState(s => ({...s, project_id: e.target.value || undefined}))} 
+                    <select
+                      value={formState.project_id || ''}
+                      onChange={e => setFormState(s => ({...s, project_id: e.target.value || undefined}))}
                       className="bg-transparent bg-[var(--bg-card)] w-full px-3 py-2 pr-8 rounded-lg outline-none focus:border-[var(--input-focus-ring)] text-xs text-[var(--text-main)] font-bold appearance-none cursor-pointer border border-[var(--border-subtle)] hover:border-[var(--border-subtle)] transition-colors text-right"
                     >
                       <option value="" className="bg-[var(--bg-card)]">بدون پروژه</option>
@@ -607,6 +707,40 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
                     <ChevronDownIcon className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)]"/>
                   </div>
                 </PropertyRow>
+
+                {/* Recurrence */}
+                <PropertyRow icon={<RepeatIcon className="w-5 h-5" />} label="تکرار">
+                  <div className="flex items-center gap-2 w-full justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setRecurrenceOpen(true)}
+                      className="text-xs font-bold text-[var(--color-primary-text)] hover:opacity-80 py-1 text-right flex-1 min-h-[44px]"
+                    >
+                      {normalizeRecurrence(formState.recurrence)
+                        ? describeRecurrenceFa(formState.recurrence, { dueDate: formState.due_date })
+                        : 'افزودن تکرار'}
+                    </button>
+                    {normalizeRecurrence(formState.recurrence) && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormState((s) => ({
+                            ...s,
+                            recurrence: null,
+                            recurrence_series_id: null,
+                          }))
+                        }
+                        className="p-2 min-h-[44px] min-w-[44px] text-[var(--text-muted)] hover:text-[var(--semantic-error)] hover:bg-[var(--semantic-error-soft)] rounded-lg transition-colors"
+                        title="حذف تکرار"
+                      >
+                        <XIcon className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </PropertyRow>
+                <p className="text-[10px] text-[var(--text-muted)] px-2 pb-1">
+                  قانون تکرار از این نوبت به بعد اعمال می‌شود.
+                </p>
               </div>
 
               {/* TWO-WAY BIDIRECTIONAL NOTES LINKING SECTION */}
@@ -654,15 +788,15 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
 
         {/* Footer actions - Fixed shadow */}
         <div className="p-4 sm:p-6 pb-safe border-t border-[var(--border-subtle)] flex gap-3 shrink-0 bg-transparent">
-          <button 
-            onClick={handleSave} 
+          <button
+            onClick={handleSave}
             className="flex-1 bg-[var(--color-primary)] hover:opacity-90 text-[var(--text-on-primary)] py-3 rounded-xl font-bold transition-all text-sm"
           >
             {isNew ? 'ساختن کار جدید' : 'ذخیره نهایی تغییرات'}
           </button>
           {!isNew && (
-            <button 
-              onClick={() => setMode('view')} 
+            <button
+              onClick={() => setMode('view')}
               className="px-5 py-3 bg-[var(--bg-card)] backdrop-blur-xl hover:bg-[var(--nav-hover-bg)] text-[var(--text-main)] rounded-xl font-bold transition-colors text-sm border border-[var(--border-subtle)]"
             >
               انصراف
@@ -670,6 +804,14 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
           )}
         </div>
       </div>
+
+      <RecurrencePickerModal
+        isOpen={recurrenceOpen}
+        value={normalizeRecurrence(formState.recurrence)}
+        onChange={handleRecurrenceChange}
+        onClose={() => setRecurrenceOpen(false)}
+        anchorDueDate={formState.due_date}
+      />
     </div>
   );
 };

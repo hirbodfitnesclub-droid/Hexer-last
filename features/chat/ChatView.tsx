@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../services/supabaseClient';
-import { ChatMessage, ChatMode, Citation, Task, Note, ActionResult, Project, ChatSession, ExtractionProposal, Page } from '../../types';
+import { ChatMessage, ChatMode, Citation, Task, Note, ActionResult, Project, ChatSession, ExtractionProposal, Page, ChatSearchFilters } from '../../types';
 import { BotIcon, UserIcon, SendIcon, SparklesIcon, TargetIcon, LightbulbIcon, PencilIcon, NotebookIcon, ListChecksIcon, LinkIcon, CheckIcon, BriefcaseIcon, FlameIcon, PaperclipIcon, MicrophoneIcon, CalendarIcon, PlusIcon, XIcon, TrashIcon } from '../../components/icons';
 import { uploadChatMedia } from '../../services/mediaService';
 import { sendChatMessage, extractFromMedia } from '../../services/geminiService';
@@ -256,21 +256,19 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
       return;
     }
 
-    // Append Filter Tokens in Memory Mode (Task I5)
-    let textWithFilters = textToSend;
+    // Structured filters for memory mode (Phase P) — no magic text tokens
+    const textWithFilters = textToSend;
+    let chatFilters: ChatSearchFilters | undefined;
     if (mode === 'memory' && textToSend.trim() && !textOverride) {
-      if (filterType === 'task') {
-        textWithFilters += ' نوع:کار';
-      } else if (filterType === 'note') {
-        textWithFilters += ' نوع:یادداشت';
-      } else if (filterType === 'project') {
-        textWithFilters += ' نوع:پروژه';
-      }
-
-      if (filterTime === 'today') {
-        textWithFilters += ' تاریخ:امروز';
-      } else if (filterTime === 'last_week') {
-        textWithFilters += ' تاریخ:هفته گذشته';
+      const types =
+        filterType === 'all'
+          ? undefined
+          : ([filterType] as Array<'task' | 'note' | 'project'>);
+      const timeRange = filterTime === 'all' ? undefined : filterTime;
+      if (types || timeRange) {
+        chatFilters = {};
+        if (types) chatFilters.types = types;
+        if (timeRange) chatFilters.timeRange = timeRange;
       }
     }
 
@@ -338,7 +336,14 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
             ...msg,
             text: msg.sender === 'ai' ? sanitizeHistoryMessage(msg.text) : msg.text
           }));
-          data = await sendChatMessage(textWithFilters, sanitizedHistory, mode);
+          data = await sendChatMessage(
+            textWithFilters,
+            sanitizedHistory,
+            mode,
+            undefined,
+            undefined,
+            chatFilters,
+          );
         }
       } catch (geminiErr: any) {
         if (geminiErr.message === '402') {
@@ -456,7 +461,8 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
           priority: prop.draft.priority || 'medium',
           due_date: prop.draft.dueDate ? new Date(prop.draft.dueDate).toISOString() : null,
           project_id: prop.draft.project_id || null,
-          tags: prop.draft.tags || []
+          tags: prop.draft.tags || [],
+          checklist: Array.isArray(prop.draft.checklist) ? prop.draft.checklist : [],
         });
       } else if (prop.kind === 'note') {
         await addNote({
@@ -494,7 +500,8 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
             priority: prop.draft.priority || 'medium',
             due_date: prop.draft.dueDate ? new Date(prop.draft.dueDate).toISOString() : null,
             project_id: prop.draft.project_id || null,
-            tags: prop.draft.tags || []
+            tags: prop.draft.tags || [],
+            checklist: Array.isArray(prop.draft.checklist) ? prop.draft.checklist : [],
           });
         } else if (prop.kind === 'note') {
           await addNote({

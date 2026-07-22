@@ -1,12 +1,13 @@
 
 import { supabase } from './supabaseClient';
 import { Task } from '../types';
+import { normalizeRecurrence } from '../utils/recurrenceUtils';
 
 type TaskInsert = Omit<Task, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'status' | 'completed_at'>;
 type TaskUpdate = Partial<Omit<Task, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
 
 const TASK_SELECT =
-  'id, user_id, project_id, title, description, status, priority, due_date, completed_at, tags, checklist, created_at, updated_at';
+  'id, user_id, project_id, title, description, status, priority, due_date, completed_at, tags, checklist, recurrence, recurrence_series_id, created_at, updated_at';
 
 export const getTasks = async (limit: number = 20): Promise<Task[]> => {
   const { data, error } = await supabase
@@ -20,7 +21,13 @@ export const getTasks = async (limit: number = 20): Promise<Task[]> => {
 };
 
 export const createTask = async (task: TaskInsert & { id?: string }, id?: string): Promise<Task> => {
-  // Use the RPC we defined in SQL with checklist support
+  const recurrence =
+    task.recurrence === null
+      ? null
+      : task.recurrence !== undefined
+        ? normalizeRecurrence(task.recurrence)
+        : null;
+
   const rpcParams = {
     p_title: task.title,
     p_description: task.description || null,
@@ -28,8 +35,10 @@ export const createTask = async (task: TaskInsert & { id?: string }, id?: string
     p_due_date: task.due_date || null,
     p_priority: task.priority || 'medium',
     p_tags: task.tags || [],
-    p_checklist: task.checklist || [], // mapped as jsonb atomically
-    p_id: id || task.id || null
+    p_checklist: task.checklist || [],
+    p_id: id || task.id || null,
+    p_recurrence: recurrence,
+    p_recurrence_series_id: recurrence ? (task.recurrence_series_id || null) : null,
   };
 
   const { data, error } = await supabase
@@ -37,7 +46,7 @@ export const createTask = async (task: TaskInsert & { id?: string }, id?: string
     .single();
 
   if (error) throw error;
-  
+
   return data as Task;
 };
 
@@ -51,6 +60,8 @@ const TASK_UPDATE_ALLOWED = [
   'tags',
   'checklist',
   'completed_at',
+  'recurrence',
+  'recurrence_series_id',
 ] as const;
 
 const sanitizeTaskUpdate = (updates: TaskUpdate | Record<string, unknown>) => {
@@ -67,6 +78,13 @@ const sanitizeTaskUpdate = (updates: TaskUpdate | Record<string, unknown>) => {
   }
   if ('checklist' in cleanUpdates && !Array.isArray(cleanUpdates.checklist)) {
     cleanUpdates.checklist = [];
+  }
+  if ('recurrence' in cleanUpdates) {
+    if (cleanUpdates.recurrence === null) {
+      cleanUpdates.recurrence = null;
+    } else {
+      cleanUpdates.recurrence = normalizeRecurrence(cleanUpdates.recurrence);
+    }
   }
 
   return cleanUpdates;

@@ -17,16 +17,20 @@ export const CitationCard: React.FC<CitationCardProps> = ({ citation, onClick })
   let sourceTypeLabel = 'یادداشت مرتبط';
 
   if (isTask) {
-    iconBgColor = 'bg-primary/10 text-primary-text';
-    iconComponent = <ListChecksIcon className="w-3.5 h-3.5"/>;
-    sourceTypeLabel = 'تسک مرتبط';
-  } else if (isProject) {
-    iconBgColor = 'bg-primary/10 text-primary-text';
-    iconComponent = <BriefcaseIcon className="w-3.5 h-3.5"/>;
-    sourceTypeLabel = 'پروژه مرتبط';
-  } else {
-    sourceTypeLabel = 'منبع مرتبط';
-  }
+      iconBgColor = 'bg-primary/10 text-primary-text';
+      iconComponent = <ListChecksIcon className="w-3.5 h-3.5" />;
+      sourceTypeLabel = 'تسک مرتبط';
+    } else if (isNote) {
+      iconBgColor = 'bg-primary/10 text-primary-text';
+      iconComponent = <NotebookIcon className="w-3.5 h-3.5" />;
+      sourceTypeLabel = 'یادداشت مرتبط';
+    } else if (isProject) {
+      iconBgColor = 'bg-primary/10 text-primary-text';
+      iconComponent = <BriefcaseIcon className="w-3.5 h-3.5" />;
+      sourceTypeLabel = 'پروژه مرتبط';
+    } else {
+      sourceTypeLabel = 'منبع مرتبط';
+    }
 
   return (
     <button 
