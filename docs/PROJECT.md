@@ -977,3 +977,751 @@ formState محلی منبع UI مودالِ باز است. در این فاز sy
 7. اعداد روز تقویم یک پله کوچک‌تر و خوانا.
 8. یادآور foreground برای تسک due امروز (با permission=granted) ارسال می‌شود؛ تسک‌های done نادیده گرفته می‌شوند.
 9. بدون رگرسیون O-1…O-3، تم، offline queue، PWA.
+
+---
+
+# فاز P — بازآفرینی مغز AI، RAG intent-aware، تاریخِ قطعی، و Chat UX (AI Brain Overhaul)
+
+> منبع حقیقت برای هویت، اهداف و قوانین سخت‌گیرانه‌ی **این فاز**.
+> هر تصمیم فنی در `ARCHITECTURE.md §P` و هر تسک در `tasks.md` فاز P باید با این سند سازگار باشد.
+> بک‌اند و فرانت‌اند پایه تثبیت‌شده‌اند؛ این فاز فقط لایه‌ی هوش مصنوعی + قرارداد نمایش چت را درمان می‌کند.
+
+## P.1. هدف بیزینسی
+هوش مصنوعیِ هکسر باید برای کاربران پرمیوم **قابل‌اعتماد** شود: بفهمد کاربر چه می‌خواهد (ساخت / جستجو / گفتگو)، تاریخ نسبی فارسی را **قطعی** (نه حدسی) به میلادی تبدیل کند، تسک را با ساب‌تسک بسازد، جستجوی یادداشت/تسک را دقیق و type-aware کند، citationهای مزاحم را فقط وقتی نشان دهد که واقعاً جستجو شده، و مصرف Embedding/LLM را کاهش دهد — بدون اور-انجینیرینگ و بدون ریسک برای صدها کاربر پرمیوم.
+
+## P.2. پرسونای هدف
+کاربر فارسی‌زبان غیرفنی (نسل Z / حرفه‌ای) که با زبان روزمره حرف می‌زند («فردا ساعت ۵»، «شنبه هفته دیگه»، «یادداشت مربوط به اینستاگرام رو پیدا کن»، «تسک بساز برای X با این زیرکارها») و انتظار دارد سیستم جادویی، دقیق و بدون نشت فنی باشد.
+
+## P.3. پشته‌ی تثبیت‌شده (بدون تغییر زیرساخت کلان)
+React 19 + TypeScript · Vite 6 · Tailwind (توکن‌های موجود) · Supabase (Postgres + RLS + Edge Functions + Storage + pgvector 768) · OpenRouter (LLM + Embedding) · hybrid_search (vector + trigram RRF) · `motion` برای انیمیشن.
+
+- **مدل چت فعلی (Reference):** `google/gemini-2.5-flash-lite` via OpenRouter — تا دستور صریح معمار، تعویض نشود.
+- **مدل Embedding فعلی (Critical — یک ثابت):** `google/gemini-embedding-2` در `_shared/gemini-client.ts` (`EMBEDDING_MODEL`) برای **هم** `vectorize` و **هم** query embedding. تغییر مدل = ری‌ایندکس کامل = **ممنوع** در این فاز.
+- **ابعاد بردار:** `vector(768)` در اسکیما — هر تغییر مدل/بعد ممنوع مگر با مهاجرت جدا و تأیید معمار.
+
+## P.4. ریشه‌یابی واقعی (شواهد کد — نه حدس)
+
+| # | شکایت کاربر | ریشه‌ی مهندسی (فایل/رفتار) |
+|---|-------------|---------------------------|
+| P-B1 | «بلد نیست تسک با ساب‌تسک بسازد» | `system-prompt.ts` فقط `CREATE_TASK: title, description, dueDate, priority, projectId, tags` — **بدون checklist**. `action-processor.ts` هم `p_checklist` را به `create_task_with_tags` پاس نمی‌دهد (در حالی که RPC از قبل `p_checklist JSONB` دارد). |
+| P-B2 | «فردا / امروز / شنبه هفته بعد تاریخ غلط» | فقط یک خط prompt: «Translate relative dates…» بدون **جدول محاسبه‌شدهٔ سرور** و بدون timezone ثابت Asia/Tehran. `index.ts` تاریخ را با `new Date()` **بدون** `timeZone: 'Asia/Tehran'` می‌سازد (`toLocaleDateString('en-CA')` روی runtime edge می‌تواند UTC باشد). مدل حدس می‌زند؛ تاریخ شکننده است. |
+| P-B3 | «مصرف بهینه نیست» | **همیشه** `Promise.all([buildMetaContext, buildRagContext])` حتی برای «سلام» یا «تسک بساز» — هر پیام = ۱ embedding + hybrid_search روی همه‌ی tasks/notes/projects + fetch تسک/نوت/پروژه. تاریخچهٔ ارسالی به مدل ۵ پیام است اما کلاینت ۱۰ می‌فرستد (`geminiService` slice 10، edge slice 5). فیلتر memory mode فقط **متن** به query می‌چسباند (`نوع:کار`)؛ RPC فیلتر ساختاری ندارد. |
+| P-B4 | «یادداشت پیدا کن دقیق نیست؛ اول تسک‌ها می‌آید» | RAG همیشه citations خام hybrid را برمی‌گرداند (تا ۱۵، نمایش تا ۵). hybrid_search ترتیب type-agnostic با RRF است؛ **هیچ type preference** برای intent «یادداشت» وجود ندارد. UI همه citations را زیر هر پاسخ نشان می‌دهد. |
+| P-B5 | «زیر هر پیام تسک مرتبط می‌آید حتی وقتی دستور ساختم» | `ai-assistant/index.ts` همیشه `citations: ragData.citations` برمی‌گرداند. `ChatView` هر جا `msg.citations.length > 0` کارت می‌کشد. **Intent-gating برای نمایش citation وجود ندارد.** Prompt فقط SUGGEST_LINK را محدود کرده؛ مسیر RAG/citation نه. |
+| P-B6 | «مدل با فیچرها آشنا نیست» | system prompt اکشن‌های قدیمی و ناقص: بدون checklist، بدون تقویم هفتگی فارسی محاسبه‌شده، بدون قرارداد intent/display، بدون توضیح فیلدهای واقعی entity. meta-context فقط تسک‌های «امروز یا بدون due» را در memory/auto می‌آورد؛ لیست ناقص است. |
+| P-B7 | «ChatView پر باگ/UX» | God-file ~۹۸۸ خط؛ citation clutter؛ mode chips + filter token hack؛ sanitizer history برای UUID اما citation خامِ DB همیشه در state می‌ماند. |
+
+## P.5. تحلیل گزینه‌ها و تصمیم نهایی (۳ معیار: مدرن · اصولی · ساده)
+
+### مشکل A — Intent و Citation UX
+| گزینه | مدرن | اصولی | ساده | حکم |
+|-------|------|-------|------|-----|
+| A1. همیشه RAG + UI همیشه citation | — | — | ✓ | رد — وضعیت فعلی، منبع clutter |
+| A2. LLM بعد از پاسخ تصمیم بگیرد citations را نگه دارد | ✓ | ✗ | ✗ | رد — غیرقطعی، دو راند مدل |
+| A3. **طبقه‌بند سبک Intent روی سرور (قواعد + سیگنال mode) → gate RAG و gate `return citations`** | ✓ | ✓ | ✓ | **انتخاب** |
+| A4. Agent framework / tool-calling پیچیده | ✓ | ✓ | ✗ | رد — over-engineering برای پروداکشن فعلی |
+
+**انتخاب نهایی A3:** تابع خالص `classifyIntent(message, mode)` → `chat | create | search | link`.  
+- `chat` / `create`: **RAG را skip کن** (create فقط meta برای پروژه‌ها؛ نه citation). `citations: []` اجباری.  
+- `search` / `link` / mode=`memory`: RAG روشن + citations برگردان.  
+- mode کلاینت override است: `action` ≈ force create-path، `memory` ≈ force search-path، `auto` ≈ classify.
+
+### مشکل B — تاریخ نسبی
+| گزینه | مدرن | اصولی | ساده | حکم |
+|-------|------|-------|------|-----|
+| B1. فقط prompt به مدل | — | — | ✓ | رد — شکست فعلی |
+| B2. کتابخانه NLP تاریخ فارسی جدا | ✓ | ✓ | ✗ | رد — وابستگی/نگهداری اضافه روی Edge |
+| B3. **تقویم محاسبه‌شدهٔ سرور (Asia/Tehran) به داخل prompt + نرمالایزر post-parse برای dueDate** | ✓ | ✓ | ✓ | **انتخاب** |
+| B4. tool-call `resolve_date` چندمرحله‌ای | ✓ | ✓ | ✗ | رد — latency و پیچیدگی |
+
+**انتخاب نهایی B3:** ماژول `date-context.ts` (pure): امروز تهران، فردا، پس‌فردا، دیروز، ابتدای هفته (شنبه) / جمعه، «شنبهٔ این هفته / هفتهٔ بعد»، جدول روزهای آینده با نام روز فارسی + میلادی `YYYY-MM-DD`. مدل فقط از جدول انتخاب می‌کند. بعد از parse، `normalizeDueDate(params.dueDate)` برای رد فرمت بد.
+
+### مشکل C — ساب‌تسک (checklist)
+| گزینه | مدرن | اصولی | ساده | حکم |
+|-------|------|-------|------|-----|
+| C1. ساخت N تا CREATE_TASK جدا | — | ✗ | ✓ | رد — مدل دادهٔ checklist موجود را دور می‌زند |
+| C2. **گسترش CREATE_TASK با `checklist: [{text}]` و پاس `p_checklist`** | ✓ | ✓ | ✓ | **انتخاب** |
+| C3. entity/ساب‌جدول جدید subtasks | ✓ | ✓ | ✗ | رد — اسکیما از قبل JSONB checklist دارد |
+
+**انتخاب نهایی C2:** فرمت checklist سازگار با `ChecklistItem` فرانت: `{ id, text, isCompleted: false }` — id سمت سرور با `crypto.randomUUID()` ساخته شود اگر مدل id نداد.
+
+### مشکل D — دقت جستجوی یادداشت vs تسک
+| گزینه | مدرن | اصولی | ساده | حکم |
+|-------|------|-------|------|-----|
+| D1. فیلتر فقط با چسباندن «نوع:یادداشت» به متن | — | ✗ | ✓ | رد — شکننده و فعلی |
+| D2. بازنویسی کامل hybrid_search با پارامترهای type/time | ✓ | ✓ | △ | قابل‌قبول ولی migration حساس روی پروداکشن |
+| D3. **Intent type از پیام + post-filter/re-rank روی نتیجه hybrid بدون شکستن RPC** (+ SQL اختیاری مرحله دوم) | ✓ | ✓ | ✓ | **انتخاب** |
+| D4. ایندکس جدا per-type / pipeline ML | ✓ | ✓ | ✗ | رد — over-engineering |
+
+**انتخاب نهایی D3:**  
+1) `extractSearchPreferences(message, mode, clientFilters?)` → `{ types?: ['note'], … }`.  
+2) اگر type مشخص: filter روی `citations` و context قبل از prompt.  
+3) در prompt search: نتایج از قبل type-aware شده‌اند.  
+4) UI memory-mode filters به body ساخت‌یافته بروند نه token متنی.  
+SQL پارامتریک type **اختیاری/مرحله دوم** فقط اگر post-filter کافی نبود — پیش‌فرض بدون migration اجباری.
+
+### مشکل E — مصرف
+| گزینه | مدرن | اصولی | ساده | حکم |
+|-------|------|-------|------|-----|
+| E1. کش embedding کوئری | ✓ | ✓ | △ | بعداً — نه MVP این فاز |
+| E2. **Skip RAG بر اساس intent + skip/کم‌حجم meta برای chat** | ✓ | ✓ | ✓ | **انتخاب** |
+| E3. مدل جدا برای routing | ✓ | ✓ | ✗ | رد — هزینهٔ اضافه |
+| E4. کم کردن match_count وقتی search (۱۵→۸) و slice context | ✓ | ✓ | ✓ | **همراه E2** |
+
+**انتخاب نهایی E2+E4:** chat/create بدون embedding؛ search با match_count معقول؛ history یک‌دست `slice(-8)` در کلاینت و edge؛ meta برای create فقط projects (+ today tasks کوتاه)، برای chat تقریباً خالی.
+
+## P.6. تصمیمات معماری کلیدی (خلاصهٔ لازم‌الاجرا)
+
+1. **Intent Classifier سمت سرور (rule-based، pure، بدون LLM):** منبع حقیقت برای gate کردن RAG و citations.
+2. **Date Context تزریقی + normalize dueDate:** منبع حقیقت تاریخ، نه حدس مدل.
+3. **Checklist در CREATE_TASK end-to-end** (prompt → processor → RPC موجود).
+4. **Search path type-aware** با post-filter/re-rank؛ client filters ساخت‌یافته.
+5. **Citation Policy:** فقط وقتی `intent ∈ {search, link}` یا mode=`memory`؛ وگرنه `[]` و UI چیزی نشان ندهد.
+6. **Backward-compatible API response shape** (`reply, citations, actionResults, proposals, transcription`) — فیلد اختیاری `intent` مجاز است.
+7. **هیچ CLI supabase، هیچ تعویض embedding model، هیچ agent framework.**
+8. **Production safety:** تغییر SQL فقط idempotent و در صورت نیاز واقعی؛ deploy edge دستی توسط کاربر.
+
+## P.7. [حیاتی] نبایدهای سخت‌گیرانه‌ی فاز P (افزوده به Anti-Patterns سراسری)
+
+115. **فراخوانی embedding/hybrid_search برای intent=`chat` یا `create` (غیر search/link و غیر mode=memory) ممنوع.**
+116. **برگرداندن `citations` غیرخالی وقتی intent جستجو/لینک نیست ممنوع** (حتی اگر RAG اشتباهاً اجرا شد، در response باید `[]` باشد).
+117. **تکیهٔ صرف به LLM برای محاسبهٔ «فردا/هفته بعد» بدون Date Context سرور ممنوع.**
+118. **ساخت ساب‌تسک به‌صورت CREATE_TASKهای مجزا به‌جای checklist ممنوع.**
+119. **تغییر `EMBEDDING_MODEL` یا بُعد `vector(768)` در این فاز ممنوع.**
+120. **افزودن LangChain / LlamaIndex / agent runtime / صف orchestration جدید ممنوع.**
+121. **کلاینت مستقیم `supabase.functions.invoke('ai-assistant')` خارج از `geminiService.ts` ممنوع** (قانون ۱۸ پابرجا).
+122. **چسباندن فیلتر type/time فقط با رشتهٔ جادویی به message بدون فیلد ساخت‌یافته (پس از تکمیل تسک مربوط) ممنوع** — مسیر نهایی body: `filters?: { types?, timeRange? }`.
+123. **نمایش CitationCard زیر پیام‌های create/chat جدید ممنوع** (سرور باید `[]` بدهد؛ تاریخچهٔ قدیمی را عمداً پاک نکن مگر تسک مهاجرت صریح).
+124. **God-file جدید در edge ممنوع؛** منطق جدید در `lib/*.ts` pure/ماژولار.
+125. **اعمال partial failure در processActions باید log+skip بماند؛ throw کل batch برای یک اکشن بد ممنوع.**
+126. **todayStr بدون timezone `Asia/Tehran` ممنوع** (هماهنگ با `getTehranDateString` فرانت و daily-brief).
+127. **نوشتن UPDATE_TASK گسترده در این فاز ممنوع** مگر تسک صریح؛ تمرکز: create+checklist+date+search+citation gate.
+128. **شکستن JSON contract یا response_format=json_object ممنوع.**
+129. **افزایش temperature بالای ۰.۲ برای action JSON ممنوع** (فعلی 0.0 حفظ یا حداکثر 0.1).
+130. **Over-fetch meta (همهٔ pending tasks بدون فیلتر) برای هر پیام ممنوع** پس از پیاده‌سازی meta gate.
+
+## P.8. تعریف «انجام‌شده» برای فاز P
+1. «یه تسک برای امروز/فردا/شنبه هفته بعد بساز» → due_date درست در Asia/Tehran.
+2. «تسک بساز با زیرکارهای …» → یک task + checklist JSON معتبر در DB و UI.
+3. «یادداشت X رو پیدا کن» → پاسخ جستجو؛ citations عمدتاً note؛ بدون action create.
+4. «سلام» / گفتگوی معمولی → بدون citation card و بدون embedding call.
+5. «تسک بساز برای …» → کارت actionResult ساخت؛ **بدون** ردیف citation مرتبط مزاحم.
+6. mode=memory + فیلتر یادداشت → نتایج note-اول.
+7. بدون رگرسیون quota 402، proposal مدیا، offline task create دستی، تم/RTL.
+8. SQL اگر اضافه شد idempotent و دستی قابل اجرا؛ edge ماژولار.
+
+## P.9. افزوده به تاریخچه تصمیمات کلان
+- **فاز P (AI Brain Overhaul):** Intent-gated RAG، Date Context قطعی تهران، checklist در CREATE_TASK، type-aware search post-filter، citation policy سخت، بهینه‌سازی مصرف با skip embedding — بدون agent framework و بدون تعویض embedding model.
+
+# فاز Q — یکپارچگی اجرای اکشن‌های AI (Action Execution Integrity)
+
+> منبع حقیقت برای هویت، اهداف و قوانین سخت‌گیرانه‌ی **این فاز**.
+> جزئیات فنی: `docs/ARCHITECTURE.md` §Q · تسک‌ها: `docs/tasks.md` (فقط فاز Q).
+> فاز P مغز و gateها را ساخت؛ این فاز **شکاف بین «گفتن» و «انجام‌دادن»** را درمان می‌کند — بدون اور-انجینیرینگ و بدون agent framework.
+
+## Q.1. هدف بیزینسی
+برای صدها کاربر پرمیوم، هرگاه دستیار ادعا می‌کند «تسک را ساختم / ویرایش کردم / انجام‌شده زدم»، باید **واقعاً** در Postgres (با RLS و RPC موجود) نوشته شده باشد، `actionResults` غیرخالی به کلاینت برسد، state محلی (useData) آپدیت شود، و UI کارت نتیجه را نشان دهد. **Reply دروغین بدون mutation ممنوع است.** همزمان قابلیت‌های طبیعی که فاز P عمداً deferred کرده بود — **ویرایش و تکمیل تسک** — با همان الگوی fail-closed، اصولی و ساده باز می‌شوند.
+
+## Q.2. پرسونای هدف
+همان کاربر فارسی‌زبان غیرفنی پرمیوم که با جمله‌های روزمره دستور می‌دهد («یه تسک برای فردا بساز»، «وضعیت این تسک رو انجام‌شده بزن»، «عنوانش رو عوض کن») و هر «باشه انجام دادم» بدون اثر واقعی را بی‌اعتمادی مطلق می‌داند.
+
+## Q.3. پشته‌ی تثبیت‌شده (بدون تغییر زیرساخت کلان)
+React 19 + TypeScript · Vite · Tailwind (توکن‌های موجود) · Supabase (Postgres + RLS + Edge Functions + Storage + pgvector 768) · OpenRouter (`google/gemini-2.5-flash-lite` + `google/gemini-embedding-2`) · hybrid_search · RPCهای موجود `create_task_with_tags` / `create_note_with_tags` · PATCH مستقیم tasks با whitelist (مثل `taskService.updateTask`).
+
+- **Embedding model و بُعد 768:** تغییر ممنوع (قانون فاز P پابرجا).
+- **Framework:** بدون LangChain / tool-calling multi-step / agent runtime.
+- **Deploy edge:** دستی توسط کاربر در Dashboard — بدون وابستگی به CLI.
+
+## Q.4. ریشه‌یابی واقعی (شواهد خط‌به‌خط کد — نه حدس)
+
+| ID | شکایت / علامت | شواهد مهندسی | حکم ریشه |
+|----|----------------|--------------|----------|
+| **Q-B1** | «گفتم تسک بساز؛ گفت انجام دادم؛ هیچی ساخته نشد» | زنجیرهٔ موفق create این است: `classifyIntent→create` + مدل `actions:[{CREATE_TASK,…}]` + `filterActionsByPolicy` accept + `processActions` → RPC + `actionResults[]` + ChatView `injectAIProposalResult`. اگر مدل فقط `reply` پر کند و `actions:[]` بدهد، سرور **هیچ mutation** ندارد ولی `reply` پیش‌فرض یا ادعاگر به کاربر برمی‌گردد (`index.ts` پاسخ `reply \|\| 'انجام شد.'`). **هیچ صحت‌سنجی honesty بین ادعا و actionResults نیست.** | **ریشهٔ اصلی گزارش کاربر:** hallucinated success (reply بدون action / بدون result). |
+| **Q-B2** | لاگ Supabase فقط `booted`، بدون `ai.decision` / `ai.actions.*` | کد محلی edge در path موفق حتماً `console.log(JSON.stringify({tag:'ai.decision'…}))` و `ai.actions.done` می‌نویسد. لاگ ارائه‌شده فقط دو Boot برای `function_id` یکسان است → یا request به handler موفق نرسیده، یا **نسخهٔ deploy‌شده روی cloud با کد محلی فاز P همگام نیست**، یا فیلتر log ناقص است. در هر سه حالت، **observability production کافی نیست** (نبود correlation id در response برای تطبیق client↔edge). | Deploy drift و/یا observability gap — **باید قبل/حین fix رفتاری verify شود**. |
+| **Q-B3** | «تسک رو ادیت کن / انجام‌شده بزن» (انتظار کاربر از فاز P) | `action-policy.ts`: `ExecutableAction` فقط CREATE_* + SUGGEST_LINK؛ صریحاً «No UPDATE in Phase P». `processActions` هیچ شاخه‌ای برای UPDATE/COMPLETE ندارد. `system-prompt.ts` فقط CREATE_* را لیست می‌کند. حتی اگر مدل `UPDATE_TASK` بدهد → `unknown_action` یا `intent_*_disallows` → rejected. | **شکاف قابلیت عمدی فاز P** که حالا باید اصولی باز شود — نه با شل کردن policy. |
+| **Q-B4** | Intent اشتباه → create بی‌عمل | `intent.ts`: create فقط با **فعل ساخت**؛ mode=`action` بدون create verb و بدون search → create. mode=`auto` بدون فعل → `chat` → policy اکشن را خالی می‌کند حتی اگر مدل action بسازد. ترکیب chat + reply ادعاگر = Q-B1. | Intent+policy fail-closed درست است؛ **نباید شل شود**؛ باید prompt + honesty repair اکشن اجباری create را محکم کند. |
+| **Q-B5** | UI/state | ChatView فقط وقتی `data.actionResults` پر است inject می‌کند. `ActionResult.operation` تایپ کلاینت `'create'\|'update'` است؛ edge برای suggest_link مقدار `'suggest_link'` می‌فرستد (کار می‌کند با any). برای update باید operation=`update` و inject مسیر update در `useDataManager.injectAIProposalResult` از قبل هست. | کلاینت برای create/update **آماده است** اگر server result درست بدهد؛ نیاز به UI بزرگ نیست. |
+| **Q-B6** | Resolve هویت تسک برای update/complete | processor فعلی CREATE نیازی به id ندارد. UPDATE/COMPLETE نیاز به `taskId` معتبر متعلق به user دارد. meta-context برای create فقط عنوان/تاریخ pendingها را می‌آورد و **id را به مدل نمی‌دهد** (عمدی برای جلوگیری از نشت UUID در reply). | برای mutate باید **شناسهٔ ماشین‌خوان امن** در context باشد (مثلاً بلوک `TASK_INDEX` فقط برای intent mutate) + جستجوی fallback با عنوان در processor — **بدون** نشت UUID در `reply` کاربر. |
+| **Q-B7** | Checklist/ساب‌تسک بی‌صدا گم می‌شود | `mapChecklist` فقط `item?.text ?? item?.title`؛ اگر مدل `checklist: ["..."]` (string[]) بدهد، روی string فیلد text/title نداریم → text خالی → filter حذف خاموش؛ بدون warn وقتی raw غیرخالی و mapped خالی. prompt فقط `[{text}]` می‌گوید و enforce ندارد (`json_object` نه input_schema). | **تأیید کامل از کد** — silent data loss |
+| **Q-B8** | Citations بیشتر از context مدل | `AI_CITATION_CAP=8` vs `AI_RAG_CONTEXT_DOCS=5`؛ `buildRagContext` docs را تا 8 نگه می‌دارد و citations می‌سازد، اما `buildContextString` فقط 5 تای اول را به مدل می‌دهد؛ policy دوباره cap 8. | **تأیید کامل از کد** — provenance گمراه‌کننده |
+| **Q-B9** | Intent false-positive search + CREATE ناقص | `includesAny` substring؛ SEARCH شامل bare «لیست/مرور/آخرین». **رد جزئی ادعای منتقد:** «بنویس» در `CREATE_VERBS` نیست؛ پس «یه لیست از ایده‌هام بنویس» create نمی‌شود و به‌خاطر «لیست» → search. اگر «بساز» باشد create درست بر search می‌برد. | **مکانیزم تأیید**؛ مثال منتقد نیمه‌درست |
+| **Q-B10** | Honesty فقط total-failure (partial success) | `processActions` partial-fail (catch per-action). honesty طراحی‌شده فقط با `actionResults.length===0` clamp می‌کند. اگر accepted mutations > success > 0، reply مدل می‌تواند «همه را ساختم» بگوید. | **تأیید gap طراحی** — partial-honest لازم |
+| **Q-B11** | Intent ترکیبی (مثلاً link+mutate) | classifier تک‌برچسب؛ create>mutate>link. «وصل کن و کاملش کن» → معمولاً mutate؛ SUGGEST_LINK در allowlist mutate نیست. محدودیت single-intent + fail-closed — نه باگ تصادفی. | **تأیید ریسک طراحی آگاهانه** |
+| **Q-B12** | Repair = call دوم مدل بدون consume دوم | `consume_ai_quota` یک‌بار `request_count+1` در ابتدای turn (`10_functions.sql`). Repair داخل همان edge invocation بدون RPC دوم. | **واقعیت فنی درست؛ باگ billing نیست** اگر واحد = درخواست کاربر/turn |
+
+## Q.5. تحلیل گزینه‌ها و انتخاب نهایی (۳ معیار: مدرن · اصولی · ساده)
+
+### مشکل A — Reply بدون Mutation (Q-B1)
+| گزینه | مدرن | اصولی | ساده | حکم |
+|-------|------|-------|------|-----|
+| A1. فقط prompt «حتما actions پر کن» | — | ✗ | ✓ | رد — مدل هنوز hallucination می‌کند |
+| A2. Tool-calling / multi-step agent OpenRouter | ✓ | ✓ | ✗ | رد — over-engineering، latency، تغییر قرارداد |
+| A3. **Server honesty layer:** اگر intent mutate و actions خالی یا process نتیجه نداد ولی reply شبیه موفقیت است → clamp reply + (اختیاری) repair یک‌باره با schema سخت | ✓ | ✓ | ✓ | **انتخاب** |
+| A4. کلاینت اگر actionResults خالی، reply را سانسور کند | △ | ✗ | ✓ | رد — منبع حقیقت باید سرور باشد؛ کلاینت قابل دور زدن |
+
+**انتخاب نهایی A3:** لایه‌ی deterministic بعد از مدل، قبل از response نهایی:
+1) اگر `intent` در `{create, mutate}` و `actionResults.length===0` → reply را به پیام صادق فارسی «عملیات انجام نشد / مشخصات کافی نبود» clamp کن؛ هرگز «ساختم/انجام دادم» نفرست.
+2) برای create با verb واضح: اگر مدل `actions` خالی داد، **یک repair pass سبک** (همان مدل، temperature 0، prompt خیلی کوتاه «فقط JSON actions») مجاز است — حداکثر یک بار؛ اگر باز خالی → clamp.
+3) اگر actions بود ولی processor همه را fail کرد → reply صادق + log error (بدون دروغ موفقیت).
+
+### مشکل B — Deploy drift / Observability (Q-B2)
+| گزینه | مدرن | اصولی | ساده | حکم |
+|-------|------|-------|------|-----|
+| B1. نادیده بگیر | — | ✗ | ✓ | رد — ریسک پروداکشن |
+| B2. **structured logs کامل + `requestId` در response body + چک‌لیست deploy اجباری** | ✓ | ✓ | ✓ | **انتخاب** |
+| B3. Sentry/OpenTelemetry کامل | ✓ | ✓ | ✗ | رد برای این فاز — heavy |
+
+**انتخاب نهایی B2:** هر request یک `requestId` (uuid)؛ در تمام log tagها؛ در JSON response فیلد `debug.requestId` (یا top-level `requestId`)؛ چک‌لیست smoke بعد از deploy در CURRENT_TASK.
+
+### مشکل C — ویرایش و تکمیل (Q-B3/Q-B6)
+| گزینه | مدرن | اصولی | ساده | حکم |
+|-------|------|-------|------|-----|
+| C1. کلاینت local NLP برای edit | — | ✗ | △ | رد — دو منبع حقیقت |
+| C2. UPDATE آزاد هر فیلد با language آزاد | ✓ | ✗ | ✗ | رد — ریسک پروداکشن / PATCH کثیف |
+| C3. **Whitelist mutate: `UPDATE_TASK` (فیلدهای مجاز) + `COMPLETE_TASK` (status=done) + resolve id امن + policy بر intent=`mutate`** | ✓ | ✓ | ✓ | **انتخاب** |
+| C4. RPC جدید پیچیده update_task_ai | △ | ✓ | ✗ | رد مگر نیاز اجباری؛ PATCH موجود + sanitize کافی است |
+
+**انتخاب نهایی C3:**
+- Intent جدید: `mutate` (edit / complete / status).
+- اکشن‌ها: `UPDATE_TASK`, `COMPLETE_TASK` (COMPLETE = میان‌بر امن برای status=done + completed_at).
+- Resolve: (1) `params.taskId` اگر UUID و متعلق به user؛ (2) وگرنه match عنوان از pending tasks با همان user (exact سپس ilike محدود)؛ اگر ambiguous → no-write + reply صادق «کدام تسک؟».
+- فیلدهای UPDATE مجاز (هم‌تراز taskService): `title, description, status, priority, due_date, project_id, tags, checklist, completed_at` — **هرگز** user_id/id/embedding.
+- needsMeta(mutate)=true؛ needsRag(mutate)=false (مگر بعداً صریح لازم شود).
+- Citations برای mutate خالی (مثل create).
+
+### مشکل D — شل کردن policy برای «هر چیزی»
+| گزینه | حکم |
+|-------|-----|
+| حذف fail-closed | رد مطلق — ریسک premium |
+| افزودن mutate به allowlist با intent جدا | **انتخاب** |
+
+
+### مشکل F — Checklist silent drop (Q-B7) [ممیزی ثانویه]
+| گزینه | مدرن | اصولی | ساده | حکم |
+|-------|------|-------|------|-----|
+| F1. فقط سخت‌تر کردن prompt | — | ✗ | ✓ | رد — flash-lite بدون schema باز string[] می‌دهد |
+| F2. Tool-calling + input_schema کامل | ✓ | ✓ | ✗ | رد این فاز — orchestration سنگین برای یک فیلد |
+| F3. **normalize دفاعی در mapChecklist + warn structured** | ✓ | ✓ | ✓ | **انتخاب** |
+| F4. Zod کامل روی همه actions | ✓ | ✓ | △ | بعداً؛ F3 کافی |
+
+**انتخاب نهایی F3:** string/number/object(text|title|name|content) → ChecklistItem؛ raw≠empty و drop → log. Tool-calling به‌عنوان fix اصلی ممنوع (اور).
+
+### مشکل G — Citation cap ≠ Context cap (Q-B8)
+| گزینه | مدرن | اصولی | ساده | حکم |
+|-------|------|-------|------|-----|
+| G1. context را به 8 برسان | △ | ✗ | ✓ | رد — هزینه/noise |
+| G2. **citations ⊆ evidence docs (همان AI_RAG_CONTEXT_DOCS)** | ✓ | ✓ | ✓ | **انتخاب** |
+| G3. UI دو لایه citation | ✓ | ✓ | ✗ | رد — scope اضافه |
+
+**انتخاب نهایی G2:** یک `evidenceDocs` برای context و citations.
+
+### مشکل H — Intent bare tokens (Q-B9)
+| گزینه | مدرن | اصولی | ساده | حکم |
+|-------|------|-------|------|-----|
+| H1. LLM router | ✓ | ✓ | ✗ | رد |
+| H2. حذف keyword intent | — | ✗ | — | رد |
+| H3. **حذف bare لیست/مرور/آخرین + افزودن بنویس/یادداشت بردار + حفظ اولویت create** | ✓ | ✓ | ✓ | **انتخاب** |
+| H4. regex مرزکلمه فارسی سنگین | ✓ | △ | ✗ | رد |
+
+**انتخاب نهایی H3.**
+
+### مشکل I — Honesty Partial Success (Q-B10)
+| گزینه | مدرن | اصولی | ساده | حکم |
+|-------|------|-------|------|-----|
+| I1. نادیده (فرض تک‌اکشن) | — | ✗ | ✓ | رد — partial lie برای پرمیوم |
+| I2. تراکنش all-or-nothing + rollback | ✓ | △ | ✗ | رد — پیچیده؛ ناقض partial-fail مفید |
+| I3. **acceptedMutationCount vs successMutationCount → partial-honest + حفظ results موفق** | ✓ | ✓ | ✓ | **انتخاب** |
+| I4. LLM retell نتیجه | ✓ | ✗ | ✗ | رد |
+
+**انتخاب نهایی I3:** mutation-family = CREATE_TASK|CREATE_NOTE|CREATE_PROJECT|CREATE_HABIT|UPDATE_TASK|COMPLETE_TASK (نه SUGGEST_LINK). successCount = actionResults با operation ∈ {create, update}. success==0 → full clamp؛ 0<success<accepted → partial-honest (results موفق حذف نشوند)؛ success≥accepted → strip UUID.
+
+### مشکل J — Intent ترکیبی (Q-B11)
+| گزینه | مدرن | اصولی | ساده | حکم |
+|-------|------|-------|------|-----|
+| J1. multi-intent + union allowlist | ✓ | △ | ✗ | رد — شل fail-closed |
+| J2. agent چندمرحله | ✓ | ✓ | ✗ | رد — Anti-Pattern 137 |
+| J3. **single primary intent + conflict log + prompt + smoke ترکیبی** | ✓ | ✓ | ✓ | **انتخاب** |
+| J4. همیشه link>mutate | — | ✗ | ✓ | رد |
+
+**انتخاب نهایی J3:** runtime یک intent؛ create>mutate>link>search. mutate∧link (بدون create) → mutate + `conflicts:['link']` در log. multi-capability یک‌پیام خارج اسکوپ آگاهانه. «Eval» = smoke/assert classify — نه harness جدا.
+
+### مشکل K — Repair و Quota (Q-B12)
+| گزینه | مدرن | اصولی | ساده | حکم |
+|-------|------|-------|------|-----|
+| K1. consume دوم روی repair | — | ✗ | ✓ | رد — double-charge ناعادلانه |
+| K2. حذف repair | — | ✗ | ✓ | رد — تضعیف Q-B1 |
+| K3. **quota unit = user turn (فعلی)؛ repair≤1؛ repairUsed log؛ بدون تغییر RPC** | ✓ | ✓ | ✓ | **انتخاب** |
+| K4. billing per-token | ✓ | ✓ | ✗ | رد — خارج فاز |
+
+**انتخاب نهایی K3 (تصمیم آگاهانه، نه باگ):** منتقد درست می‌گوید دو LLM call با یک decrement. غلط است اگر بگوید باید دو واحد سهمیه کاربر کم شود. قرارداد `consume_ai_quota` = گیت درخواست چت/edge turn (`usage_counters.request_count`)، نه metering هر completion. هزینه OpenRouter سمت سرور/بیزنس است.
+
+## Q.6. تصمیمات معماری کلیدی (لازم‌الاجرا)
+
+1. **Honesty-before-reply:** سرور منبع حقیقت mutation است؛ reply هرگز نباید موفقیت بدون `actionResults` ادعا کند.
+2. **Intent `mutate` + policy allowlist** برای UPDATE_TASK و COMPLETE_TASK — نه شل‌کردن create.
+3. **Repair pass حداکثر یک‌بار** فقط وقتی intent=create و actions خام خالی و پیام create-verb دارد.
+4. **Task identity index** در meta فقط برای mutate (و در صورت نیاز create برای projectId) — UUID در `reply` ممنوع (sanitizer history همچنان).
+5. **requestId + structured logs** برای تشخیص deploy drift و trace انتها‌به‌انتها.
+6. **کلاینت minimal:** types برای operation شامل update؛ بدون بازنویسی ChatView مگر label/UX برای update/complete.
+7. **بدون SQL اجباری** — PATCH tasks با ownership + whitelist کافی است؛ RPC create موجود حفظ می‌شود.
+8. **Production safety:** partial-fail processActions حفظ شود؛ temperature JSON ≤ 0.1؛ embedding model دست‌نخورده؛ quota 402 سالم؛ fail-closed برای chat باقی بماند.
+9. **Checklist boundary normalize (Q-B7):** string[] و shapeهای رایج object؛ silent drop ممنوع.
+10. **Evidence alignment (Q-B8):** citations ⊆ context docs؛ cap واحد.
+11. **Intent lexicon harden (Q-B9):** bare search tokens تنگ؛ CREATE verbs گسترش؛ بدون LLM router.
+12. **Tool-calling کامل به‌خاطر checklist در فاز Q ممنوع** (F3 کافی؛ Anti-Pattern 137).
+13. **Honesty partial-success (Q-B10):** اگر accepted mutations > success > 0 → partial-honest reply اجباری؛ حذف actionResults موفق ممنوع.
+14. **Single primary intent (Q-B11):** multi-intent runtime / union allowlist در فاز Q ممنوع؛ conflict فقط log + prompt + smoke.
+15. **Quota unit = user request/turn (Q-B12):** دومین consume برای repair ممنوع؛ repair≤1 در همان turn متریک می‌شود.
+
+## Q.7. [حیاتی] نبایدهای سخت‌گیرانه‌ی فاز Q (افزوده به Anti-Patterns)
+
+131. **ارسال reply با ادعای موفقیت ساخت/ویرایش/تکمیل وقتی `actionResults` خالی است ممنوع** (honesty clamp اجباری).
+132. **اجرای UPDATE/COMPLETE بدون allowlist policy و بدون ownership check (`user_id = auth.uid()`) ممنوع.**
+133. **پذیرش فیلدهای خارج از whitelist taskService در UPDATE_TASK ممنوع** (id, user_id, embedding, created_at, updated_at خام ارسالی مدل، …).
+134. **Ambiguous task match → نوشتن روی «اولین نتیجه» ممنوع**؛ باید no-op + سؤال شفاف.
+135. **نشت UUID تسک در `reply` کاربر ممنوع** (در context داخلی برای مدل مجاز است).
+136. **بیش از یک repair LLM call برای همان request ممنوع.**
+137. **Agent framework / tool-calling multi-round / queue orchestration جدید ممنوع.**
+138. **تغییر EMBEDDING_MODEL یا vector(768) ممنوع.**
+139. **شل‌کردن fail-closed برای intent=chat (اجازه CREATE در chat) ممنوع** — create فقط با intent create (یا mode action طبق rules موجود).
+140. **God-file monolithic جدید ممنوع؛** honesty/repair/task-resolve در `lib/` جدا و pure تا حد ممکن.
+141. **کلاینت نباید منبع حقیقت mutation باشد** (نساختن task در کلاینت وقتی edge claim کرده بدون actionResults).
+142. **پنهان‌کردن خطای processor بدون log ساخت‌یافته ممنوع.**
+143. **اعلام «درست شد» بدون smoke ماتریس فاز Q پس از deploy ممنوع.**
+144. **افزایش temperature JSON بالای 0.1 در این فاز ممنوع.**
+145. **بازنویسی کامل ChatView / DataManager ممنوع** — فقط تغییرات موضعی type/UX در صورت نیاز.
+146. **COMPLETE_TASK بدون set کردن status=done (و completed_at منطقی) ممنوع.**
+147. **حدس dueDate برای UPDATE بدون normalizeDueDate ممنوع** (همان قرارداد فاز P).
+148. **حذف بی‌صدای checklist وقتی raw array غیرخالی است ممنوع** — normalize + warn.
+149. **citation برای سندی که در context مدل نبوده ممنوع.**
+150. **تغییر AI_CITATION_CAP / AI_RAG_CONTEXT_DOCS بدون هم‌ترازی pipeline ممنوع.**
+151. **پس از Q: bare «لیست/مرور/آخرین» به‌عنوان search verb کامل ممنوع** — فقط collocation صریح.
+152. **مهاجرت tool-calling فقط برای checklist در این فاز ممنوع.**
+153. **نادیده گرفتن partial success در honesty (accepted>success>0) ممنوع** — partial-honest اجباری.
+154. **اجرای هم‌زمان link+mutate با union policy یا multi-intent در این فاز ممنوع.**
+155. **فراخوانی مجدد `consume_ai_quota` به‌خاطر repair pass ممنوع** (double-charge کاربر).
+156. **بیش از یک repair LLM call در یک request همچنان ممنوع.**
+
+## Q.8. تعریف «انجام‌شده» برای فاز Q
+
+1. «یه تسک برای فردا بساز با عنوان X» → ردیف واقعی در `tasks` + `actionResults` create + inject UI + due درست (Asia/Tehran).
+2. اگر مدل فقط «ساختم» بگوید بدون action قابل‌اجرا → کاربر **پیام صادق** می‌بیند؛ ترجیحاً repair یک‌باره create را نجات می‌دهد؛ در غیر این صورت هیچ ردیف جعلی ساخته نمی‌شود.
+3. «تسک X را انجام‌شده بزن» → status=done + completed_at + actionResult operation=update + state UI.
+4. «عنوان تسک X را به Y عوض کن» → UPDATE امن whitelist + ownership.
+5. عنوان مبهم / چند match → بدون write + سؤال شفاف.
+6. «سلام» همچنان بدون embedding و بدون citation و بدون mutation.
+7. لاگ‌ها: `ai.decision`, `ai.actions.done`/`rejected`, `ai.honesty` (و در صورت repair `ai.repair`) با **requestId** قابل‌ردیابی؛ response شامل requestId.
+8. بدون رگرسیون: proposal مدیا، 402، search citations، create+checklist، link suggest، offline دستی.
+9. نسخه edge deploy‌شده با smoke تأیید شده (Boot-only log دیگر قابل‌قبول به‌عنوان «کار می‌کند» نیست).
+10. checklist به‌صورت string[] از مدل → در DB (نه []).
+11. citations.length ≤ evidence docs در prompt.
+12. «یه لیست از ایده‌هام بنویس» → create؛ «لیست کن …» → search.
+13. multi-action با یک fail: UI results موفق را نشان می‌دهد؛ reply ادعا نمی‌کند همه موفق‌اند.
+14. جمله ترکیبی link+mutate: رفتار قطعی single-intent (mutate) + بدون crash؛ در smoke ثبت شده.
+15. یک send کاربر با repair: دقیقاً یک واحد quota؛ log/response با repairUsed.
+
+## Q.9. افزوده به تاریخچه تصمیمات کلان
+
+- **فاز Q (Action Execution Integrity):** Honesty total+partial + single repair؛ mutate allowlist؛ resolve؛ requestId؛ checklist normalize؛ citation⊆context؛ lexicon؛ single-intent conflicts آگاهانه؛ quota=user-turn — بدون multi-intent/agent و بدون double-charge repair.
+
+---
+---
+---
+
+# فاز S — کیفیت CREATE، سخت‌سازی Boundary، و Production Hardening (ادامهٔ بدهی‌های Q/R.5)
+
+> **زمینه:** فازهای P → Q → R.5 معماری fail-closed و honesty mutation را تحویل دادند و verdict «APPROVED WITH EXPLICIT DEBTS» گرفتند. این فاز **بازنویسی معماری نیست**؛ بدهی‌های صریح (D1–D7) و یافته‌های ممیزی خط‌به‌خط کد را با ساده‌ترین، اصولی‌ترین و مدرن‌ترین مسیر می‌بندد.
+> جزئیات فنی: `docs/ARCHITECTURE.md` §S · تسک‌ها: `docs/tasks.md` (فقط فاز S) · handoff: `docs/CURRENT_TASK.md`.
+
+## S.1. هدف بیزینسی
+برای صدها کاربر پرمیوم، وقتی می‌گویند «یه تسک با ۴ ساب‌تسک بساز…»، خروجی باید **عنوان واقعی + checklist واقعی در DB + کارت UI هم‌راستا** باشد — نه ردیف `بدون عنوان` با checklist خالی. همزمان boundary validation، observability، coverage تست، و smokeهای Media/Quota/Browser باید production-grade شوند **بدون** agent/tool-calling/SQL اجباری.
+
+## S.2. پرسونای هدف
+همان کاربر فارسی‌زبان غیرفنی پرمیوم. اعتماد او به «جادوی AI» با یک CREATE ناقص (عنوان خالی / بدون ساب‌تسک) می‌شکند؛ حتی اگر honesty دیگر دروغ موفقیت نگوید.
+
+## S.3. پشته‌ی تثبیت‌شده (بدون تغییر کلان)
+React 19 + TypeScript · Vite · Tailwind · Supabase (Postgres + RLS + Edge `ai-assistant`) · OpenRouter `google/gemini-2.5-flash-lite` · Embedding `google/gemini-embedding-2` / vector(768) · hybrid_search · RPC `create_task_with_tags` / `create_note_with_tags`.
+
+- **Model pin:** `google/gemini-2.5-flash-lite` — تعویض ممنوع بدون تصمیم معمار.
+- **Embedding / 768:** تغییر ممنوع.
+- **Framework:** بدون LangChain / multi-step tool-calling / agent runtime.
+- **Deploy:** edge `ai-assistant` دستی؛ SQL اجباری در این فاز **نیست**.
+
+## S.4. ریشه‌یابی واقعی (شواهد خط‌به‌خط — نه حدس)
+
+| ID | علامت / بدهی | شواهد کد | حکم ریشه |
+|----|--------------|----------|----------|
+| **S-B1** | CREATE با title خالی → DB `بدون عنوان` | `action-processor.ts` CREATE_TASK: fallback title + warn `ai.create.boundary`. R.5 صریحاً full-fail title را رد کرده. | Product quality gap — mutation درست است ولی UX ضعیف. |
+| **S-B2** | مدل checklist نمی‌دهد / بدشکل → `[]` | `mapChecklist` shape را نرمال می‌کند؛ اگر `params.checklist` غایب باشد recovery نیست. Repair فقط وقتی نام اکشن executable نیست — CREATE_TASK با title خالی executable است → repair اجرا نمی‌شود. | Repair asymmetry / quality gap — مهم‌ترین بدهی. |
+| **S-B3** | Prompt برای Flash-Lite thin است | catalog intent-scoped است ولی few-shot CREATE پیچیده / checklist Nتایی ندارد. repair system کوتاه است. | Prompt engineering debt. |
+| **S-B4** | Boundary validation ناقص روی بعضی CREATE_* | CREATE_TASK نسبتاً harden شده؛ tags/projectId/habit frequency آزادترند. UPDATE status/priority harden است. | Boundary gaps متوسط. |
+| **S-B5** | Browser E2E ندارد | inject/card از کد درست به نظر می‌رسند؛ ماتریس اجباری نیست. | Verification gap. |
+| **S-B6** | Media / Proposal کم‌تست | media-handler + proposal skip موجود؛ smoke اخیر کم. | Smoke gap. |
+| **S-B7** | Quota 402 / repair+quota | consume یک‌بار؛ 402+requestId؛ repair بدون consume دوم. | Smoke gap؛ معماری OK. |
+| **S-B8** | Observability | requestId در orchestrator هست؛ processor/resolve warn بدون requestId؛ sample checklist ممکن است محتوای کاربر را log کند. | Ops polish. |
+| **S-B9** | Regression = ۳۴ pure | shape/honesty/intent/prompt؛ بدون quality-gate/mapChecklist/citation/isUuid. | Coverage quality gap. |
+| **S-B10** | `task-resolve` → `select('*')` | ممکن است embedding 768 را بکشد — در مقیاس گران. | Perf debt واقعی. |
+| **S-B11** | Semantic incomplete success | Honesty فقط mutation truth؛ title fallback + checklist خالی = success کامل از دید honesty. | Honesty semantic gap محدود. |
+
+## S.5. تحلیل گزینه‌ها و انتخاب نهایی (مدرن · اصولی · ساده)
+
+### مشکل A — CREATE ناقص (title/checklist) [S-B1/S-B2/S-B11] — اولویت ۱
+| گزینه | مدرن | اصولی | ساده | حکم |
+|-------|------|-------|------|-----|
+| A1. Hard-fail CREATE بدون title | △ | △ | ✓ | رد — R.5؛ fail-rate Flash-Lite |
+| A2. NLP سرور برای title/checklist از متن کاربر | ✓ | ✗ | ✗ | رد — dual source of truth |
+| A3. Tool-calling + JSON schema سخت | ✓ | ✓ | ✗ | رد این فاز — Anti-Pattern 137 |
+| A4. Quality gate pure + گسترش trigger همان یک repair + harden prompt | ✓ | ✓ | ✓ | **انتخاب** |
+| A5. دومین repair جدا برای quality | △ | △ | ✗ | رد — نقض cap یک repair |
+
+**انتخاب نهایی A4:**
+1. `assessCreateQuality` / weak-create pure در `action-utils.ts`.
+2. `needsCreateRepairPass` گسترش: no-executable **یا** weak CREATE_TASK.
+3. حداکثر **یک** repair برای هر دو حالت.
+4. Repair prompt: title غیرخالی؛ checklist Nتایی وقتی کاربر ساب‌تسک خواست.
+5. Primary prompt: few-shot فشرده CREATE+checklist.
+6. Fallback `بدون عنوان` فقط post-repair باقی می‌ماند + log `ai.create.quality`.
+7. Honesty semantic مینیمال: اگر همه CREATEهای موفق title=fallback یا subtask-signal+checklist خالی → clamp reply؛ actionResults پاک نشوند.
+
+### مشکل B — Checklist model-dependent
+A4 + mapChecklist موجود + مثال prompt. Schema-fail یا NLP: رد.
+
+### مشکل C — Boundary audit
+Harden نقطه‌ای high-value (tags string[]، projectId UUID|null، habit frequency allowlist کوچک، export mapChecklist). Zod سراسری و hard-fail title/due: رد.
+
+### مشکل D — Browser / Media / Quota
+ماتریس smoke دستی ساخت‌یافته در CURRENT (+ اختیاری invoke API). Playwright CI سنگین: رد این فاز.
+
+### مشکل E — Observability
+Thread requestId به processActions؛ log بدون متن خام کاربر. Sentry کامل: رد.
+
+### مشکل F — Tests
+گسترش pure suite (quality/mapChecklist/citation/uuid/weak-chain) هدف ≥۴۵. Deno+DB: بعداً.
+
+### مشکل G — task-resolve select *
+`TASK_RESOLVE_SELECT` بدون embedding — انتخاب.
+
+### مشکل H — معماری ۵۰k
+Flash-Lite flaky → A4؛ embedding resolve → G؛ partial-fail/single-intent/title-fallback/agent: accepted limits، تغییر نده.
+
+## S.6. تصمیمات معماری کلیدی (لازم‌الاجرا)
+
+1. Quality ≠ Honesty mutation: quality gate weak CREATE را به همان یک repair و در صورت نیاز clamp reply می‌برد؛ results موفق پاک نمی‌شوند.
+2. یک repair cap مطلق پابرجا.
+3. بدون NLP dual-source برای title/checklist.
+4. بدون hard-fail CREATE روی title/due (R.5).
+5. mapChecklist export برای تست/reuse.
+6. task-resolve بدون embedding.
+7. Smoke matrices در CURRENT؛ UI rewrite ممنوع مگر باگ اثبات‌شده.
+8. Model / embedding / SQL migration دست‌نخورده.
+9. Fail-closed policy دست‌نخورده.
+
+## S.7. [حیاتی] نبایدهای سخت‌گیرانه‌ی فاز S
+
+157. بیش از یک repair LLM call در یک request همچنان ممنوع — quality و malformed در همان cap.
+158. Hard-fail کردن CREATE_TASK فقط به‌خاطر title خالی یا due نامعتبر ممنوع (R.5) مگر تصمیم صریح جدید معمار.
+159. استخراج title/checklist با پارسر NLP سرور از متن کاربر به‌عنوان منبع حقیقت ممنوع.
+160. Tool-calling / agent multi-round برای CREATE quality ممنوع.
+161. حذف actionResults موفق برای زیباسازی quality/honesty ممنوع.
+162. `select('*')` روی tasks در مسیر resolve/mutate ممنوع — ستون‌ها صریح و بدون embedding.
+163. Log کردن متن کامل checklist/title کاربر در warn production ممنوع — فقط length/flags/requestId.
+164. افزودن Playwright/CI browser سنگین به‌عنوان blocker این فاز ممنوع مگر باگ UI اثبات شود.
+165. شل کردن fail-closed chat یا multi-intent runtime ممنوع.
+166. تغییر EMBEDDING_MODEL / vector(768) / model pin flash-lite ممنوع.
+167. دومین `consume_ai_quota` برای quality repair ممنوع.
+168. بازنویسی God-file ChatView یا DataManager برای این فاز ممنوع — فقط bugfix موضعی اگر smoke بشکند.
+169. Zod/schema framework جدید روی همه actions ممنوع — harden نقطه‌ای.
+170. اعلام Done فاز S بدون: (۱) quality gate+repair، (۲) regression سبز، (۳) smoke matrix create/checklist/mutate، (۴) deploy edge ممنوع.
+
+## S.8. تعریف «انجام‌شده» برای فاز S
+
+1. پیام ایجاد تسک با ۴ ساب‌تسک → title غیر fallback (مسیر متعارف مدل+repair) + checklist طول ۴؛ یا honest quality reply بدون ادعای دروغ اگر هر دو شکست دادند.
+2. CREATE_TASK با title خالی از مدل → repair quality حداقل یک‌بار؛ fallback فقط post-repair.
+3. checklist string[] همچنان DB-safe (رگرسیون Q-B7).
+4. task-resolve embedding را fetch نمی‌کند.
+5. tags/projectId/habit frequency حداقل normalize می‌شوند.
+6. `npm run test:ai` سبز با پوشش quality/checklist/citation/uuid.
+7. Logهای جدید requestId دارند؛ sample متن خام کاربر در checklist warn حذف/کاهش یافته.
+8. ماتریس smoke Browser/Media/Quota در CURRENT تکمیل و ثبت شده.
+9. بدون رگرسیون honesty false-success، 402، proposal zero-write، mutate ambiguous.
+10. Final audit ۵۰k: هیچ debt بحرانی باز بدون سند در CURRENT.
+
+## S.9. افزوده به تاریخچه تصمیمات کلان
+
+- **فاز S (Create Quality & Production Hardening):** Quality gate + single repair expansion برای weak CREATE؛ prompt/repair few-shot checklist؛ boundary نقطه‌ای؛ resolve بدون embedding؛ observability/requestId؛ regression+smoke matrices — ادامهٔ بدهی R.5 بدون agent و بدون hard-fail title.
+
+---
+---
+---
+
+# فاز T — اصلاح ریشه‌ای میله‌های «کارهای امروز در یک نگاه» (Glance Trackers Hardening)
+
+> دامنه: **فقط لایهٔ View** در باکس `tile-brand` داخل `StatsOverview`. هیچ سرویس/هوک داده/RPC/SQL/Edge تغییر نمی‌کند. مخاطب: صدها کاربر پرمیوم — تغییر کم‌ریسک، production-ready، بدون over-engineering.
+
+## T.1. هدف بیزینسی
+باکس «کارهای امروز در یک نگاه» باید در **هر دو تم روشن/تاریک** و هر سه تم رنگی (سبز/آبی/بنفش) میله‌های پیشرفت را واضح، خوانا و زیبا نشان دهد: fill جامد همیشه دیده شود، انتهای dash واضح باشد، و بین fill و dash یک فاصلهٔ ریزِ تنفسی وجود داشته باشد.
+
+## T.2. پرسونا
+همان کاربر موبایلی فارسی‌زبان؛ این باکس خلاصهٔ فوریِ روز اوست و نباید در دارک‌مود «خراب/محو» به‌نظر برسد.
+
+## T.3. پشته (بدون تغییر)
+React 19 + TS + Vite + Tailwind CDN + CSS Variables (`index.css`) + `darkMode: 'class'` + `data-color-theme`.
+
+## T.4. ریشه‌یابی واقعی (شواهد خط‌به‌خط — نه حدس)
+
+منبع: `features/dashboard/components/StatsOverview.tsx` + `index.css` + ماکت `dashboard_redisign/index.html`.
+
+| ID | علامت کاربر | ریشهٔ مهندسی | شواهد |
+|----|-------------|--------------|--------|
+| **T-B1** | در دارک‌مود ترکر fill محو می‌شود | fill از `bg-[var(--ink-bg)]` استفاده می‌کند. در `:root` مقدار `--ink-bg: #16161A` (جامد) است؛ در `.dark` به `rgb(var(--color-primary-rgb) / 0.08)` (شیشهٔ ۸٪ primary) override می‌شود. باکس glance کلاس `tile-brand` دارد = پس‌زمینهٔ **جامد** `var(--color-primary)`. پس fill = primary@8% روی primary@100% ≈ **نامرئی**. | `StatsOverview.tsx` L152/L172؛ `index.css` L46 vs L120؛ `tile-brand` L231–236 |
+| **T-B2** | انتهای ترکر نقطه‌چین مشخص نیست | track والد `overflow-hidden rounded-full` است و child dash `border-[1.5px] border-dashed` دارد. در مدل box، border روی لبهٔ بیرونی توسط `overflow-hidden` والد **بریده** می‌شود؛ انتهای کپسول dash ناقص/محو دیده می‌شود. | `StatsOverview.tsx` L150–158 و L170–178 |
+| **T-B3** | fill و dash بهم چسبیده‌اند | دو segment مجاور در یک `flex` **بدون gap**؛ عرضها `countRatio` و `1-countRatio` جمعاً ۱۰۰٪ با فاصلهٔ صفر. | همان ردیف‌ها؛ ماکت مرجع `gap-1.5` بین دو کپسول دارد (`index.html` L499–501) |
+| **T-B4** (یافتهٔ معمار) | ردیف «عقب افتاده» هم در دارک‌مود ضعیف می‌شود | همان `bg-[var(--ink-bg)]` + `hover:bg-[#202024]` فقط برای solid معنا دارد. | L191 |
+| **T-B5** (یافتهٔ معمار) | ناسازگاری legend و fill | legend «انجام شده» = `bg-black`؛ fill = `--ink-bg`. در لایت تقریباً مشابه‌اند؛ در دارک از هم جدا می‌شوند. | L152 vs L229 |
+
+**آنچه ریشه نیست (عمداً رد شد):**
+- باگ داده/محاسبهٔ `fillRatio` / `glance` (منطق O2-4 درست است؛ فقط paint می‌شکند).
+- نیاز به کتابخانهٔ chart/progress.
+- تغییر سراسری معنای `--ink-bg` در دارک (آن توکن برای Glass-Neon روی سطوح تیرهٔ دیگر عمدی است — `tile-ink`، دکمه‌ها).
+
+## T.5. تحلیل گزینه‌ها و انتخاب نهایی (مدرن · اصولی · ساده)
+
+### مشکل A — fill محو در دارک (T-B1 / T-B4 / T-B5)
+| گزینه | مدرن | اصولی | ساده | حکم |
+|-------|------|-------|------|-----|
+| A1. در `.dark` مقدار `--ink-bg` را دوباره solid کن | — | ✗ | ✓ | **رد** — Glass-Neon سراسری (`tile-ink` و دکمه‌ها) را می‌شکند |
+| A2. `dark:` جدا روی همان کلاس fill با رنگ دیگر | △ | △ | ✓ | ضعیف — دو منبع حقیقت؛ با ۳ color-theme شکننده |
+| A3. توکن جدید `--on-brand-solid` فقط در `:root` (بدون override دارک) + مصرف در glance | ✓ | ✓ | ✓ | قوی ولی یک سطح abstraction برای ۳ usage |
+| A4. **Solid ثابتِ مستقل از `--ink-bg`: `bg-black` (هم‌تراز legend) برای fill و overdue** | ✓ | ✓ | ✓✓ | **انتخاب** — صفر تغییر سراسری توکن؛ legend و fill یکی می‌شوند؛ روی `tile-brand` (primary) در هر دو مد و هر ۳ تم کنتراست کامل |
+
+**انتخاب نهایی A4:** روی سطح brand (لیمو/آبی/بنفش جامد)، fill و overdue باید **جوهرِ جامد تیره** باشند، نه glass-primary. `--ink-bg` را برای این سطح مصرف نکن.
+
+### مشکل B — انتهای dash بریده (T-B2)
+| گزینه | مدرن | اصولی | ساده | حکم |
+|-------|------|-------|------|-----|
+| B1. ضخیم‌کردن border | — | ✗ | ✓ | **رد** — علامت را نمی‌پوشاند؛ clip سر جایش است |
+| B2. `outline` به‌جای border | △ | △ | ✓ | ممکن ولی با dashed ضعیف‌تر |
+| B3. **حذف `overflow-hidden` از track + هر segment خودش `rounded-full`** | ✓ | ✓ | ✓ | **انتخاب** — clip برداشته می‌شود؛ گوشه‌ها از خودِ کپسول‌ها می‌آیند |
+| B4. SVG progress | ✓ | ✓ | ✗ | **رد** — over-engineering |
+
+### مشکل C — چسبندگی fill/dash (T-B3)
+| گزینه | مدرن | اصولی | ساده | حکم |
+|-------|------|-------|------|-----|
+| C1. margin روی یکی از children | — | △ | ✓ | شکننده با width٪ |
+| C2. **`gap-1` (۴px) روی flex track + تقسیم فضا با `flex-grow` نسبی** | ✓ | ✓ | ✓ | **انتخاب** — gap واقعی؛ مجموع width٪ + gap overflow نمی‌سازد |
+| C3. gap-1.5 مثل ماکت (۶px) | ✓ | ✓ | ✓ | قابل‌قبول؛ کاربر «خیلی کم» خواست → `gap-1` ارجح |
+
+**هندسهٔ نهایی میله (یک ردیف):**
+```
+track: flex, dir=rtl, gap-1, h-full, w-full   // بدون overflow-hidden
+fill:  flexGrow = fillRatio, flexBasis = 0, rounded-full, bg-black, min-w-0
+dash:  فقط اگر (1 - fillRatio) > 0
+       flexGrow = 1 - fillRatio, flexBasis = 0, rounded-full,
+       border 1.5 dashed black/40, background transparent, min-w-[8px]
+label: absolute overlay (مثل الان) — لایهٔ دوم fill نساز
+```
+- وقتی `fillRatio === 1`: فقط fill تمام‌عرض؛ dash رندر نشود.
+- empty-state (`total===0` → fillRatio=0.30) دست‌نخورده بماند.
+- اعداد/منطق `fillRatio` / `faNum` / overdue click **عوض نشوند**.
+
+## T.6. [حیاتی] نبایدهای سخت‌گیرانهٔ فاز T
+| # | نباید | جایگزین |
+|---|-------|---------|
+| T-1 | تغییر سراسری `--ink-bg` / `--ink-text` در `.dark` | solid فقط محلی روی glance |
+| T-2 | استفادهٔ مجدد از `var(--ink-bg)` برای fill/overdue روی `tile-brand` | `bg-black` (یا معادل solid ثابت) |
+| T-3 | `overflow-hidden` روی track میله‌های fill/dash | گوشه از `rounded-full` هر segment |
+| T-4 | width٪ همزمان روی دو child + gap (جمع > ۱۰۰٪) | `flex-grow` نسبی + `flex-basis: 0` |
+| T-5 | کتابخانه/SVG progress جدید | همان div geometry |
+| T-6 | دست‌زدن به منطق دادهٔ glance/weekProgress | فقط paint/layout میله‌ها + overdue solid |
+| T-7 | رنگ dashed سفید/نئون در دارک روی tile-brand | `border-black/40` بماند (سطح brand همیشه روشنِ primary است) |
+| T-8 | لایهٔ دوم fill پشت label (برگشت به double-pill) | label فقط typography overlay |
+| T-9 | تغییر `Dashboard.tsx` / سرویس‌ها / توکن‌های unrelated | فقط `StatsOverview.tsx` (و در صورت نیاز صفر فایل دیگر) |
+| T-10 | gap بزرگ (≥۸px) بین fill و dash | `gap-1` (۴px) حداکثر `gap-1.5` |
+
+## T.7. تعریف «انجام‌شده»
+1. دارک‌مود + هر ۳ color-theme: fill جامد و واضح روی tile-brand (محو نیست).
+2. لایت‌مود: ظاهر حداقل به خوبی قبل؛ fill با legend «انجام شده» هم‌خوان.
+3. انتهای dash کامل دیده می‌شود (clip ندارد).
+4. بین fill و dash فاصلهٔ ریز ثابت (~۴px) هست.
+5. progress=100٪ → فقط fill؛ empty ۰/۰ → ~۳۰٪ fill + dash.
+6. ردیف overdue در دارک solid و خوانا؛ کلیک مودال سالم.
+7. بدون رگرسیون حلقهٔ «وضعیت هفته»، اعداد فارسی، RTL.
+8. بدون تغییر backend/data layer.
+
+## T.8. تاریخچه
+- **فاز T (جاری):** کالبدشکافی نشان داد fill از توکن glassِ دارک روی سطح brand استفاده می‌کرد (محو)، `overflow-hidden` انتهای dash را می‌برید، و gap بین segmentها صفر بود. درمان: solid محلی + track بدون clip + flex-grow + gap-1.
+
+---
+---
+---
+
+# فاز U — تسک‌های تکرارشونده (Recurring Tasks)
+
+> دامنه: افزودن **قابلیت تکرار** به تسک‌ها (daily / weekly / monthly / yearly) با UX استاندارد اپل، روی همان پشتهٔ تثبیت‌شده. مخاطب: صدها کاربر پرمیوم — production-ready، بدون over-engineering، بدون agent/framework جدید.
+> جزئیات فنی: `docs/ARCHITECTURE.md` §U · تسک‌ها: `docs/tasks.md` (فقط فاز U) · handoff: `docs/CURRENT_TASK.md`.
+
+## U.1. هدف بیزینسی
+کاربر بتواند روی کارهای تکراری (ورزش روزانه، جلسهٔ هفتگی، پرداخت ماهانه، تولد سالانه) **یک‌بار** قانون تکرار را تنظیم کند و سیستم به‌صورت قابل‌اعتماد، پس از انجام هر occurrence، occurrence بعدی را با due_date درست بسازد — بدون پیچیدگی تقویمی/RRULE برای کاربر غیرفنی.
+
+## U.2. پرسونای هدف
+همان کاربر فارسی‌زبان موبایلی/پریمیوم که با مودال تسک کار می‌کند؛ انتظار UI مینیمال اپل (دراپ‌داون تمیز، تیک روزها، انتخاب ماه/روز مثل TimePicker) و رفتار «فقط کار می‌کند».
+
+## U.3. پشته‌ی تثبیت‌شده (بدون تغییر کلان)
+React 19 + TypeScript · Vite · Tailwind (توکن‌ها) · Supabase Postgres + RLS · offline outbox/`idb` · `motion` · `utils/dateUtils` (Asia/Tehran + جلالی) · feature-based `features/tasks/*`.
+
+- **بدون** کتابخانهٔ recurrence/RRULE/rrule.js.
+- **بدون** جدول جدا برای series (در این فاز).
+- **بدون** CLI supabase؛ SQL خام شماره‌دار بعدی: `51_task_recurrence.sql`.
+- **بدون** تغییر AI/Edge مگر تسک صریح بگوید (این فاز AI-create recurrence ندارد).
+
+## U.4. ریشه‌یابی و پیش‌فرض‌های پنهان (از کد واقعی)
+1. `tasks` فقط فیلدهای one-shot دارد (`due_date`, `status`, `checklist`, …) — هیچ recurrence نیست (`types.ts`, `03_core.sql`).
+2. `TaskEditorModal` create/edit/view دارد؛ PropertyRow + `PersianDatePicker`/`TimePicker` با `<select>` و wrapper ماژول‌لول — الگوی UI موجود برای «ماه + روز».
+3. `taskService.updateTask` whitelist سخت (فاز O) — هر فیلد جدید **باید** به `TASK_UPDATE_ALLOWED` و `TASK_SELECT` اضافه شود وگرنه silent drop.
+4. `create_task_with_tags` (47) ستون‌های insert را صریح لیست می‌کند — recurrence یا باید به RPC اضافه شود یا بعد از create با update ست شود؛ **تصمیم: RPC + whitelist هر دو** تا offline insert یک‌مرحله‌ای بماند.
+5. تکمیل از چند مسیر: `toggleTaskCompletion`، view-mode `onSave({status})`، AI COMPLETE — spawn بعدی باید در **یک** نقطهٔ داده (`useDataManager`) باشد نه UI.
+6. Offline-first: payload insert/update باید recurrence را حمل کند؛ sanitize سرویس منبع حقیقت است.
+7. هفتهٔ فارسی از **شنبه** شروع می‌شود؛ UI ترتیب شنبه→جمعه. محاسبات با `Date.getDay()` JS (۰=یکشنبه … ۶=شنبه) و نگاشت صریح لیبل.
+
+## U.5. تحلیل گزینه‌ها و انتخاب نهایی (مدرن · اصولی · ساده)
+
+### مشکل A — مدل داده
+| گزینه | مدرن | اصولی | ساده | حکم |
+|-------|------|-------|------|-----|
+| A1. RRULE string (RFC5545) | ✓ | ✓ | ✗ | رد — parser/edge-case زیاد؛ yearly جلالی سخت |
+| A2. جدول `task_recurrences` + FK | ✓ | ✓ | ✗ | رد این فاز — join/RLS/outbox اضافه |
+| A3. **JSONB روی `tasks.recurrence` + اختیاری `recurrence_series_id`** | ✓ | ✓ | ✓ | **انتخاب** |
+| A4. فقط کلاینت localStorage | — | ✗ | ✓ | رد — چنددستگاه/پرمیوم |
+
+**انتخاب A3:** یک ستون JSONB نال‌پذیر + `recurrence_series_id UUID NULL` برای پیوند occurrenceها. قرارداد ماشین‌خوان در ARCHITECTURE §U.2.
+
+### مشکل B — موتور occurrence
+| گزینه | مدرن | اصولی | ساده | حکم |
+|-------|------|-------|------|-----|
+| B1. Virtual tasks در UI (بدون ردیف DB) | ✓ | △ | ✗ | رد — offline/list/dashboard را می‌شکند |
+| B2. Materialize N occurrence جلوتر (cron) | ✓ | ✓ | ✗ | رد — cron/edge/over-eng |
+| B3. **Materialize-on-complete: تکمیل → insert occurrence بعدی** | ✓ | ✓ | ✓ | **انتخاب** |
+| B4. فقط advance `due_date` روی همان ردیف | — | ✗ | ✓ | رد — تاریخچهٔ done از بین می‌رود |
+
+**انتخاب B3:** occurrence فعلی done می‌ماند؛ تسک جدید با همان template + `due_date` بعدی + همان `recurrence` + همان `recurrence_series_id`. اگر کاربر هیچ‌وقت complete نکند، همان ردیف overdue می‌ماند (رفتار قابل‌قبول و شفاف).
+
+### مشکل C — UI picker
+| گزینه | مدرن | اصولی | ساده | حکم |
+|-------|------|-------|------|-----|
+| C1. همه چیز inline در TaskEditorModal | — | ✗ | △ | رد — modal شلوغ می‌شود |
+| C2. **دکمه → RecurrencePickerModal تودرتو؛ view فقط خلاصه** | ✓ | ✓ | ✓ | **انتخاب** |
+| C3. صفحهٔ route جدا | — | ✗ | ✗ | رد — mobile-modal product |
+
+**انتخاب C2:** create/edit: ردیف Property + دکمه باز کردن مودال. view: chip/کارت خلاصهٔ فارسی زیبا (بدون دکمهٔ تنظیم مگر ورود به edit).
+
+### مشکل D — تقویم yearly
+| گزینه | حکم |
+|-------|-----|
+| میلادی در UI | رد — محصول جلالی است |
+| **جلالی month+day مثل PersianDatePicker** | **انتخاب** — store `{ month:1-12, day:1-31 }` جلالی |
+
+### مشکل E — AI recurrence
+خارج اسکوپ این فاز (نه prompt، نه CREATE_TASK recurrence). بعداً قابل‌افزودن روی همان JSONB.
+
+## U.6. تصمیمات معماری کلیدی (لازم‌الاجرا)
+
+### U.6.A هستهٔ داده و موتور (پایه)
+1. **Schema:** فقط دو ستون جدید روی `tasks`: `recurrence JSONB NULL` + `recurrence_series_id UUID NULL`. migration فقط `51_task_recurrence.sql` (idempotent). SQL قدیمی دست‌نخورده. **پایان تکرار داخل همان JSONB است** — ستون DB جدا برای end نساز.
+2. **قرارداد `TaskRecurrence` (پس از normalize):**
+   ```ts
+   type TaskRecurrenceEnd =
+     | { kind: 'on_date'; date: string }      // YYYY-MM-DD تقویم تهران؛ آخرین روزی که occurrence مجاز است (inclusive)
+     | { kind: 'after_n'; remaining: number }; // چند occurrence دیگر بعد از complete/skip همین نوبت مجاز است (0 = دیگر spawn/skip-advance نساز)
+
+   type TaskRecurrence =
+     | { type: 'daily'; end?: TaskRecurrenceEnd }
+     | { type: 'weekly'; weekdays: number[]; end?: TaskRecurrenceEnd }   // getDay: 0=Sun…6=Sat
+     | { type: 'monthly'; days: number[]; end?: TaskRecurrenceEnd }      // 1..31
+     | { type: 'yearly'; dates: { month: number; day: number }[]; end?: TaskRecurrenceEnd }; // جلالی
+   ```
+   - `null` / absent = بدون تکرار.
+   - weekly/monthly/yearly: آرایه‌ها unique + sorted؛ length≥1.
+   - `end` اختیاری؛ absent = بی‌نهایت (تا clear دستی).
+   - UI «۵ بار در کل»: روی **اولین** ذخیره با `after_n.remaining = 5 - 1 = 4` (یعنی بعد از این نوبت ۴ نوبت دیگر). نمایش به کاربر همیشه `remaining + 1` وقتی status باز است («۵ نوبت باقی از این سری» اگر بخواهی ساده‌تر: «۴ نوبت بعد از این» — قرارداد نمایش در ARCHITECTURE: **`نوبت‌های باقی‌مانده از این به‌بعد = remaining + 1` شامل همین باز**).
+3. **Util خالص** `utils/recurrenceUtils.ts`: normalize (با end)، `describeRecurrenceFa(r, opts?)`, `computeNextDueDate`, `canContinueRecurrence(r, nextDue)`, `buildNextRecurrence(r)` (کاهش remaining)، `resetChecklistItems`, `hasExplicitDueTime(due)`, `WEEKDAYS_FA`. هیچ UI/Supabase.
+4. **سرویس:** `TASK_SELECT` + whitelist + RPC `p_recurrence` / `p_recurrence_series_id` با DEFAULT NULL.
+5. **Spawn-on-complete فقط در `useDataManager`:** transition → done + recurrence معتبر + `canContinue` + nextDue → `addTask` با checklist ریست، `buildNextRecurrence`, همان series_id. Guard ضد duplicate همان روز series.
+6. **Skip نوبت (۱.۱) — بدون done دروغین:** API داده `skipRecurrenceOccurrence(taskId)` فقط در `useDataManager`:
+   - فقط اگر status≠done و recurrence معتبر.
+   - `nextDue = computeNextDueDate(due, r)`؛ اگر null یا !canContinue → no-op + در صورت اتمام end، `recurrence` را null کن (سری تمام).
+   - **همان ردیف** را update کن: `due_date = nextDue`، `recurrence = buildNextRecurrence(r)` (remaining--)، status همچنان todo، checklist دست‌نخورده (skip ≠ complete).
+   - **ردیف جدید نساز** (تفاوت با complete).
+   - Offline: update در outbox.
+7. **زمان due:** wall-clock تهران از anchor حفظ؛ ۱۲:۰۰ تهران = بدون ساعت (قرارداد موجود).
+
+### U.6.B پایان سری (۱.۳)
+8. Picker: بخش «پایان تکرار» با ۳ حالت: بدون پایان | در تاریخ (PersianDatePicker → `on_date`) | بعد از N بار (عدد صحیح ۱…۹۹۹ → تبدیل به `after_n.remaining = N-1` روی اولین commit؛ اگر N=1 ⇒ remaining=0 یعنی بعد از complete همین یکی دیگر spawn نشود).
+9. `computeNextDueDate` فقط تاریخ بعدی تقویمی را می‌دهد؛ **گیت پایان** جدا: `canContinueRecurrence`:
+   - `on_date`: nextDue (روز تهران) ≤ end.date
+   - `after_n`: remaining ≥ 1 قبل از spawn/skip-advance؛ بعد از عمل `remaining' = remaining - 1` روی occurrence بعدی (complete→روی task جدید؛ skip→روی همان task).
+10. وقتی remaining به ۰ می‌رسد پس از complete: spawn نشود؛ task done می‌تواند recurrence را برای تاریخچه نگه دارد یا null — **قرارداد: done همان recurrence لحظهٔ complete را نگه می‌دارد** (immutable history)؛ open بعدی وجود ندارد.
+
+### U.6.C ویرایش وسط سری (۳.۱)
+11. مدل spawn-on-complete ⇒ معمولاً **فقط یک todo باز** per series. قانون محصول:
+    - ویرایش فیلدهای محتوا (title/desc/…) = **فقط همین occurrence** (همان ردیف).
+    - ویرایش/پاک‌کردن `recurrence` روی save کامل = **از این به بعد**: همین open task؛ اگر به‌اشتباه چند open با همان `recurrence_series_id` بود، `useDataManager.updateTask` وقتی کلید `recurrence` در payload است، همان recurrence را روی **همهٔ openهای همان series** کپی می‌کند؛ **doneها هرگز بازنویسی نشوند**.
+12. دیالوگ چندگزینه‌ای Apple «this / all» **ساخته نمی‌شود** (over-eng برای مدل تک-باز). رفتار بالا کافی و قابل‌پیش‌بینی است. در UI یک خط راهنما زیر ردیف تکرار در edit: «قانون تکرار از این نوبت به بعد اعمال می‌شود».
+
+### U.6.D UI / کپی / دسترسی (۲.۱–۲.۵)
+13. **Picker** (`RecurrencePickerModal`): list type اپل‌مانند؛ weekly شنبه→جمعه؛ monthly گرید؛ yearly ماه+روز جلالی؛ end section؛ **پیش‌نمایش نوبت بعدی** (۲.۳) با `computeNextDueDate` + `formatPersianDate` + ساعت فقط اگر explicit؛ validation (۲.۴): weekly/monthly/yearly بدون عضو → دکمه تأیید disabled + متن خطا؛ clamp ماه کوتاه در preview با توضیح یک‌خطی؛ touch ≥۴۴px؛ `z-[70]`؛ module-level components؛ بعد از close فوکوس منطقی (۲.۵).
+14. **کپی فارسی غنی (۲.۲):** `describeRecurrenceFa(r, { dueDate? })` — نمونه‌ها: «هر روز»، «هر روز ساعت ۰۷:۳۰»، «هفته‌ای دو بار · شنبه و چهارشنبه»، «روزهای ۱ و ۱۵ هر ماه»، «هر سال · ۱۲ فروردین»، + پسوند پایان «تا ۱۴۰۴/۰۶/۳۱» یا «· ۵ نوبت باقی». اگر due ساعت ۱۲:۰۰ تهران است **ساعت ننویس**.
+15. **Badge لیست (۲.۱):** روی `TaskCard` و سطر `TodaysPlan` (todoهای باز): `RepeatIcon` کوچک + متن کوتاه `describeRecurrenceFa(r)` truncate (یک خط، max ~۱۸–۲۲ کاراکتر با ellipsis اگر لازم). done: badge اختیاری محو یا حذف — **قرارداد: فقط status≠done** تا شلوغ نشود.
+16. **TaskEditor:** create/edit ردیف تکرار + clear؛ view کارت خلاصه + دکمهٔ «رد کردن این نوبت» (skip) وقتی recurring و ≠done؛ auto **۴.۲**: اگر recurrence از null→non-null و due خالی/hasDate false ⇒ due=امروز تهران ۱۲:۰۰ و hasDate=true (کاربر بعداً عوض می‌کند).
+
+### U.6.E بازخورد، یادآور، داشبورد، لیست (۳.۳، ۴.۱، ۴.۲، ۵.۲، ۵.۳)
+17. **Toast بعد از spawn (۳.۳):** پس از complete+spawn موفق، **یک** `addNotification` از نوع `info` (نه error): متن کوتاه «نوبت بعدی ثبت شد · {تاریخ فارسی}»؛ **بدون** action پیچیده اگر Toast فعلی action پایدار ندارد — اگر `action:{label,onClick}` در سیستم Toast موجود است، label «مشاهده» → `hexer:open-task-editor` با task جدید. **اسپم نکن:** اگر addTask خودش toast موفقیت عمومی می‌دهد، toast عمومی addTask برای spawn داخلی **ساکت** شود (فلگ داخلی `silent?: boolean` روی addTask یا پارامتر options) تا فقط یک پیام بماند.
+18. **یادآور (۴.۱):** معماری scheduler فعلی (`due_date` + `task.id` + `status!=='done'`) برای occurrence جدید **خودکار** کار می‌کند. تغییر اجباری کد: در body/title نوتیف اگر `isRecurring` یک پیشوند/پسوند خیلی کوتاه «(تکراری)» فقط در `showViaSW` path داخل scheduler — اختیاری ولی توصیه‌شده. **هیچ** جدول reminder جدا per series نساز. QA اجباری در smoke.
+19. **برنامه امروز (۵.۲):** فیلتر `isSameTehranDay(due, selectedDate)` دست‌نخورده بماند. Invariant: بعد از complete/skip، due occurrence باز بعدی **نباید** همان روز complete باشد مگر قانون weekly همان روز بعداً در هفته… daily ⇒ فردا. تست: complete صبح ⇒ آیتم از TodaysPlan امروز حذف (done پایین یا خارج active) و todo جدید فردا. Skip از امروز ⇒ due می‌رود جلو ⇒ از لیست امروز خارج می‌شود.
+20. **تمیزکاری doneهای تکراری (۵.۳):** فقط لایهٔ view در `TasksView` (agenda completed): completedهایی که `isRecurring` و `due_date` آن‌ها بیش از **۱۴ روز تقویم تهران** از امروز عقب‌تر است، به‌صورت پیش‌فرض در سکشن جمع‌شونده «تکراری‌های قدیمی‌تر (N)» قرار گیرند (collapsed default). **حذف از DB نشوند.** فیلتر جستجو اگر query غیرخالی است، همه را نشان بده (جستجو آرشیو را دور نزند).
+
+### U.6.F مرز اسکوپ
+21. AI recurrence، RRULE، cron materialize، جدول series، ادغام Habit، دیالوگ this/all کامل، materialize جلوتر: **خارج اسکوپ**.
+22. فایل‌های مرده `components/TaskEditorModal.tsx` و… ویرایش نشوند.
+
+## U.7. [حیاتی] نبایدهای سخت‌گیرانه‌ی فاز U
+
+| # | نباید | جایگزین |
+|---|-------|---------|
+| U-1 | کتابخانهٔ rrule / cron parser جدید | util خالص خودمان |
+| U-2 | جدول recurrence جدا / materialize با cron | JSONB + spawn-on-complete + skip روی همان ردیف |
+| U-3 | منطق next-date / end / describe داخل JSX | فقط `recurrenceUtils` |
+| U-4 | PATCH بدون whitelist برای recurrence | `TASK_UPDATE_ALLOWED` + `TASK_SELECT` |
+| U-5 | ویرایش SQL ≤50 | فقط `51_task_recurrence.sql` |
+| U-6 | spawn یا skip در UI بدون عبور از useDataManager | فقط data layer |
+| U-7 | occurrence بعدی با checklist تیک‌خورده | reset + id جدید |
+| U-8 | هفته یکشنبه‌اول در UI | شنبه→جمعه |
+| U-9 | yearly میلادی در UI | جلالی |
+| U-10 | component داخل render body | module-scope |
+| U-11 | رنگ هاردکد / کلاس Tailwind نامعتبر | توکن‌ها |
+| U-12 | AI CREATE recurrence | خارج اسکوپ |
+| U-13 | شکستن ۱۲:۰۰ تهران = بدون ساعت | حفظ؛ describe ساعت ننویسد |
+| U-14 | double-spawn بدون guard | series + same day |
+| U-15 | God-file کردن editor بدون picker جدا | `RecurrencePickerModal` |
+| U-16 | skip با status=done | skip فقط due را جلو می‌برد |
+| U-17 | complete دروغین برای «رد کردن» | API skip |
+| U-18 | ستون DB جدا برای end / count | end داخل JSONB |
+| U-19 | بازنویسی recurrence روی doneهای قدیمی سری | فقط openها |
+| U-20 | toast دوتایی (addTask عمومی + spawn) | silent spawn insert + یک info |
+| U-21 | auto-prompt نوتیفیکیشن | permission موجود |
+| U-22 | حذف DBی doneهای تکراری برای «تمیزی» | فقط collapse در UI |
+| U-23 | نشان‌دادن todo تکراری فردا در TodaysPlan امروز | فیلتر due روز |
+| U-24 | تأیید picker با weekly/monthly/yearly خالی | disabled + پیام |
+
+## U.8. تعریف «انجام‌شده»
+1. چهار حالت تکرار + clear + end (تاریخ / N بار) در picker با preview و validation.
+2. کپی فارسی غنی (+ ساعت فقط اگر explicit) در editor view، badge کارت، TodaysPlan.
+3. complete → spawn next با end-gate؛ skip → advance due همان ردیف؛ اتمام سری بدون spawn اضافه.
+4. ویرایش قانون = از این به بعد روی open(های) series؛ doneها دست‌نخورده.
+5. auto due=امروز وقتی تکرار روشن و تاریخ خالی.
+6. یک toast info بعد از spawn؛ scheduler occurrence جدید را می‌بیند.
+7. آرشیو UIی doneهای تکراری >۱۴ روز در TasksView.
+8. offline + RPC AI بدون recurrence سالم؛ SQL 51 idempotent.
+
+## U.9. تاریخچه
+- **فاز U (جاری):** Recurring tasks با JSONB+end + spawn-on-complete + skip + picker اپل‌مانند + badge/toast/collapse — بدون RRULE/cron/جدول جدا.
+- **Δ UX تأیید کارفرما:** ۱.۱ skip · ۱.۳ end · ۲.۱–۲.۵ UI · ۳.۱ series-from-now · ۳.۳ toast · ۴.۱ reminders · ۴.۲ auto-due · ۵.۲ today invariant · ۵.۳ archive done.

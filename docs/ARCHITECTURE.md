@@ -2540,3 +2540,1245 @@ useReminderScheduler
 7. calendar day nums کوچک‌تر.
 8. scheduler با `status` و permission؛ no false filter.
 9. بدون رگرسیون فاز O/N و بدون SQL.
+
+---
+
+# §T — لنگرگاه سیستمی فاز «Glance Trackers Hardening»
+
+## T.0. منطق مسیردهی فایل (پروژه موجود — فقط ویرایش نقطه‌ای)
+
+```
+features/dashboard/components/StatsOverview.tsx
+  └── (T1) فقط Box 2 «کارهای امروز در یک نگاه»:
+        • fill/overdue: قطع وابستگی به var(--ink-bg)
+        • track میله‌ها: حذف overflow-hidden؛ gap-1؛ flex-grow نسبی
+        • dash: visible end + min-width وقتی residual > 0
+        • منطق weekProgress / fillRatio / glance counts = دست‌نخورده
+
+index.css
+  └── دست‌نخورده (عمداً). --ink-bg دارک برای tile-ink/سراسری حفظ می‌شود.
+
+features/dashboard/Dashboard.tsx
+  └── دست‌نخورده (فقط host StatsOverview)
+
+dashboard_redisign/*
+  └── فقط‌خواندنی / مرجع بصری — ویرایش ممنوع
+```
+
+**ساخته نمی‌شود:** فایل جدید، توکن اجباری جدید، dependency، SQL، Edge.  
+**حذف نمی‌شود:** هیچ کامپوننتی.
+
+## T.1. قرارداد بصری سطح Brand vs سطح Ink
+
+| سطح | کلاس/توکن | نقش fill جامد | نقش glass |
+|-----|-----------|---------------|-----------|
+| Brand tile | `.tile-brand` = solid `--color-primary` | **باید solid تیره** (`bg-black`) | glass primary ممنوع (محو می‌شود) |
+| Ink tile / dark chrome | `.tile-ink` / `--ink-bg` | در لایت solid؛ در دارک glass-primary@8% | درست برای پس‌زمینهٔ تیره |
+
+قانون: **هر controlِ جامدِ روی `.tile-brand` حق ندارد `var(--ink-bg)` مصرف کند.**
+
+## T.2. هندسهٔ میله (مرجع پیاده‌سازی برای کدنویس)
+
+### قبل (باگ‌دار)
+```
+relative h-24px
+  absolute flex overflow-hidden rounded-full   ← clip border
+    fill  width: ratio%   bg ink-bg            ← dark = invisible on brand
+    dash  width: (1-ratio)% border-dashed     ← ends clipped, gap=0
+  absolute label text-white
+```
+
+### بعد (هدف)
+```
+relative h-[24px] w-full
+  absolute inset-0 flex items-stretch gap-1 dir=rtl   ← NO overflow-hidden
+    fill:  style={{ flexGrow: ratio, flexBasis: 0 }}
+           class: h-full min-w-0 rounded-full bg-black transition-all duration-500
+    dash?: only if residual > 0
+           style={{ flexGrow: residual, flexBasis: 0 }}
+           class: h-full min-w-[8px] rounded-full border-[1.5px] border-dashed
+                  border-black/40 bg-transparent transition-all duration-500
+  absolute inset-0 z-10 pointer-events-none px-3 flex items-center justify-start
+    span label text-white text-[11px] font-bold truncate   ← no second pill
+```
+
+`ratio = glance.countRatio | glance.highRatio` (همان `fillRatio` موجود).  
+`residual = 1 - ratio`؛ اگر `residual <= 0.001` → dash را **رندر نکن** (۱۰۰٪ کامل).
+
+### ردیف overdue
+- `bg-black` به‌جای `bg-[var(--ink-bg)]`
+- hover: `hover:bg-[#202024]` قابل قبول (solid darken)؛ یا `hover:bg-black/90`
+- ساختار دکمه/آیکن/handler بدون تغییر
+
+### Legend
+- «انجام شده» از قبل `bg-black` — با fill جدید هم‌تراز می‌ماند
+- dash legend: `border-black/40` بماند
+
+## T.3. چیزهایی که عمداً تغییر نمی‌کنند
+- `CIRCUMFERENCE` / حلقهٔ وضعیت هفته / دکمه مشاهده
+- `getCurrentWeekDays`, `fillRatio`, `faNum`, فیلترهای task
+- `EMPTY_FILL_RATIO = 0.3`
+- props `onOpenWeeklyReport` / `onOpenOverdueModal`
+- کلاس‌های عنوان `text-black` روی tile-brand (سطح primary همیشه روشن است)
+
+## T.4. Conflict Map
+| فایل | T1 |
+|------|:--:|
+| StatsOverview.tsx | W |
+| سایر | — |
+
+یک تسک سریال کافی است؛ موازی‌سازی لازم نیست.
+
+## T.5. پذیرش نهایی فاز T
+1. اسکرین‌شات/چشم: light + dark × green/blue/purple → fill واضح.
+2. dash دو سرِ گردِ کامل، بدون لبه‌ی بریده‌شده.
+3. gap ریز بین fill و dash در progressهای میانی (مثلاً ۳۰٪، ۶۰٪).
+4. ۱۰۰٪ و ۰/۰ empty-state درست.
+5. overdue + مودال سالم.
+6. بدون تغییر visual ناخواسته در باکس «وضعیت هفته».
+
+---
+
+# §P — لنگرگاه سیستمی فاز «بازآفرینی مغز AI / Chat UX» (AI Brain Overhaul)
+
+## P.0. منطق مسیردهی فایل (پروژه موجود)
+
+### قانون کلی
+کل درخت را دوباره رسم نکن. فقط مسیرهای جدید/ویرایش AI+Chat:
+
+### فایل‌های Edge (هسته)
+| مسیر | عمل | نقش |
+|------|-----|-----|
+| `supabase/functions/ai-assistant/index.ts` | ویرایش | Orchestrator: intent → gate RAG/meta → prompt → generate → process → **citation policy** |
+| `supabase/functions/ai-assistant/lib/system-prompt.ts` | ویرایش | قابلیت‌ها، اکشن‌ها، checklist، تاریخ، intent rules، JSON contract |
+| `supabase/functions/ai-assistant/lib/action-processor.ts` | ویرایش | `p_checklist` + normalize dueDate + map checklist shape |
+| `supabase/functions/ai-assistant/lib/rag-context.ts` | ویرایش | match_count معقول، optional type filter post-process، skip-safe |
+| `supabase/functions/ai-assistant/lib/meta-context.ts` | ویرایش | gate بر اساس intent/mode؛ projects برای create؛ بدون over-fetch |
+| `supabase/functions/ai-assistant/lib/date-context.ts` | **جدید** | pure: تقویم تهران + helpers تاریخ |
+| `supabase/functions/ai-assistant/lib/intent.ts` | **جدید** | pure: classifyIntent + extractSearchPreferences |
+| `supabase/functions/ai-assistant/lib/citation-policy.ts` | **جدید** | pure: shouldReturnCitations + filterCitationsByType |
+| `supabase/functions/_shared/gemini-client.ts` | فقط خواندن | **بدون تغییر مدل embedding** |
+| `supabase/functions/vectorize/index.ts` | بدون تغییر اجباری | خارج اسکوپ مگر باگ blocking |
+
+### SQL (فقط در صورت نیاز مرحله‌ای)
+| مسیر | عمل | نقش |
+|------|-----|-----|
+| `supabase/sql/51_ai_search_type_filter.sql` | **اختیاری/مرحله دوم** | اگر post-filter کافی نبود: `hybrid_search` با `p_types text[] default null` — Idempotent |
+
+> پیش‌فرض فاز: **بدون SQL اجباری.** اول post-filter در `rag-context` / `citation-policy`.
+
+### کلاینت
+| مسیر | عمل | نقش |
+|------|-----|-----|
+| `services/geminiService.ts` | ویرایش | body ساخت‌یافته `filters`؛ history slice یک‌دست (8) |
+| `features/chat/ChatView.tsx` | ویرایش هدفمند (نه بازنویسی کامل) | ارسال filters؛ حذف token-append؛ UX جزئی |
+| `features/chat/components/CitationCard.tsx` | ویرایش سبک در صورت نیاز label | برچسب درست برای note/task/project |
+| `types.ts` | ویرایش سبک | `ChatFilters` اختیاری |
+| `utils/dateUtils.ts` | مرجع رفتار تهران | edge از همان semantics پیروی کند (کپی منطق، نه import فرانت) |
+
+### خارج اسکوپ صریح
+Dashboard daily-brief، billing، offline outbox، vectorize model، admin-api، PWA، تم رنگ.
+
+## P.1. وضعیت موجود AI Flow (Snapshot)
+
+```
+Client ChatView
+  → geminiService.sendChatMessage({ message, history[-10], mode, audioPath?, imagePath? })
+  → Edge ai-assistant
+       Auth → consume_ai_quota
+       always: buildMetaContext + buildRagContext (embedding + hybrid_search count=15)
+       buildSystemPrompt(today weak TZ)
+       Gemini JSON
+       processActions (CREATE_* ، SUGGEST_LINK) — بدون checklist
+       return { reply, citations: ALWAYS rag, actionResults, proposals, transcription }
+  → ChatView: always render CitationCards if any
+```
+
+**نقاط شکست:** always-RAG، weak date، no checklist، always-citations، type-blind search.
+
+## P.2. جریان دادهٔ هدف
+
+```
+Request { message, history, mode, audioPath?, imagePath?, filters? }
+│
+├─[1] Auth → 401
+├─[2] Quota consume_ai_quota → 402
+├─[3] Media? → proposal mode (بدون mutation) [موجود]
+│
+├─[4] intent = classifyIntent(message, mode, filters)
+│         mode=memory → search
+│         mode=action → create (مگر متن صریح search/link)
+│         mode=auto  → rules on Persian keywords
+│
+├─[5] dateCtx = buildDateContext() // Asia/Tehran pure
+│
+├─[6] Context (conditional):
+│      if needsMeta(intent):  meta = buildMetaContext(...)
+│      if needsRag(intent):   rag  = buildRagContext(..., preferences)
+│      else rag = { contextString:'', citations:[] }
+│
+├─[7] systemPrompt = buildSystemPrompt({ context, dateCtx, intent, isProposalMode, ... })
+├─[8] Gemini generate json_object
+├─[9] if !proposal: processActions (CREATE_TASK includes checklist + normalized dueDate)
+├─[10] citationsOut = applyCitationPolicy(intent, mode, rag.citations, preferences)
+└─[11] Response { reply, citations: citationsOut, actionResults, proposals, transcription, intent? }
+```
+
+## P.3. قرارداد Intent (ماشین‌خوان برای کدنویس)
+
+```typescript
+// lib/intent.ts — semantics اجباری است
+type AiIntent = 'chat' | 'create' | 'search' | 'link' | 'extract';
+
+// extract وقتی audio/image (proposal mode)
+// اولویت: proposal/extract > mode overrides > keyword rules
+
+needsRag(intent)  => intent === 'search' || intent === 'link'
+needsMeta(intent) => intent === 'create' || intent === 'search' || intent === 'link'
+// chat → ideally neither
+
+// hints فارسی (حداقلی، قابل‌گسترش):
+// create: بساز، ایجاد، اضافه کن، یادداشت کن، ثبت کن، تسک، کار جدید، عادت، پروژه بساز، زیرکار، ساب‌تسک
+// search: پیدا کن، بگرد، جستجو، نشون بده، چی دارم، یادم بیار، مربوط به، کجاست، لیست کن
+// link: لینک، وصل کن، ارتباط بده
+// chat: fallback
+```
+
+**Conflict resolution:** اگر هم create و هم search: اگر فعل ساخت غالب است → create. Citations فقط برای search/link.
+
+## P.4. قرارداد Date Context
+
+```typescript
+// lib/date-context.ts semantics — timeZone always Asia/Tehran
+{
+  todayStr: 'YYYY-MM-DD',
+  dayNameFa: 'چهارشنبه',
+  persianDateLong: '...',
+  tomorrowStr, dayAfterTomorrowStr, yesterdayStr,
+  // week: Saturday-start (Iran)
+  thisWeekSaturdayStr, thisWeekFridayStr,
+  nextWeekSaturdayStr,
+  upcoming: Array<{ gregorian: string; weekdayFa: string }> // ~14 days
+}
+```
+
+**قوانین resolve برای مدل (باید در prompt صریح باشد):**
+- «امروز» → todayStr
+- «فردا» → tomorrowStr
+- «پس‌فردا» → dayAfterTomorrowStr
+- «دیروز» → yesterdayStr
+- «این شنبه» / «شنبه» → نزدیک‌ترین شنبه از جدول upcoming؛ اگر امروز شنبه است → today
+- «شنبه هفته بعد» → nextWeekSaturdayStr
+- «هفته بعد» بدون روز → nextWeekSaturdayStr فقط اگر کاربر due خواسته
+- dueDate خروجی اکشن **فقط** `YYYY-MM-DD` یا null
+
+**normalizeDueDate در action-processor:**
+- null/undefined → null
+- match `/^\d{4}-\d{2}-\d{2}/` → accept (date portion)
+- else → null + log (هرگز تاریخ غلط ننویس)
+
+برای ذخیره در DB: `p_due_date` می‌تواند `YYYY-MM-DD` باشد یا ISO noon-Tehran-safe؛ با رفتار فعلی RPC سازگار بمان. ترجیح: اگر فقط date است همان `YYYY-MM-DD` را بده (مثل قبل).
+
+## P.5. قرارداد CREATE_TASK + checklist
+
+```json
+{
+  "action": "CREATE_TASK",
+  "params": {
+    "title": "string",
+    "description": "string|null",
+    "dueDate": "YYYY-MM-DD|null",
+    "priority": "low|medium|high",
+    "projectId": "uuid|null",
+    "tags": ["string"],
+    "checklist": [
+      { "text": "زیرکار ۱" },
+      { "text": "زیرکار ۲" }
+    ]
+  }
+}
+```
+
+**Processor mapping به RPC:**
+```
+p_checklist = (params.checklist || []).map(item => ({
+  id: item.id || crypto.randomUUID(),
+  text: String(item.text || item.title || '').trim(),
+  isCompleted: false
+})).filter(i => i.text.length > 0)
+```
+
+اگر checklist خالی → `[]`.
+
+## P.6. Citation Policy (ریشهٔ UX)
+
+| intent / mode | return citations? | notes |
+|---------------|-------------------|-------|
+| chat | **هرگز** | [] |
+| create | **هرگز** | actionResults جدا؛ citation ≠ نتیجه ساخت |
+| search | بله، پس از type filter | cap 8 |
+| link | بله | |
+| memory mode | بله | force search |
+| extract/proposal | نه | proposals UI |
+
+**Type preference:**  
+- پیام شامل یادداشت/نوت/note → prefer `note` (اگر ≥1 نتیجه note: فقط note؛ اگر 0: fallback mixed با cap کمتر)  
+- تسک/کار → prefer task  
+- پروژه → project  
+- client `filters.types` اولویت بالاتر از حدس متن
+
+## P.7. System Prompt — محورهای بازنویسی
+
+باید صریحاً پوشش دهد:
+1. هویت هکسر + لحن فارسی گرم / بدون نشت UUID
+2. Date Context تزریق‌شده (جدول)
+3. Capability map واقعی: tasks(+checklist), notes, projects, habits, links task↔note
+4. Actions: CREATE_TASK(+checklist), CREATE_NOTE, CREATE_PROJECT, CREATE_HABIT, SUGGEST_LINK فقط با درخواست صریح link
+5. Search: actions=[] ؛ فقط reply بر اساس context از قبل لودشده
+6. Create: actions پر؛ مدل «منابع مرتبط» اختراع نکند
+7. JSON schema ثابت
+8. ساب‌تسک = checklist نه تسک‌های جدا
+
+**حذف/اصلاح:** INTENT-GATING قبلی که فقط SUGGEST_LINK را محدود می‌کند ولی RAG را نه — با intent سرور جایگزین و هم‌تراز شود.
+
+## P.8. کلاینت — حداقل تغییر پروداکشن‌امن
+
+1. `sendChatMessage(..., filters?: { types?: ('task'|'note'|'project')[]; timeRange?: 'all'|'today'|'last_week' })`
+2. ChatView در mode=memory به‌جای append «نوع:کار» → `filters`
+3. History slice: کلاینت و سرور یک عدد (**8**)
+4. نمایش citations: شرط `length > 0` کافی است اگر سرور درست `[]` بدهد
+5. از بازنویسی کامل ChatView خودداری؛ تغییرات موضعی
+
+## P.9. Conflict Map (Read/Write)
+
+| فایل | P1 | P2 | P3 | P4 | P5 |
+|------|:--:|:--:|:--:|:--:|:--:|
+| `ai-assistant/index.ts` | W | R | R | W | |
+| `lib/intent.ts` | W | | | | |
+| `lib/date-context.ts` | W | | | | |
+| `lib/system-prompt.ts` | R | W | | | |
+| `lib/action-processor.ts` | | | W | | |
+| `lib/rag-context.ts` | | | | W | |
+| `lib/citation-policy.ts` | | | | W | |
+| `lib/meta-context.ts` | W | | | | |
+| `geminiService.ts` | | | | | W |
+| `ChatView.tsx` | | | | | W |
+
+**ترتیب اجباری:** P1 → P2 → P3 → P4 → P5
+
+## P.10. رجیستر باگ (پیگیری)
+
+| ID | وضعیت هدف پایان فاز |
+|----|---------------------|
+| P-B1 checklist | FIXED |
+| P-B2 dates | FIXED |
+| P-B3 cost always-RAG | FIXED |
+| P-B4 note search type | FIXED |
+| P-B5 citation spam | FIXED |
+| P-B6 capability prompt | FIXED |
+| P-B7 chat UX clutter | MITIGATED (server-first; UI minimal) |
+
+## P.11. پذیرش نهایی فاز P
+1. Create + due نسبی فارسی دقیق (today/tomorrow/next Saturday).
+2. Create + checklist در DB/UI.
+3. Search note → note-first citations؛ actions خالی.
+4. Chat عادی → citations [] و بدون embedding.
+5. Create → ActionResult بدون Citation row.
+6. memory filters ساخت‌یافته کار می‌کنند.
+7. 402/proposal/مدیا سالم.
+8. بدون تغییر embedding model و بدون agent framework.
+
+# §Q — لنگرگاه سیستمی فاز «یکپارچگی اجرای اکشن‌های AI» (Action Execution Integrity)
+
+> مرجع تصمیم: `docs/PROJECT.md` فاز Q.
+> تسک‌ها: فقط `docs/tasks.md` فاز Q (تسک‌های P بایگانی‌شده‌اند؛ بازنویسی نشوند).
+> این بخش **درمان شکاف execution** است؛ Intent-gate / Date / RAG / Citation فاز P پابرجا می‌مانند مگر صراحتاً supersede شوند.
+
+## Q.0. منطق مسیردهی فایل (پروژه موجود — عمدتاً Edge)
+
+### قانون کلی
+کل درخت را دوباره رسم نکن. فقط مسیرهای mutation-integrity + mutate capability.
+
+### فایل‌های Edge (هستهٔ Write این فاز)
+
+| مسیر | عمل | نقش |
+|------|-----|-----|
+| `supabase/functions/ai-assistant/index.ts` | **ویرایش** | Orchestrator: requestId، repair pass، honesty clamp، wiring mutate، response shape |
+| `supabase/functions/ai-assistant/lib/intent.ts` | **ویرایش** | mutate + classify + needsMeta/Rag + **lexicon Q-B9** |
+| `supabase/functions/ai-assistant/lib/action-policy.ts` | **ویرایش** | allowlist: UPDATE_TASK, COMPLETE_TASK برای intent=mutate؛ create family بدون شل شدن chat |
+| `supabase/functions/ai-assistant/lib/action-processor.ts` | **ویرایش** | UPDATE/COMPLETE + resolve + whitelist + **mapChecklist normalize (Q-B7)** |
+| `supabase/functions/ai-assistant/lib/system-prompt.ts` | **ویرایش** | capability UPDATE/COMPLETE + intent guidance mutate + تأکید «بدون action واقعی ادعا نکن» |
+| `supabase/functions/ai-assistant/lib/meta-context.ts` | **ویرایش** | برای mutate: TASK_INDEX ماشین‌خوان (id+title+status+due) بدون نشت در reply |
+| `supabase/functions/ai-assistant/lib/date-context.ts` | خواندن / reuse normalizeDueDate | due در UPDATE |
+| `supabase/functions/ai-assistant/lib/citation-policy.ts` | **ویرایش سبک** | mutate→[]؛ cap هم‌تراز evidence |
+| `supabase/functions/ai-assistant/lib/rag-context.ts` | **ویرایش** | **Q-B8** evidenceDocs واحد برای context+citations |
+| `supabase/functions/ai-assistant/lib/honesty.ts` | **جدید** | pure-ish: applyHonesty / buildHonestFailureReply / looksLikeSuccessClaim |
+| `supabase/functions/ai-assistant/lib/task-resolve.ts` | **جدید** | resolveTaskForUser (uuid / exact title / single ilike؛ ambiguous→null) |
+| `supabase/functions/ai-assistant/lib/ai-constants.ts` | **ویرایش سبک** | capهای resolve (مثلاً AI_TASK_RESOLVE_FETCH) |
+| `supabase/functions/_shared/gemini-client.ts` | **بدون تغییر مدل** | فقط خواندن |
+
+### کلاینت (حداقلی)
+
+| مسیر | عمل | نقش |
+|------|-----|-----|
+| `types.ts` | **ویرایش سبک** | `ActionResult.operation`: `'create' \| 'update' \| 'suggest_link'` |
+| `features/chat/components/ActionResultCard.tsx` | **ویرایش سبک** | label برای update/complete |
+| `features/chat/ChatView.tsx` | **فقط در صورت نیاز** | inject فعلی کافی است؛ بازنویسی ممنوع |
+| `hooks/useDataManager.ts` | **بدون تغییر اجباری** | injectAIProposalResult از قبل create/update دارد |
+| `services/geminiService.ts` | **بدون تغییر اجباری** | requestId opaque ok |
+| `services/taskService.ts` | **مرجع whitelist** | semantics PATCH — کپی interop نه import edge |
+
+### خارج اسکوپ صریح
+SQL migration اجباری · vectorize · billing · offline outbox · daily-brief · admin · PWA · تم · God-rewrite ChatView · agent framework · tool-calling multi-step.
+
+## Q.1. Snapshot وضعیت بعد از فاز P (شواهد)
+
+```
+Client ChatView
+  → geminiService.sendChatMessage({ message, history[-8], mode, filters? })
+  → Edge ai-assistant
+       Auth → consume_ai_quota
+       intent = classifyIntent  // chat|create|search|link|extract  (NO mutate)
+       conditional meta/rag
+       systemPrompt (CREATE_* only)
+       Gemini json_object
+       filterActionsByPolicy  // only CREATE_* + SUGGEST_LINK; no UPDATE
+       processActions → RPC create_* only
+       applyCitationPolicy
+       return { reply || 'انجام شد.', citations, actionResults, proposals, transcription, intent }
+  → ChatView: inject actionResults (skip suggest_link)
+```
+
+**شکست‌های باقی‌مانده:**
+1. Reply می‌تواند موفقیت ادعا کند در حالی که `actions=[]` یا process fail → `actionResults=[]`.
+2. UPDATE/COMPLETE در policy و processor وجود ندارد.
+3. لاگ production بدون requestId سخت trace می‌شود؛ Boot-only ≠ success proof.
+4. برای mutate، مدل id معتبر در context ندارد.
+
+## Q.2. جریان دادهٔ هدف فاز Q
+
+```
+Request { message, history, mode, audioPath?, imagePath?, filters? }
+│
+├─[0] requestId = crypto.randomUUID()
+│      log ai.start {requestId}
+│
+├─[1] Auth → 401
+├─[2] Quota → 402
+├─[3] Media? → extract/proposal (zero mutation) [بدون تغییر رفتار]
+│
+├─[4] intent = classifyIntent(...)  // + mutate
+│         mode=memory → search
+│         media → extract
+│         mutate verbs (بدون create verb غالب) → mutate
+│         create verbs → create
+│         search signals → search
+│         link hints → link
+│         mode=action default → create (موجود) مگر search/link/mutate صریح
+│         else chat
+│
+├─[5] dateCtx = buildDateContext()
+├─[6] Context conditional:
+│      needsMeta(create|search|link|mutate)
+│      needsRag(search|link only)  // mutate → NO rag default
+│      meta for mutate includes TASK_INDEX block
+│
+├─[7] systemPrompt = buildSystemPrompt({..., intent})
+├─[8] Gemini generate json_object (temp ≤ 0.1)
+│
+├─[9] actionsRaw = aiResult.actions
+│      if intent==create && actions empty && hasCreateVerb(message):
+│         ONE repair pass → actionsRaw' (or empty)
+│         log ai.repair
+│
+├─[10] filterActionsByPolicy(intent, actionsRaw)
+├─[11] processActions (CREATE_* | UPDATE_TASK | COMPLETE_TASK | SUGGEST_LINK)
+│
+├─[12] honesty:
+│      acceptedM = count mutation-family accepted
+│      successM  = count results operation create|update
+│      successM==0 → full honest failure
+│      0<successM<acceptedM → partial-honest
+│      else strip UUIDs
+│      log ai.honesty {mode, acceptedM, successM}
+│
+├─[13] citationsOut = applyCitationPolicy  // mutate → []
+└─[14] Response {
+        reply, citations, actionResults, proposals, transcription, intent,
+        requestId
+      }
+```
+
+## Q.3. قرارداد Intent — Δ نسبت به فاز P
+
+```typescript
+// supersede P.3 partially
+type AiIntent = 'chat' | 'create' | 'search' | 'link' | 'extract' | 'mutate';
+
+// MUTATE_VERBS (حداقلی قابل‌گسترش — فارسی + en):
+// انجام‌شده، تکمیل کن، تموم کن، تیک بزن، ویرایش، عوض کن، تغییر بده،
+// آپدیت، به تعویق، وضعیت، mark done، complete، update، edit، rename
+
+// Priority:
+// extract(media) > mode memory→search >
+//   if createVerb → create  (create wins over mutate if both)
+//   if mutateVerb → mutate
+//   if link && !create → link
+//   if searchSignal && !create → search
+//   mode action → create unless mutate/search/link explicit
+//   else chat
+
+needsRag(intent)  => intent === 'search' || intent === 'link'
+needsMeta(intent) => intent === 'create' || intent === 'search' || intent === 'link' || intent === 'mutate'
+```
+
+**Conflict:** اگر create verb هست → create (اولویت ساخت موجودیت جدید). Mutate فقط وقتی create verb نیست.
+
+**Q-B11 Combined intents (آگاهانه):** تک‌برچسب می‌ماند. mutate∧link → mutate + `conflicts:['link']` در log. Union allowlist / multi-intent runtime خارج اسکوپ. Smoke جملات ترکیبی اجباری.
+
+## Q.4. قرارداد Action Policy — Δ
+
+```typescript
+type ExecutableAction =
+  | 'CREATE_TASK' | 'CREATE_NOTE' | 'CREATE_PROJECT' | 'CREATE_HABIT'
+  | 'SUGGEST_LINK'
+  | 'UPDATE_TASK' | 'COMPLETE_TASK';
+
+// allowedActionsFor:
+// create  → CREATE_FAMILY only
+// link    → SUGGEST_LINK
+// mutate  → UPDATE_TASK, COMPLETE_TASK
+// search|chat|extract|default → empty
+```
+
+Fail-closed حفظ می‌شود. CHAT action همچنان non_executable.
+
+## Q.5. قرارداد اکشن‌های جدید (ماشین‌خوان)
+
+### COMPLETE_TASK
+```json
+{
+  "action": "COMPLETE_TASK",
+  "params": {
+    "taskId": "uuid|null",
+    "title": "string|null"
+  }
+}
+```
+Processor:
+1. resolve task (Q.6)
+2. update: `{ status: 'done', completed_at: now ISO }`
+3. result: `{ type:'task', operation:'update', data: row }`
+
+### UPDATE_TASK
+```json
+{
+  "action": "UPDATE_TASK",
+  "params": {
+    "taskId": "uuid|null",
+    "title": "string|null",
+    "updates": {
+      "title": "string?",
+      "description": "string|null?",
+      "status": "todo|done|...?",
+      "priority": "low|medium|high?",
+      "dueDate": "YYYY-MM-DD|null?",
+      "projectId": "uuid|null?",
+      "tags": "string[]?",
+      "checklist": "[{text|id,text,isCompleted?}]?"
+    }
+  }
+}
+```
+Processor mapping whitelist (هم‌تراز taskService):
+- title, description, status, priority
+- due_date ← normalizeDueDate(updates.dueDate) if key present
+- project_id ← updates.projectId
+- tags, checklist (mapChecklist; preserve isCompleted if provided)
+- completed_at ← if status becomes done and missing set now; if reopened to non-done set null
+- empty updates → no-op + log
+
+## Q.6. قرارداد Task Resolve (امن)
+
+ترتیب:
+1. اگر `params.taskId` UUID معتبر: `select` با `id` + scope کاربر (RLS / auth.uid) — 1 ردیف ok؛ 0 fail.
+2. وگرنه از `params.title` | `params.taskTitle`:
+   - exact match trim case-insensitive، prefer status != done، limit 5
+   - 1 → ok؛ 0 → soft ilike `%title%` limit 5
+   - soft: 1 → ok؛ >1 → **ambiguous**
+3. ambiguous / not found → skip آن اکشن (partial-fail) + reason برای honesty
+
+**هرگز** اولین ردیف multi-match را اتوماتیک انتخاب نکن (Anti-Pattern 134).
+
+## Q.7. Honesty Layer (قرارداد رفتاری)
+
+فایل `lib/honesty.ts`:
+- `looksLikeSuccessClaim(reply)` — heuristic فارسی/en (ساختم، ایجاد کردم، انجام شد، انجام دادم، آپدیت کردم، تکمیل شد، created، updated، completed، …)
+- `buildHonestFailureReply({ intent, reason })` — فارسی کوتاه بدون UUID:
+  - `no_actions` create: «نتونستم عملیات ساخت رو قطعی انجام بدم. لطفاً عنوان و زمان تسک رو واضح‌تر بگو.»
+  - `all_failed`: «درخواست فهمیده شد اما ذخیره/به‌روزرسانی موفق نبود. یک‌بار دیگر تلاش کن.»
+  - `ambiguous`: «چند تسک شبیه هم پیدا شد؛ عنوان دقیق‌تر بگو.»
+  - `not_found`: «تسک موردنظر پیدا نشد. عنوان را دقیق‌تر بفرست.»
+  - `policy_rejected`: «این تغییر در حالت فعلی مجاز نبود. لطفاً دستور را ساده‌تر بگو.»
+- `applyHonesty({ intent, reply, actionResults, hadAcceptedActions, failureHints? })`:
+  - اگر intent ∈ {create, mutate} و actionResults.length===0 → **حتماً** honest reply (حتی اگر claim موفقیت نبود؛ پیش‌فرض «انجام شد.» هم ممنوع)
+  - وگرنه reply مدل + strip UUID دفاعی
+
+**Supersede:** `reply || 'انجام شد.'` برای create/mutate با results خالی ممنوع است.
+
+### Q.7b Partial success (Q-B10) — الزامی
+- `acceptedMutationCount` = actions پذیرفتهٔ mutation-family (CREATE_*/UPDATE_TASK/COMPLETE_TASK).
+- `successCount` = actionResults با `operation ∈ {create, update}`.
+- success==0 → full clamp؛ 0<success<accepted → **partial-honest**؛ success≥accepted → strip UUID.
+- actionResults موفق هرگز برای «زیباسازی honesty» حذف نشوند.
+- log `ai.honesty` با `mode: full|partial|none` و accepted/success.
+
+## Q.8. Repair Pass (فقط create)
+
+شرایط:
+- intent === 'create'
+- !isProposalMode
+- actions خام خالی یا non-array
+- message دارای create verb (export `hasCreateVerb` / `messageHasCreateVerb` از intent.ts)
+
+اجرا:
+- یک `chat.completions` با system خیلی کوتاه + user message + today/tomorrow
+- `response_format: json_object`، temperature 0
+- فقط `{ "actions": [ ... ] }` استخراج و جایگزین actions
+- reply اولیه حفظ تا honesty
+- error → skip repair → honesty
+- حداکثر **یک** بار
+- **Quota (Q-B12):** repair دوباره `consume_ai_quota` صدا نمی‌زند. واحد billing = user turn. log/response: `repairUsed: boolean`.
+- **Anti:** double-charge کاربر برای repair ممنوع؛ >1 repair ممنوع.
+
+## Q.9. System Prompt — Δ محورها
+
+افزودن:
+1. CAPABILITIES: UPDATE_TASK, COMPLETE_TASK
+2. INTENT MUTATE: actions must include UPDATE_TASK / COMPLETE_TASK؛ بدون action واقعی در reply ادعای موفقیت نکن
+3. CREATE reinforce: برای درخواست ساخت، actions خالی غلط است
+4. Identity: taskId فقط داخل params از TASK_INDEX — هرگز در reply
+5. COMPLETE = میان‌بر done؛ ویرایش فیلد = UPDATE_TASK
+
+## Q.10. Meta Context — TASK_INDEX
+
+برای `intent === 'mutate'`:
+```
+TASK_INDEX (machine; do not echo ids in reply):
+- {id} | {status} | {due_ymd|none} | {title}
+```
+Cap ≤ 40، prefer not-done سپس recently updated.
+برای create: Available Projects با UUID (موجود) حفظ شود.
+
+## Q.11. Observability
+
+Log JSON tags:
+`ai.start | ai.decision | ai.repair | ai.actions.rejected | ai.actions.done | ai.honesty | ai.response | ai.error`
+
+همه با `requestId`. Response body: `requestId` top-level. کلاینت قدیمی ignore می‌کند.
+
+## Q.12. کلاینت — قرارداد UI
+
+| شرط | label |
+|-----|--------|
+| create + task | تسک جدید (موجود) |
+| update + task + status done | انجام‌شده / تسک به‌روز شد |
+| update + task | تسک به‌روز شد |
+| suggest_link | مسیر موجود |
+
+inject: `operation !== 'suggest_link'` (موجود) برای update کافی است.
+
+## Q.13. Conflict Map (Read/Write — موازی ممنوع)
+
+| فایل | Q1 | Q2 | Q3 | Q4 | Q5 |
+|------|:--:|:--:|:--:|:--:|:--:|
+| `lib/intent.ts` | W | | | | |
+| `lib/action-policy.ts` | W | | | | |
+| `lib/task-resolve.ts` | W | | R | | |
+| `lib/honesty.ts` | | W | | | |
+| `lib/action-processor.ts` | | | W | | |
+| `lib/meta-context.ts` | | | W | | |
+| `lib/system-prompt.ts` | | | | W | |
+| `lib/citation-policy.ts` | | | | W | |
+| `lib/rag-context.ts` | | | | W | |
+| `lib/ai-constants.ts` | W | | W | W | |
+| `index.ts` | R | W | R | R | W |
+| `types.ts` / ActionResultCard | | | | | W |
+
+**ترتیب اجباری:** Q1 → Q2 → Q3 → Q4 → Q5  
+`index.ts` در Q2 و Q5 لمس می‌شود — **هرگز موازی**.
+
+
+## Q.13b. ممیزی ثانویه — Q-B7 / Q-B8 / Q-B9
+
+### Q-B7 Checklist normalize
+شواهد: `mapChecklist` فقط object.text/title → string[] silent drop.
+قرارداد: پذیرش string|number|object(text|title|name|content)؛ preserve id/isCompleted؛ اگر raw.length>0 و drop → `console.warn` tag `ai.checklist.normalize`. Tool-calling fix اصلی خارج اسکوپ.
+
+### Q-B8 Evidence alignment
+شواهد: CITATION_CAP=8، CONTEXT_DOCS=5.
+قرارداد: `evidenceDocs = finalDocs.slice(0, AI_RAG_CONTEXT_DOCS)`؛ context و citations فقط از evidenceDocs. cap policy با evidence هم‌خوان.
+
+### Q-B9 Intent lexicon
+شواهد: bare لیست/مرور/آخرین در SEARCH؛ بنویس در CREATE نیست → «لیست… بنویس» = search.
+قرارداد: حذف bare از SEARCH؛ افزودن بنویس/بنویسید/یادداشت بردار(ید) به CREATE؛ اولویت create بر search حفظ.
+
+## Q.14. رجیستر باگ (هدف پایان فاز)
+
+| ID | وضعیت هدف |
+|----|-----------|
+| Q-B1 false success reply | FIXED (honesty + repair) |
+| Q-B2 observability / deploy proof | FIXED (requestId + smoke) |
+| Q-B3 no update/complete | FIXED |
+| Q-B4 create empty actions | MITIGATED/FIXED via repair+honesty |
+| Q-B5 client inject | VERIFY (already capable) |
+| Q-B6 task identity | FIXED (TASK_INDEX + resolve) |
+| Q-B7 checklist silent drop | FIXED (mapChecklist normalize + warn) |
+| Q-B8 citation not subset of context | FIXED (evidenceDocs) |
+| Q-B9 bare search / missing create verbs | FIXED (lexicon) |
+| Q-B10 honesty partial success | FIXED (accepted vs success) |
+| Q-B11 multi-signal intent conflict | ACCEPTED LIMIT + smoke/log (no multi-intent) |
+| Q-B12 repair second LLM vs quota | DECIDED: quota=user-turn; no second consume |
+
+## Q.15. Supersede
+
+1. «No UPDATE in Phase P» → لغو برای Q با allowlist mutate.
+2. `reply || 'انجام شد.'` روی create/mutate خالی‌نتیجه → ممنوع.
+3. `AiIntent` بدون mutate → منسوخ.
+4. Citations برای mutate مثل create = [].
+
+## Q.16. پذیرش نهایی فاز Q
+
+1. Create واقعی end-to-end با actionResult.
+2. False-success به کاربر نمی‌رسد.
+3. Complete و Update واقعی با ownership.
+4. Ambiguous = no write.
+5. Chat/search/proposal/402/checklist بدون رگرسیون.
+6. Logs + requestId در smoke.
+7. بدون SQL اجباری و بدون embedding change.
+8. checklist string[] → DB؛ silent drop ممنوع.
+9. citations ⊆ evidence context docs.
+10. «بنویس + لیست ایده» → create پس از lexicon.
+11. multi-action partial fail → results موفق می‌مانند؛ reply همه-موفق نیست.
+12. link+mutate phrase → single intent + log conflicts.
+13. repair: یک واحد quota برای turn؛ repairUsed در log.
+
+# §S — لنگرگاه سیستمی فاز «کیفیت CREATE و Production Hardening»
+
+> مرجع تصمیم: `docs/PROJECT.md` فاز S.
+> تسک‌ها: فقط `docs/tasks.md` فاز S (تسک‌های Q/R بایگانی؛ بازنویسی نشوند).
+> این بخش **بستن بدهی‌های صریح R.5** است؛ Intent/Honesty/Policy/Mutate فاز Q پابرجا می‌مانند مگر صراحتاً supersede شوند.
+
+## S.0. منطق مسیردهی فایل (پروژه موجود)
+
+### قانون کلی
+کل درخت را دوباره رسم نکن. فقط مسیرهای create-quality + boundary + resolve perf + tests + smoke docs.
+
+### فایل‌های Edge (هستهٔ Write)
+
+| مسیر | عمل | نقش |
+|------|-----|-----|
+| `supabase/functions/ai-assistant/lib/action-utils.ts` | **ویرایش** | quality gate pure: weak title/checklist؛ گسترش `needsCreateRepairPass`؛ helpers سیگنال ساب‌تسک (سبک، regex/keyword، نه NLP entity extract) |
+| `supabase/functions/ai-assistant/lib/action-processor.ts` | **ویرایش** | export `mapChecklist`؛ normalize tags/projectId/habit frequency؛ log بدون raw text؛ optional `requestId` در options |
+| `supabase/functions/ai-assistant/lib/system-prompt.ts` | **ویرایش** | few-shot فشرده CREATE+checklist؛ تأکید title غیرخالی |
+| `supabase/functions/ai-assistant/index.ts` | **ویرایش** | wiring quality-repair (همان cap)؛ repair prompt harden؛ log `ai.create.quality`؛ pass requestId به processor |
+| `supabase/functions/ai-assistant/lib/honesty.ts` | **ویرایش سبک** | semantic quality clamp مینیمال (fallback title / missing checklist vs user signal) — بدون پاک کردن results |
+| `supabase/functions/ai-assistant/lib/task-resolve.ts` | **ویرایش** | `select` صریح بدون embedding |
+| `supabase/functions/ai-assistant/lib/ai-constants.ts` | **ویرایش سبک** | ثابت fallback title + resolve select columns اگر لازم |
+| `supabase/functions/ai-assistant/lib/citation-policy.ts` | خواندن / تست | بدون تغییر اجباری رفتار |
+| `scripts/ai-assistant-regression.mjs` | **ویرایش** | تست‌های quality/mapChecklist/citation/isUuid/weak-chain |
+| `docs/CURRENT_TASK.md` | **بازنویسی** | handoff فاز S + smoke matrices |
+
+### کلاینت
+| مسیر | عمل |
+|------|-----|
+| `features/chat/*`, `hooks/useDataManager.ts`, `services/geminiService.ts` | **بدون تغییر اجباری** — فقط اگر smoke باگ UI ثابت کرد، bugfix موضعی |
+
+### خارج اسکوپ صریح
+SQL migration · embedding model · agent/tool-calling · multi-intent · hard-fail title · Playwright CI سنگین · ChatView rewrite · billing schema
+
+## S.1. Snapshot وضعیت بعد از R.5 (شواهد)
+
+```
+User create message
+ → classifyIntent create
+ → model actions (may be CREATE_TASK with empty title / no checklist)
+ → needsCreateRepairPass? ONLY if !hasExecutableActionName
+    → weak-but-executable CREATE skips repair  ← gap S-B2
+ → processActions: title fallback «بدون عنوان», checklist []
+ → honesty: successMutationCount>0 → mode none → model may claim «۴ ساب‌تسک»
+ → client inject real weak row
+```
+
+**شکست باقی‌مانده:** mutation-true / product-false (semantic incomplete success).
+
+## S.2. جریان دادهٔ هدف فاز S (Δ فقط)
+
+```
+... after primary model parse ...
+actionsRaw
+ │
+ ├─ needsCreateRepairPass(intent, actions, createVerb, message):
+ │     !hasExecutableActionName(actions)
+ │     OR hasWeakCreateTask(actions, messageSignals)
+ │
+ ├─ if needs && !proposal:
+ │     ONE repair (no second quota)
+ │     adopt only if hasExecutableActionName(repaired)
+ │     if primary was weak and repaired stronger → replace
+ │     log ai.repair + ai.create.quality
+ │
+ ├─ filterActionsByPolicy
+ ├─ processActions(requestId, …)  // boundary harden + mapChecklist export
+ ├─ applyHonesty(+ optional qualityHints from results vs messageSignals)
+ └─ response {…, requestId, repairUsed}
+```
+
+## S.3. قرارداد Quality Gate (ماشین‌خوان)
+
+```typescript
+// lib/action-utils.ts — pure, no network
+
+const FALLBACK_TASK_TITLE = 'بدون عنوان';
+
+// Lightweight signals from user message (keyword only — NOT full title extraction)
+messageSignals = {
+  wantsSubtasks: /ساب[\s-]?تسک|زیرکار|checklist|subtask|\d+\s*تا/i.test(msg)
+    || includesAny(msg, ['چهار تا', '۴ تا', '4 تا', 'چند تا ساب']),
+  // optional: mentionedCount if simple \d+ near ساب‌تسک — best-effort, never invent checklist text
+}
+
+function isWeakCreateTask(action, signals): boolean {
+  if (action?.action !== 'CREATE_TASK') return false;
+  const title = String(action?.params?.title ?? '').trim();
+  if (!title) return true;
+  if (title === FALLBACK_TASK_TITLE) return true;
+  const cl = action?.params?.checklist;
+  if (signals.wantsSubtasks) {
+    if (!Array.isArray(cl) || cl.length === 0) return true;
+  }
+  return false;
+}
+
+function hasWeakCreateTask(actions, signals): boolean {
+  if (!Array.isArray(actions)) return false;
+  return actions.some(a => isWeakCreateTask(a, signals));
+}
+
+// Supersede needsCreateRepairPass:
+needsCreateRepairPass = intent==create && messageHasCreateVerb && (
+  !hasExecutableActionName(actions) || hasWeakCreateTask(actions, signals)
+)
+```
+
+**قوانین:**
+- Quality gate **هرگز** متن ساب‌تسک را از پیام کاربر extract و به DB نمی‌نویسد.
+- فقط تصمیم می‌گیرد repair دوباره از مدل بخواهد.
+- اگر repair هم weak ماند → processor fallback موجود + honesty quality clamp.
+
+## S.4. Honesty semantic (مینیمال)
+
+افزودن hint اختیاری `quality_weak` (یا reuse reason با پیام جدید):
+
+- وقتی intent=create و successMutationCount>0 و:
+  - همه task create results با `data.title === FALLBACK_TASK_TITLE`، یا
+  - signals.wantsSubtasks و هر task create با checklist length 0
+- آنگاه اگر reply شبیه success claim کامل است → جایگزین با فارسی صادق:
+  - «تسک ثبت شد اما عنوان/زیرکارها کامل نیست. لطفاً عنوان و ساب‌تسک‌ها را واضح‌تر بگو.»
+- **actionResults حذف نشوند** (کارت UI واقعی).
+- mode می‌تواند `partial` یا فیلد جدا `qualityClamp: true` در log باشد — ترجیح: mode=`partial` با reason quality، بدون شکستن قرارداد mode موجود اگر سخت است؛ در غیر این صورت log flag + reply clamp کافی است.
+
+## S.5. Repair prompt harden
+
+```
+You output ONLY {"actions":[...]} CREATE_* .
+Rules:
+- Every CREATE_TASK MUST have non-empty title string (never empty, never omit).
+- If user asked for N subtasks/ساب‌تسک/زیرکار: ONE CREATE_TASK with checklist:[{"text":"..."}, ...] length N.
+- dueDate YYYY-MM-DD from: today=… tomorrow=…
+- No reply field. No markdown.
+```
+
+Primary `system-prompt.ts` create branch: +۲ مثال JSON فشرده (یک CREATE ساده due؛ یک CREATE+checklist چهارتایی).
+
+## S.6. Boundary harden (نقطه‌ای)
+
+| Action | Field | Rule |
+|--------|-------|------|
+| CREATE_TASK | tags | `Array.isArray` → map String trim filter empty; else `[]` |
+| CREATE_TASK | projectId | UUID regex or null |
+| CREATE_NOTE | tags/projectId | same |
+| CREATE_PROJECT | priority | low\|medium\|high else medium |
+| CREATE_HABIT | frequency | allowlist `daily\|weekly\|monthly` else `daily` |
+| CREATE_HABIT | target_count | int ≥1 else 1 |
+| UPDATE_* | existing | keep |
+| ALL | mapChecklist | **export** for tests |
+
+Invalid → omit/default + warn structured **without raw user text** (`rawLength` ok).
+
+## S.7. task-resolve perf
+
+```typescript
+const TASK_RESOLVE_SELECT =
+  'id, user_id, project_id, title, description, status, priority, due_date, completed_at, tags, checklist, created_at, updated_at';
+// use instead of select('*') in by-id / exact / soft / sibling
+```
+
+## S.8. Observability Δ
+
+- `ProcessActionsOptions.requestId?: string` → include in `ai.actions.error` / boundary warns.
+- `ai.create.quality` log: `{requestId, weakTitle, weakChecklist, repairUsed, postRepairStillWeak}`.
+- Remove/limit `sample: raw.slice` content in checklist normalize — log `rawLength` + types only.
+
+## S.9. Tests Δ (pure)
+
+حداقل افزوده‌ها:
+1. `isWeakCreateTask` empty title / wantsSubtasks empty checklist / healthy create
+2. `needsCreateRepairPass` weak executable → true
+3. `mapChecklist` string[] / object / empty drop warn path (pure return)
+4. `isUuid` true/false
+5. `applyCitationPolicy` create/mutate → []
+6. honesty quality clamp does not require removing results (unit with mock results)
+7. incident chain still green
+
+هدف: **≥ ۴۵** تست pass؛ صفر fail.
+
+## S.10. Smoke matrices (انسانی / QA — در CURRENT)
+
+### Create quality
+| # | پیام | انتظار DB/UI |
+|---|------|----------------|
+| C1 | ایجاد تسک ۴ ساب‌تسک ۱..۴ | title≠fallback؛ checklist≥4 یا quality-honest reply |
+| C2 | تسک برای فردا: خرید شیر | title خرید شیر؛ due tomorrow Tehran |
+| C3 | سلام | no mutation |
+
+### Mutate / honesty
+| # | پیام | انتظار |
+|---|------|--------|
+| M1 | انجام‌شده روی title یکتا | status done + card |
+| M2 | عنوان مبهم دوقلو | no write + ambiguous |
+
+### Browser
+| # | چک |
+|---|-----|
+| B1 | ActionResultCard create/update labels |
+| B2 | inject لیست tasks بدون refresh کامل |
+| B3 | suggest_link inject نمی‌شود |
+
+### Media
+| # | چک |
+|---|-----|
+| P1 | image/audio → proposals؛ zero row در tasks تا approve |
+
+### Quota
+| # | چک |
+|---|-----|
+| Q1 | 402 body شامل requestId؛ paywall UI |
+
+## S.11. Conflict Map (Read/Write — موازی ممنوع)
+
+| فایل | S1 | S2 | S3 | S4 | S5 |
+|------|:--:|:--:|:--:|:--:|:--:|
+| `lib/action-utils.ts` | W | | | | R |
+| `lib/system-prompt.ts` | | W | | | |
+| `index.ts` | R | R | W | R | |
+| `lib/action-processor.ts` | | | R | W | |
+| `lib/honesty.ts` | | | W | | R |
+| `lib/task-resolve.ts` | | | | W | |
+| `scripts/ai-assistant-regression.mjs` | | | | | W |
+| `docs/CURRENT_TASK.md` | | | | | W |
+
+**ترتیب اجباری:** S1 → S2 → S3 → S4 → S5
+`index.ts` فقط در S3 هسته wiring — با S1/S2 بعد از merge متوالی.
+
+## S.12. رجیستر باگ (هدف پایان فاز)
+
+| ID | وضعیت هدف |
+|----|-----------|
+| S-B1 empty title UX | MITIGATED (repair+prompt+quality log; fallback post-repair kept) |
+| S-B2 checklist missing | MITIGATED (weak gate→repair+prompt) |
+| S-B3 thin prompt | FIXED (few-shot + repair harden) |
+| S-B4 boundary gaps | FIXED (point harden) |
+| S-B5 browser E2E | VERIFY via smoke matrix |
+| S-B6 media | VERIFY smoke |
+| S-B7 quota | VERIFY smoke |
+| S-B8 observability | FIXED (requestId thread + safe logs) |
+| S-B9 coverage | FIXED (suite expand) |
+| S-B10 resolve select * | FIXED |
+| S-B11 semantic incomplete | MITIGATED (quality clamp reply) |
+
+## S.13. Supersede / Non-Supersede
+
+**Supersede:**
+1. `needsCreateRepairPass` فقط non-executable → executable **یا** weak create.
+2. Honesty فقط mutation-count برای create کامل → + quality clamp reply در شرایط S.4.
+
+**Non-Supersede (عمدی):**
+- Fallback title `بدون عنوان` پس از repair
+- Invalid dueDate → null not fail
+- Single repair cap
+- Single primary intent
+- No agent/tool-calling
+- No embedding model change
+
+## S.14. پذیرش نهایی فاز S
+
+1. Quality gate+repair برای weak CREATE در کد و تست.
+2. Prompt/repair با مثال checklist.
+3. Resolve بدون embedding.
+4. Boundary tags/projectId/habit hardened.
+5. Regression ≥۴۵ سبز.
+6. Smoke matrices ثبت‌شده (pass/fail).
+7. Deploy edge + requestId در logs.
+8. بدون رگرسیون Q honesty/mutate/proposal/402.
+
+---
+
+# §U — لنگرگاه سیستمی فاز «تسک‌های تکرارشونده» (با Δ UX)
+
+> مرجع تصمیم: `docs/PROJECT.md` فاز U (شامل U.6.A–F).
+> تسک‌ها: فقط `docs/tasks.md` فاز U (U1–U11).
+> handoff: `docs/CURRENT_TASK.md`.
+
+## U.0. منطق مسیردهی فایل
+
+### قانون کلی
+فقط مسیرهای این جدول. SQL ≤50 دست‌نخورده. God-file جدید ممنوع.
+
+### فایل‌های جدید
+| مسیر | نقش |
+|------|-----|
+| `supabase/sql/51_task_recurrence.sql` | ستون‌ها + RPC DEFAULT |
+| `utils/recurrenceUtils.ts` | pure: normalize/end/describe/next/canContinue/buildNext/checklist/time |
+| `features/tasks/components/RecurrencePickerModal.tsx` | type + end + preview + validation |
+
+### فایل‌های موجود (Edit)
+| مسیر | تغییر |
+|------|--------|
+| `types.ts` | `TaskRecurrence` + `TaskRecurrenceEnd` + فیلدهای Task |
+| `services/taskService.ts` | SELECT + whitelist + RPC params |
+| `hooks/useDataManager.ts` | series · spawn · skip · series-wide recurrence patch · silent add · toast |
+| `features/tasks/components/TaskEditorModal.tsx` | picker · auto-due · view summary · skip CTA · راهنما |
+| `features/tasks/components/TaskCard.tsx` | badge تکرار (todo) |
+| `features/dashboard/components/TodaysPlan.tsx` | badge تکرار روی سطر |
+| `features/tasks/TasksView.tsx` | collapse doneهای تکراری >۱۴روز |
+| `hooks/useReminderScheduler.ts` | اختیاری: برچسب «تکراری» در body؛ **بدون** تغییر فیلتر due |
+| `components/icons.tsx` | `RepeatIcon` |
+| `docs/CURRENT_TASK.md` | handoff |
+
+### خارج اسکوپ
+AI recurrence · Habit merge · RRULE · cron · جدول series · دیالوگ this/all چندگزینه · حذف DB آرشیو · BottomNav/layout
+
+---
+
+## U.1. اسکیما (بدون تغییر ستون نسبت به طرح اولیه)
+
+```sql
+-- 51_task_recurrence.sql
+ALTER TABLE public.tasks
+  ADD COLUMN IF NOT EXISTS recurrence JSONB DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS recurrence_series_id UUID DEFAULT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_tasks_recurrence_series_id
+  ON public.tasks (user_id, recurrence_series_id)
+  WHERE recurrence_series_id IS NOT NULL;
+```
+
+**End condition داخل JSONB است** — ستون `recurrence_end` نساز.
+
+### قرارداد JSONB
+```ts
+export type TaskRecurrenceEnd =
+  | { kind: 'on_date'; date: string }       // YYYY-MM-DD Tehran calendar day inclusive
+  | { kind: 'after_n'; remaining: number }; // integer ≥ 0; see decrement rules
+
+export type TaskRecurrence =
+  | { type: 'daily'; end?: TaskRecurrenceEnd }
+  | { type: 'weekly'; weekdays: number[]; end?: TaskRecurrenceEnd }
+  | { type: 'monthly'; days: number[]; end?: TaskRecurrenceEnd }
+  | { type: 'yearly'; dates: Array<{ month: number; day: number }>; end?: TaskRecurrenceEnd };
+```
+
+**normalize:**
+- type نامعتبر / آرایه خالی weekly|monthly|yearly → `null`
+- weekdays ⊂ {0..6} unique sorted; days ⊂ {1..31}; yearly month 1..12 day 1..31 unique key
+- `end.on_date`: date باید `/^\d{4}-\d{2}-\d{2}$/`؛ وگرنه end حذف
+- `end.after_n`: remaining = floor number؛ اگر NaN یا <0 → end حذف؛ cap 998
+- کلیدهای اضافی strip
+
+### RPC
+همان Δ قبلی: `p_recurrence JSONB DEFAULT NULL`, `p_recurrence_series_id UUID DEFAULT NULL` آخر امضا؛ INSERT هر دو ستون؛ ON CONFLICT DO NOTHING؛ SELECT scoped auth.uid().
+
+---
+
+## U.2. جریان داده
+
+### Create / Update
+```
+form → normalizeRecurrence → payload { recurrence, recurrence_series_id }
+addTask: if recurrence && !series_id → series_id = newId()
+         if !recurrence → series_id = null
+updateTask: if payload has key 'recurrence':
+  - normalize
+  - if null → series_id null on that task
+  - if non-null → apply same recurrence object to ALL tasks where
+      recurrence_series_id === this.series_id AND status !== 'done'
+    (including current). Done rows untouched.
+```
+
+### Complete → spawn (هسته)
+```
+transition non-done → done
+r = normalize(task.recurrence); if !r return
+nextDue = computeNextDueDate(task.due_date, r); if !nextDue return
+if !canContinueRecurrence(r, nextDue) return   // end gate
+seriesId = task.recurrence_series_id ?? newId()
+guard: open same series + sameTehranDay(due, nextDue) → return
+nextR = buildNextRecurrence(r)  // after_n: remaining-1; if would go <0 treat as stop (should be gated)
+addTask({ …template, due_date: nextDue, checklist: reset, recurrence: nextR, seriesId }, { silent: true })
+toast info: «نوبت بعدی ثبت شد · {faDate}» [optional action open editor]
+```
+
+### Skip → advance same row (۱.۱)
+```
+skipRecurrenceOccurrence(id):
+  task open + r valid
+  nextDue = computeNextDueDate(task.due_date, r)
+  if !nextDue || !canContinueRecurrence(r, nextDue):
+     optional: if end exhausted → updateTask { recurrence: null } or leave; no due change if no next
+     return
+  nextR = buildNextRecurrence(r)
+  updateTask { id, due_date: nextDue, recurrence: nextR }  // status stays todo; checklist unchanged
+  // no insert, no completed_at
+```
+
+### Offline
+spawn silent insert + skip update هر دو از مسیر enqueue موجود.
+
+---
+
+## U.3. util API (اجباری)
+
+| تابع | قرارداد |
+|------|---------|
+| `normalizeRecurrence(unknown): TaskRecurrence \| null` | + end |
+| `isRecurring(r): boolean` | |
+| `hasExplicitDueTime(due): boolean` | false اگر null یا ساعت:دقیقه تهران دقیقاً ۱۲:۰۰ |
+| `describeRecurrenceFa(r, opts?: { dueDate?: string\|null }): string` | غنی؛ ساعت فقط hasExplicitDueTime؛ end suffix |
+| `computeNextDueDate(fromDue, r, now?): string \| null` | strict after anchor؛ copy wall-clock |
+| `canContinueRecurrence(r, nextDueIso): boolean` | on_date: tehranDay(nextDue) ≤ end.date؛ after_n: remaining ≥ 1؛ no end: true |
+| `buildNextRecurrence(r): TaskRecurrence` | clone؛ if after_n: remaining = max(0, remaining-1)؛ if remaining===0 keep end as {after_n:0} on **spawned** task so further complete won't spawn (canContinue false) |
+| `remainingOccurrencesLabel(r): string \| null` | برای UI: after_n → `remaining+1` نوبت از این به‌بعد (شامل open فعلی) |
+| `resetChecklistItems` | newId + incomplete |
+| `WEEKDAYS_FA` | شنبه→جمعه `{ jsDay, label }` |
+| `tehranTodayNoonIso(): string` | برای auto-due ۴.۲ |
+| `formatNextDuePreview(iso): string` | تاریخ فارسی + ساعت اختیاری — می‌تواند داخل util یا picker با dateUtils |
+
+### nextDue algorithms
+unchanged (daily +1 · weekly next matching · monthly clamp · yearly jalali).
+
+### canContinue / after_n semantics (جزئی)
+- Open task با `remaining: 0` ⇒ canContinue=false ⇒ complete دیگر spawn نمی‌کند؛ skip due را جلو نمی‌برد (یا فقط clear — **قرارداد: no-op + اگر remaining 0، recurrence را null نکن مگر کاربر clear کند**).
+- اولین save از UI با «N بار»: store `remaining = N - 1`.
+
+---
+
+## U.4. UI contracts
+
+### RecurrencePickerModal
+Props:
+```
+isOpen, value, onChange(v), onClose(),
+anchorDueDate?: string | null  // برای preview + ساعت
+```
+1. Type list (check rows) + clear  
+2. Panels weekly/monthly/yearly  
+3. **End section:** سگمنت «بدون پایان | در تاریخ | بعد از N بار»  
+   - تاریخ: reuse الگوی PersianDatePicker (import component موجود)  
+   - N: input number 1–999  
+4. **Preview box** (همیشه اگر draft valid): «نوبت بعدی: …» یا «نوبت بعدی خارج از بازهٔ پایان است»  
+5. Validation: empty weekdays/days/dates → Confirm disabled + متن  
+6. Monthly day 31 hint: «در ماه‌های کوتاه‌تر روی آخرین روز ماه می‌افتد»  
+7. z-[70], pb-safe, module-level, tokens, RTL, ≥۴۴px  
+8. Confirm: `onChange(normalize(draft))` — تبدیل UI N به remaining=N-1 اینجا یا در normalize با فلگ؛ **ترجیح: picker قبل از normalize آبجکت end.after_n.remaining = N-1 می‌سازد** و normalize فقط validate می‌کند.
+
+### TaskEditorModal
+- PropertyRow تکرار + clear  
+- راهنما: «قانون تکرار از این نوبت به بعد اعمال می‌شود»  
+- **۴.۲:** onChange recurrence null→value و !hasDate → set due tehranTodayNoon + hasDate  
+- view: summary + دکمه skip «رد کردن این نوبت» → `skipRecurrenceOccurrence` از useData  
+- buildTaskWritePayload: recurrence + series_id  
+
+### TaskCard / TodaysPlan badge
+```
+const r = normalizeRecurrence(task.recurrence)
+if (r && task.status !== 'done') show <RepeatIcon/> + truncate(describeRecurrenceFa(r), ~20)
+```
+TodaysPlan: meta row کنار time/priority؛ stopPropagation لازم نیست اگر فقط text.
+
+### TasksView archive (۵.۳)
+در هر group.completed (یا فقط agenda):  
+`isOldRecurringDone(t) = status===done && isRecurring(t.recurrence) && dueDay < today-14d`  
+- default list: completed.filter(!old)  
+- collapsible «تکراری‌های قدیمی‌تر (n)» default collapsed  
+- if searchQuery.trim(): show all completed unfiltered by age  
+
+### useDataManager toast (۳.۳)
+- `addTask(payload, opts?: { silent?: boolean })`  
+- spawn: silent true  
+- سپس یک info notification  
+
+### useReminderScheduler (۴.۱)
+فیلتر due+today+!done **عوض نشود**.  
+اختیاری: `const body = isRecurring(task.recurrence) ? 'یادآور کار تکراری' : …`  
+messageId همچنان `task-${id}-${dueMs}` ⇒ occurrence جدید id جدید ⇒ نوتیف جدید OK.
+
+### TodaysPlan invariant (۵.۲)
+بدون تغییر فیلتر. صحت از nextDue daily≠same day.
+
+---
+
+## U.5. taskService / types
+همان SELECT/whitelist/RPC؛ types شامل End.
+
+---
+
+## U.6. Conflict Map
+
+| فایل | U1 | U2 | U3 | U4 | U5 | U6 | U7 | U8 | U9 | U10 | U11 |
+|------|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:---:|:---:|
+| `51_*.sql` | W | | | | | | | | | | |
+| `types.ts` | | W | R | R | R | R | R | R | R | R | R |
+| `recurrenceUtils.ts` | | W | | R | R | R | R | R | R | R | R |
+| `taskService.ts` | | | W | R | | | | | | | |
+| `useDataManager.ts` | | | | W | | R | | | | | R |
+| `icons.tsx` | | | | | W | | | | | | |
+| `RecurrencePickerModal` | | | | | W | | | | | | |
+| `TaskEditorModal` | | | | | | W | | | | | |
+| `TaskCard` | | | | | | | W | | | | |
+| `TodaysPlan` | | | | | | | | W | | | |
+| `TasksView` | | | | | | | | | W | | |
+| `useReminderScheduler` | | | | | | | | | | W | |
+
+**ترتیب:** U1→U2→U3→U4→U5→U6→U7→U8→U9→U10→U11  
+U7/U8 بعد از U2 (describe). U10 اختیاری-حساس؛ بعد از U4. U11 smoke/docs.
+
+---
+
+## U.7. پذیرش نهایی
+1. SQL 51 + RPC defaults  
+2. end date / after N + preview + validation  
+3. skip advances due؛ complete spawns؛ end stops  
+4. series-from-now patch open only  
+5. auto-due on enable recurrence  
+6. badges؛ rich describe؛ single toast  
+7. reminders on new occurrence  
+8. today list invariant  
+9. 14d collapse done recurring  
+10. offline + no AI regression  
+
+## U.8. Supersede
+- Task one-shot only  
+- describe ساده بدون ساعت/end  
+- complete-only engine (حالا + skip)  
+Non-supersede: JSONB not RRULE؛ no cron؛ 12:00 date-only؛ AI out.

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Task, Priority, Project } from '../../../types';
-import { TrashIcon, ListChecksIcon, NotebookIcon } from '../../../components/icons';
+import { TrashIcon, ListChecksIcon, NotebookIcon, RepeatIcon } from '../../../components/icons';
 import { formatPersianDate } from '../../../utils/dateUtils';
 import { useData } from '../../../contexts/DataContext';
+import { describeRecurrenceFa, normalizeRecurrence } from '../../../utils/recurrenceUtils';
 
 const priorityConfig = {
   [Priority.High]: { color: 'red', label: 'زیاد', bg: 'bg-[var(--semantic-error-soft)]', text: 'text-[var(--semantic-error)]', border: 'border-[var(--semantic-error)]/30' },
@@ -87,6 +88,18 @@ export const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, onToggle, o
             <span className="bg-[var(--bg-card)] px-2 py-0.5 rounded-md border border-[var(--border-subtle)]">
               {formatPersianDate(task.due_date)}
             </span>
+          )}
+
+          {task.status !== 'done' && normalizeRecurrence(task.recurrence) && (
+            <div
+              className="flex items-center gap-1 bg-primary/10 text-[var(--color-primary-text)] border border-[var(--border-neon)] px-2 py-0.5 rounded-md font-semibold max-w-[9rem]"
+              title={describeRecurrenceFa(task.recurrence, { dueDate: task.due_date })}
+            >
+              <RepeatIcon className="w-3 h-3 shrink-0" />
+              <span className="truncate text-[10px]">
+                {describeRecurrenceFa(task.recurrence, { dueDate: task.due_date })}
+              </span>
+            </div>
           )}
 
           {checklistTotal > 0 && (

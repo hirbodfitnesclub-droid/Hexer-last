@@ -2,7 +2,8 @@ import React, { useMemo } from 'react';
 import { useData } from '../../../contexts/DataContext';
 import { isSameTehranDay, getTehranDateString, compareTehranDates } from '../../../utils/dateUtils';
 import { Priority } from '../../../types';
-import { CheckIcon, ListChecksIcon } from '../../../components/icons';
+import { CheckIcon, ListChecksIcon, RepeatIcon } from '../../../components/icons';
+import { describeRecurrenceFa, normalizeRecurrence } from '../../../utils/recurrenceUtils';
 
 const formatTime = (dateInput: Date | string | undefined | null) => {
   if (!dateInput) return '';
@@ -185,9 +186,19 @@ export const TodaysPlan: React.FC<TodaysPlanProps> = ({ onOpenOverdueModal }) =>
                     className="flex-1 min-w-0 flex items-center gap-3 text-right cursor-pointer bg-transparent border-0 p-0"
                     aria-label={`مشاهده ${task.title}`}
                   >
-                    <span className={`flex-1 text-sm text-right ${task.status === 'done' ? 'line-through text-[var(--text-muted)]' : 'text-[var(--text-main)]'}`}>
-                      {task.title}
-                    </span>
+                    <div className="flex-1 min-w-0 text-right">
+                      <span className={`block text-sm ${task.status === 'done' ? 'line-through text-[var(--text-muted)]' : 'text-[var(--text-main)]'}`}>
+                        {task.title}
+                      </span>
+                      {task.status !== 'done' && normalizeRecurrence(task.recurrence) && (
+                        <span className="mt-1 inline-flex items-center gap-1 max-w-full text-[10px] font-semibold text-[var(--color-primary-text)]">
+                          <RepeatIcon className="w-3 h-3 shrink-0" />
+                          <span className="truncate max-w-[9rem]">
+                            {describeRecurrenceFa(task.recurrence, { dueDate: task.due_date })}
+                          </span>
+                        </span>
+                      )}
+                    </div>
                     <div
                       className={`w-2 h-2 rounded-full flex-shrink-0 ${
                         task.priority === Priority.High
