@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { ChatMessage, ChatMode } from '../types';
+import { ChatMessage, ChatMode, ChatSearchFilters } from '../types';
 
 /**
  * Helper to recognize quota exhausted (402 Payment Required) errors.
@@ -45,17 +45,23 @@ export const sendChatMessage = async (
   history: ChatMessage[],
   mode: ChatMode,
   audioPath?: string,
-  imagePath?: string
+  imagePath?: string,
+  filters?: ChatSearchFilters
 ): Promise<any> => {
   try {
+    const body: Record<string, unknown> = {
+      message,
+      history: history.slice(-8), // AI_HISTORY_LIMIT — keep in sync with edge ai-constants
+      mode,
+      audioPath,
+      imagePath,
+    };
+    if (filters && (filters.types?.length || filters.timeRange)) {
+      body.filters = filters;
+    }
+
     const { data, error } = await supabase.functions.invoke('ai-assistant', {
-      body: {
-        message,
-        history: history.slice(-10), // Limit to last 10 messages for token efficiency
-        mode,
-        audioPath,
-        imagePath
-      }
+      body,
     });
 
     if (error) {
@@ -84,14 +90,22 @@ export const sendChatMessage = async (
 /**
  * Performs a semantic hybrid search query in the AI layer, returning list of references.
  */
-export const searchSemantic = async (query: string): Promise<any[]> => {
+export const searchSemantic = async (
+  query: string,
+  filters?: ChatSearchFilters
+): Promise<any[]> => {
   try {
+    const body: Record<string, unknown> = {
+      message: query,
+      mode: 'memory', // Forced memory RAG mode for semantic search
+      history: [],
+    };
+    if (filters && (filters.types?.length || filters.timeRange)) {
+      body.filters = filters;
+    }
+
     const { data, error } = await supabase.functions.invoke('ai-assistant', {
-      body: {
-        message: query,
-        mode: 'memory', // Forced memory RAG mode for semantic search
-        history: []
-      }
+      body,
     });
 
     if (error) {
