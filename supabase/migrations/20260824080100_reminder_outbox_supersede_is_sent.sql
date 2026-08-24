@@ -11,6 +11,9 @@ begin;
 -- by the legacy path, so today notification_messages stays empty; this only matters
 -- once the flag turns on.
 --
+-- IMPORTANT: every reference to OLD is guarded by tg_op — OLD does not exist on
+-- INSERT and dereferencing it raises at runtime.
+--
 -- No-op while notification_messages is empty; required BEFORE enabling the flag.
 
 create or replace function public.enqueue_reminder_message()
@@ -21,7 +24,6 @@ set search_path = pg_catalog, public
 as $function$
 declare
   v_occurrence_key text;
-  v_old_occurrence_key text;
 begin
   if tg_op = 'DELETE' then
     perform public.supersede_notification_message(
@@ -34,22 +36,24 @@ begin
 
   v_occurrence_key := 'reminder:' || new.id::text || ':' ||
                       (extract(epoch from new.remind_at) * 1000)::bigint::text;
-  v_old_occurrence_key := 'reminder:' || old.id::text || ':' ||
-                      (extract(epoch from old.remind_at) * 1000)::bigint::text;
 
-  if tg_op = 'UPDATE' and old.remind_at is distinct from new.remind_at then
-    perform public.supersede_notification_message(
-      new.user_id, 'custom_reminder', v_old_occurrence_key, null
-    );
-  end if;
+  if tg_op = 'UPDATE' then
+    if old.remind_at is distinct from new.remind_at then
+      perform public.supersede_notification_message(
+        new.user_id, 'custom_reminder',
+        'reminder:' || old.id::text || ':' || (extract(epoch from old.remind_at) * 1000)::bigint::text,
+        null
+      );
+    end if;
 
-  -- Marked sent in place (legacy dispatcher path): close any pending occurrence so
-  -- the outbox never re-notifies for something the old pipeline already delivered.
-  if tg_op = 'UPDATE' and not coalesce(old.is_sent, false) and coalesce(new.is_sent, false) then
-    perform public.supersede_notification_message(
-      new.user_id, 'custom_reminder', v_occurrence_key, null
-    );
-    return new;
+    -- Marked sent in place (legacy dispatcher path): close any pending occurrence so
+    -- the outbox never re-notifies for something the old pipeline already delivered.
+    if not coalesce(old.is_sent, false) and coalesce(new.is_sent, false) then
+      perform public.supersede_notification_message(
+        new.user_id, 'custom_reminder', v_occurrence_key, null
+      );
+      return new;
+    end if;
   end if;
 
   -- Already-sent reminders are historical records, not future work.
