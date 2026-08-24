@@ -5,7 +5,11 @@ import { generateEmbedding } from '../../_shared/gemini-client.ts';
 export async function buildRagContext(
   supabaseClient: SupabaseClient,
   ai: GoogleGenAI,
-  message: string
+  message: string,
+  filters?: {
+    types?: Array<'task' | 'note' | 'project'>;
+    timeRange?: 'all' | 'today' | 'last_week';
+  }
 ): Promise<{ contextString: string; citations: any[] }> {
   if (!message || !message.trim()) {
     return { contextString: '', citations: [] };
@@ -27,9 +31,23 @@ export async function buildRagContext(
 
     let contextString = "";
     let citations: any[] = [];
+    const requestedTypes = filters?.types?.length ? new Set(filters.types) : null;
+    const cutoff = filters?.timeRange === 'today'
+      ? Date.now() - 24 * 60 * 60 * 1000
+      : filters?.timeRange === 'last_week'
+        ? Date.now() - 7 * 24 * 60 * 60 * 1000
+        : null;
+    const filteredDocuments = (documents || []).filter((doc: any) => {
+      if (requestedTypes && !requestedTypes.has(doc.type)) return false;
+      if (cutoff) {
+        const timestamp = Date.parse(doc.updated_at || doc.created_at || '');
+        if (!Number.isFinite(timestamp) || timestamp < cutoff) return false;
+      }
+      return true;
+    });
 
-    if (documents && documents.length > 0) {
-      citations = documents.map((doc: any) => ({
+    if (filteredDocuments.length > 0) {
+      citations = filteredDocuments.slice(0, 5).map((doc: any) => ({
         id: doc.id,
         type: doc.type,
         title: doc.title || (doc.snippet ? (doc.snippet.split(' ').slice(0, 5).join(' ') + '...') : ''),
@@ -38,7 +56,7 @@ export async function buildRagContext(
       }));
 
       contextString += "\n\nRelevant Context from User Memory (Hybrid Search):\n";
-      documents.slice(0, 5).forEach((doc: any) => {
+      filteredDocuments.slice(0, 5).forEach((doc: any) => {
         contextString += `- [${doc.type.toUpperCase()}] ${doc.title} (Excerpt: ${doc.snippet}) (ID: ${doc.id})\n`;
       });
     }

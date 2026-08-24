@@ -13,6 +13,7 @@ export interface Project {
   color: string; // text - made required
   created_at: string; // timestamptz
   updated_at: string; // timestamptz
+  version?: number;
 }
 
 export interface ChecklistItem {
@@ -46,8 +47,14 @@ export interface Task {
   checklist?: ChecklistItem[]; // New field for subtasks
   recurrence?: TaskRecurrence | null;
   recurrence_series_id?: string | null;
+  recurrence_occurrence_key?: string | null;
+  recurrence_sequence?: number;
+  recurrence_status?: 'active' | 'completed' | 'skipped' | 'cancelled' | 'overridden';
+  recurrence_rule_version?: number | null;
+  recurrence_calculator_version?: string | null;
   created_at: string; // timestamptz
   updated_at: string; // timestamptz
+  version?: number;
 }
 
 export interface Note {
@@ -59,6 +66,7 @@ export interface Note {
   tags?: string[] | null; // text[]
   created_at: string; // timestamptz
   updated_at: string; // timestamptz
+  version?: number;
 }
 
 export interface Habit {
@@ -70,6 +78,7 @@ export interface Habit {
   target_count?: number | null; // integer
   created_at: string; // timestamptz
   updated_at: string; // timestamptz
+  version?: number;
   completedDates: string[]; // Joined from habit_completions in service layer
 }
 
@@ -87,13 +96,17 @@ export interface Citation {
   id: string;
   type: 'task' | 'note' | 'project';
   title: string;
+  snippet?: string;
   similarity: number;
 }
 
 export interface ActionResult {
-    type: 'task' | 'note' | 'project' | 'habit';
-    data: any; // The created/updated object
-    operation: 'create' | 'update' | 'suggest_link';
+    type: 'task' | 'note' | 'project' | 'habit' | 'reminder' | 'link' | 'habit_completion';
+    data: any;
+    operation: 'create' | 'update' | 'suggest_link' | 'link' | 'unlink' | 'complete' | 'undo';
+    receiptId?: string;
+    undoExpiresAt?: string;
+    undoKind?: string;
 }
 
 export interface ChatMessage {

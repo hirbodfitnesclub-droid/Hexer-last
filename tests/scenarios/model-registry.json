@@ -1,0 +1,26 @@
+{
+  "behavior": "model-registry-resolution",
+  "minimumScenarios": 20,
+  "scenarios": [
+    { "id": "model-001", "input": "gemini-3.1-flash-lite", "expected": "google/gemini-3.1-flash-lite" },
+    { "id": "model-002", "input": "google/gemini-3.1-flash-lite", "expected": "google/gemini-3.1-flash-lite" },
+    { "id": "model-003", "input": "gemini-embedding-2", "expected": "google/gemini-embedding-2" },
+    { "id": "model-004", "input": "google/gemini-embedding-2", "expected": "google/gemini-embedding-2" },
+    { "id": "model-005", "input": "gemini-2.5-flash-lite", "error": "Unapproved model key" },
+    { "id": "model-006", "input": "google/gemini-2.5-flash-lite", "error": "Unapproved model key" },
+    { "id": "model-007", "input": "deepseek/deepseek-v4-flash", "error": "Unapproved model key" },
+    { "id": "model-008", "input": "", "error": "Unapproved model key" },
+    { "id": "model-009", "input": " ", "error": "Unapproved model key" },
+    { "id": "model-010", "input": "GEMINI-3.1-FLASH-LITE", "error": "Unapproved model key" },
+    { "id": "model-011", "input": "google/google/gemini-3.1-flash-lite", "error": "Unapproved model key" },
+    { "id": "model-012", "input": "openai/gpt-5", "error": "Unapproved model key" },
+    { "id": "model-013", "input": "../gemini-3.1-flash-lite", "error": "Unapproved model key" },
+    { "id": "model-014", "input": "gemini-3.1-flash-lite ", "error": "Unapproved model key" },
+    { "id": "model-015", "input": " google/gemini-3.1-flash-lite", "error": "Unapproved model key" },
+    { "id": "model-016", "input": "google/gemini-embedding-2?x=1", "error": "Unapproved model key" },
+    { "id": "model-017", "input": "google/gemini-3.1-flash-lite/", "error": "Unapproved model key" },
+    { "id": "model-018", "input": "gemini-embedding-2\n", "error": "Unapproved model key" },
+    { "id": "model-019", "input": "null", "error": "Unapproved model key" },
+    { "id": "model-020", "input": "undefined", "error": "Unapproved model key" }
+  ]
+}

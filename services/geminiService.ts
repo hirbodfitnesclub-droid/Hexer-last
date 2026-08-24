@@ -49,12 +49,15 @@ export const sendChatMessage = async (
   filters?: ChatSearchFilters
 ): Promise<any> => {
   try {
+    const requestId = crypto.randomUUID();
     const body: Record<string, unknown> = {
       message,
       history: history.slice(-8), // AI_HISTORY_LIMIT — keep in sync with edge ai-constants
       mode,
       audioPath,
       imagePath,
+      requestId,
+      idempotencyKey: `chat:${requestId}`,
     };
     if (filters && (filters.types?.length || filters.timeRange)) {
       body.filters = filters;
@@ -90,15 +93,27 @@ export const sendChatMessage = async (
 /**
  * Performs a semantic hybrid search query in the AI layer, returning list of references.
  */
+export const undoAgentAction = async (undoReceiptId: string): Promise<any> => {
+  const { data, error } = await supabase.functions.invoke('ai-assistant', {
+    body: { undoReceiptId, history: [], mode: 'auto', message: '' },
+  });
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+  return data;
+};
+
 export const searchSemantic = async (
   query: string,
   filters?: ChatSearchFilters
 ): Promise<any[]> => {
   try {
+    const requestId = crypto.randomUUID();
     const body: Record<string, unknown> = {
       message: query,
       mode: 'memory', // Forced memory RAG mode for semantic search
       history: [],
+      requestId,
+      idempotencyKey: `search:${requestId}`,
     };
     if (filters && (filters.types?.length || filters.timeRange)) {
       body.filters = filters;
@@ -140,13 +155,16 @@ export const extractFromMedia = async (
   message?: string
 ): Promise<any> => {
   try {
+    const requestId = crypto.randomUUID();
     const { data, error } = await supabase.functions.invoke('ai-assistant', {
       body: {
         message: message || '',
         mode: 'action',
         audioPath,
         imagePath,
-        history: []
+        history: [],
+        requestId,
+        idempotencyKey: `media:${requestId}`,
       }
     });
 

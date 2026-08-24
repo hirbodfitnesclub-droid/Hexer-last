@@ -1,0 +1,170 @@
+{
+  "behavior": "persian-text-normalization",
+  "minimumScenarios": 20,
+  "scenarios": [
+    {
+      "id": "fa-norm-001",
+      "kind": "normalize",
+      "input": "کتاب",
+      "expected": "کتاب"
+    },
+    {
+      "id": "fa-norm-002",
+      "kind": "normalize",
+      "input": "كتاب",
+      "expected": "کتاب"
+    },
+    {
+      "id": "fa-norm-003",
+      "kind": "normalize",
+      "input": "يادداشت",
+      "expected": "یادداشت"
+    },
+    {
+      "id": "fa-norm-004",
+      "kind": "normalize",
+      "input": "مدرسة",
+      "expected": "مدرسه"
+    },
+    {
+      "id": "fa-norm-005",
+      "kind": "normalize",
+      "input": "أحمد",
+      "expected": "احمد"
+    },
+    {
+      "id": "fa-norm-006",
+      "kind": "normalize",
+      "input": "إسلام",
+      "expected": "اسلام"
+    },
+    {
+      "id": "fa-norm-007",
+      "kind": "normalize",
+      "input": "آب",
+      "expected": "اب"
+    },
+    {
+      "id": "fa-norm-008",
+      "kind": "normalize",
+      "input": "سلــام",
+      "expected": "سلام"
+    },
+    {
+      "id": "fa-norm-009",
+      "kind": "normalize",
+      "input": "مُحَمَّد",
+      "expected": "محمد"
+    },
+    {
+      "id": "fa-norm-010",
+      "kind": "normalize",
+      "input": "می‌روم",
+      "expected": "می روم"
+    },
+    {
+      "id": "fa-norm-011",
+      "kind": "normalize",
+      "input": "  فاصله   زیاد  ",
+      "expected": "فاصله زیاد"
+    },
+    {
+      "id": "fa-norm-012",
+      "kind": "normalize",
+      "input": "",
+      "expected": ""
+    },
+    {
+      "id": "fa-norm-013",
+      "kind": "normalize",
+      "input": null,
+      "expected": ""
+    },
+    {
+      "id": "fa-norm-014",
+      "kind": "normalize",
+      "input": 12,
+      "expected": ""
+    },
+    {
+      "id": "fa-norm-015",
+      "kind": "normalize",
+      "input": "۱۲۳",
+      "expected": "123"
+    },
+    {
+      "id": "fa-norm-016",
+      "kind": "normalize",
+      "input": "٤٥٦",
+      "expected": "456"
+    },
+    {
+      "id": "fa-norm-017",
+      "kind": "normalize",
+      "input": "جلسه ۹ صبح",
+      "expected": "جلسه 9 صبح"
+    },
+    {
+      "id": "fa-norm-018",
+      "kind": "tokens",
+      "input": "خرید: شیر، نان و ۲ تخم‌مرغ",
+      "expected": [
+        "خرید",
+        "شیر",
+        "نان",
+        "و",
+        "2",
+        "تخم",
+        "مرغ"
+      ]
+    },
+    {
+      "id": "fa-norm-019",
+      "kind": "tokens",
+      "input": "",
+      "expected": []
+    },
+    {
+      "id": "fa-norm-020",
+      "kind": "tokens",
+      "input": "!!!",
+      "expected": []
+    },
+    {
+      "id": "fa-norm-021",
+      "kind": "equivalent",
+      "input": [
+        "كتابي",
+        "کتابی"
+      ],
+      "expected": true
+    },
+    {
+      "id": "fa-norm-022",
+      "kind": "equivalent",
+      "input": [
+        "مي‌روم",
+        "می روم"
+      ],
+      "expected": true
+    },
+    {
+      "id": "fa-norm-023",
+      "kind": "equivalent",
+      "input": [
+        "۱۰ صبح",
+        "10 صبح"
+      ],
+      "expected": true
+    },
+    {
+      "id": "fa-norm-024",
+      "kind": "equivalent",
+      "input": [
+        "کتاب",
+        "کتب"
+      ],
+      "expected": false
+    }
+  ]
+}

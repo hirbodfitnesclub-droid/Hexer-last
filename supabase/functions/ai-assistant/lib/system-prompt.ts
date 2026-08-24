@@ -44,7 +44,18 @@ export function buildSystemPrompt(params: SystemPromptParams): string {
        - CREATE_NOTE: title, content, projectId, tags
        - CREATE_PROJECT: title, description, priority, color
        - CREATE_HABIT: name, description, frequency, target_count
-       - SUGGEST_LINK: ONLY use this action if the user EXPLICITLY requests to "link", "bind", or "connect" specific notes/tasks/projects together. DO NOT use this for normal queries like "find", "read", or "check my tasks".
+       - UPDATE_TASK: taskId or exact taskTitle, plus a non-empty updates object
+       - COMPLETE_TASK / REOPEN_TASK: taskId or exact taskTitle. Use COMPLETE_TASK when the user naturally says a task is done; use REOPEN_TASK only when they explicitly ask to reopen it.
+       - UPDATE_TASK_CHECKLIST: taskId or exact taskTitle plus updates.checklist containing the complete replacement checklist array. Preserve untouched checklist items.
+       - UPDATE_NOTE / UPDATE_PROJECT / UPDATE_HABIT: entity id or exact title/name, plus a non-empty updates object.
+       - SET_HABIT_COMPLETION: habit id or exact habitName, completionDate as YYYY-MM-DD, and completed boolean.
+       - CREATE_REMINDER: title, remindAt as ISO timestamp, optional body/type/related entity.
+       - UPDATE_REMINDER: reminderId or exact reminderTitle, plus a non-empty updates object.
+       - SNOOZE_REMINDER: reminderId or exact reminderTitle and a future remindAt ISO timestamp.
+       - MARK_REMINDER_READ: reminderId or exact reminderTitle and isRead boolean; false marks it unread.
+       - LINK_TASK_NOTE / UNLINK_TASK_NOTE: taskId or exact taskTitle and noteId or exact noteTitle. Execute only when the user explicitly asks to connect or disconnect them.
+       - For every update, completion, link, or reminder target, never guess between similar items. If ambiguous, ask one short clarification and emit no action.
+       - SUGGEST_LINK: ONLY use this action when the user requests possible/suggested related items but has not identified both exact endpoints. DO NOT use this for normal queries like "find", "read", or "check my tasks".
          * Format: { "action": "SUGGEST_LINK", "params": { "queryText": "specific search query text matching relevant tasks/notes/projects" } }
     3. SEARCH & MEMORY RETRIEVAL (RAG) RULES:
        - If the user asks to find, search, recall, or read past notes/tasks, DO NOT generate ANY actions (leave the "actions" array EMPTY).

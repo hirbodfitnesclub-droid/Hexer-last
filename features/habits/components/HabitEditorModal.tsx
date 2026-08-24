@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Habit } from '../../types';
+import { Habit } from '../../../types';
 import { XIcon, TrashIcon, FlameIcon, RepeatIcon, PencilIcon, TargetIcon } from '../../../components/icons';
 
 interface HabitEditorModalProps {

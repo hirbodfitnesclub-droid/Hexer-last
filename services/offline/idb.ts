@@ -1,7 +1,7 @@
 import { openDB, IDBPDatabase } from 'idb';
 
 const DB_NAME = 'hexer-offline';
-const DB_VERSION = 2; // Upgrading to 2 to add snapshot, outbox, and failed stores safely
+const DB_VERSION = 3; // v3 adds the operation-based queue stores alongside the legacy outbox
 
 export async function getDB(): Promise<IDBPDatabase> {
   return openDB(DB_NAME, DB_VERSION, {
@@ -17,6 +17,16 @@ export async function getDB(): Promise<IDBPDatabase> {
       }
       if (!db.objectStoreNames.contains('failed')) {
         db.createObjectStore('failed', { keyPath: 'id' });
+      }
+      // Keyed by op_id so two edits to one entity are two operations. The legacy
+      // 'outbox' store stays readable until every queued mutation has drained.
+      if (!db.objectStoreNames.contains('operations')) {
+        const operations = db.createObjectStore('operations', { keyPath: 'opId' });
+        operations.createIndex('byUser', 'userId');
+        operations.createIndex('byEntity', ['userId', 'entity', 'entityId']);
+      }
+      if (!db.objectStoreNames.contains('tempIdMap')) {
+        db.createObjectStore('tempIdMap', { keyPath: 'tempId' });
       }
     },
   });

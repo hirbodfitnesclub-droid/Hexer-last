@@ -1,9 +1,10 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import webpush from 'https://esm.sh/web-push@3.6.7';
+import { jsonResponse, requireWorkerSecret, safeErrorResponse } from '../_shared/security.ts';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Origin': 'null',
+  'Access-Control-Allow-Headers': 'content-type, x-worker-secret',
 };
 
 declare const Deno: any;
@@ -14,17 +15,12 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing auth header' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401
-      });
-    }
+    if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405, corsHeaders);
+    await requireWorkerSecret(req, 'PUSH_DISPATCH_SECRET');
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') || '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+      Deno.env.get('SUPABASE_SECRET_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
     );
 
     // Resolve VAPID Credentials from env
@@ -133,25 +129,25 @@ Deno.serve(async (req: Request) => {
           }
         }
 
-        // Insert reminder record as duplicate shield
-        const { error: insErr } = await supabase
-          .from('reminders')
-          .insert({
-            user_id: item.task.user_id,
-            title: item.task.title,
-            body: item.task.description || null,
-            remind_at: item.task.due_date,
-            type: 'task',
-            related_entity_type: 'task',
-            related_entity_id: item.task.id,
-            is_sent: true,
-            is_read: false
-          });
+        if (sentCount > 0) {
+          const { error: insErr } = await supabase
+            .from('reminders')
+            .insert({
+              user_id: item.task.user_id,
+              title: item.task.title,
+              body: item.task.description || null,
+              remind_at: item.task.due_date,
+              type: 'task',
+              related_entity_type: 'task',
+              related_entity_id: item.task.id,
+              is_sent: true,
+              is_read: false
+            });
 
-        if (insErr) {
-          console.error(`Failed to insert processed task reminder log for ${taskId}:`, insErr);
+          if (insErr) console.error(`Failed to record delivered task reminder ${taskId}:`, insErr);
+          else logs.push(`Triggered ${sentCount} push notification(s) for task ${taskId}.`);
         } else {
-          logs.push(`Triggered ${sentCount} push notification(s) for task ${taskId}.`);
+          logs.push(`Task ${taskId} was not marked sent because every endpoint failed.`);
         }
       }
     } else {
@@ -228,25 +224,25 @@ Deno.serve(async (req: Request) => {
           }
         }
 
-        // Insert daily_nudge record in reminders table to lock further notifications today
-        const { error: insErr } = await supabase
-          .from('reminders')
-          .insert({
-            user_id: userId,
-            title: nudgeTitle,
-            body: nudgeBody,
-            remind_at: new Date().toISOString(),
-            type: 'custom',
-            related_entity_type: 'daily_nudge',
-            related_entity_id: null,
-            is_sent: true,
-            is_read: false
-          });
+        if (nudgeSentCount > 0) {
+          const { error: insErr } = await supabase
+            .from('reminders')
+            .insert({
+              user_id: userId,
+              title: nudgeTitle,
+              body: nudgeBody,
+              remind_at: new Date().toISOString(),
+              type: 'custom',
+              related_entity_type: 'daily_nudge',
+              related_entity_id: null,
+              is_sent: true,
+              is_read: false
+            });
 
-        if (insErr) {
-          console.error(`Failed to insert daily nudge log for ${userId}:`, insErr);
+          if (insErr) console.error(`Failed to record delivered daily nudge ${userId}:`, insErr);
+          else logs.push(`Triggered ${nudgeSentCount} daily nudge(s) for user ${userId}.`);
         } else {
-          logs.push(`Triggered ${nudgeSentCount} friendly daily nudge(s) for user ${userId}.`);
+          logs.push(`Daily nudge for user ${userId} was not marked sent because every endpoint failed.`);
         }
       }
     } else {
@@ -279,7 +275,7 @@ Deno.serve(async (req: Request) => {
     try {
       const supabase = createClient(
         Deno.env.get('SUPABASE_URL') || '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+        Deno.env.get('SUPABASE_SECRET_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
       );
       await supabase
         .from('push_dispatch_log')
@@ -293,9 +289,6 @@ Deno.serve(async (req: Request) => {
       console.error("Could not write critical failure to push_dispatch_log:", logErr);
     }
 
-    return new Response(JSON.stringify({ error: err.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500
-    });
+    return safeErrorResponse(err, corsHeaders);
   }
 });

@@ -1,0 +1,28 @@
+{
+  "behavior": "agent-tool-parity-contract",
+  "minimumScenarios": 20,
+  "scenarios": [
+    { "id": "tools-001", "input": "UPDATE_NOTE", "params": { "noteTitle": "ایده", "updates": { "content": "متن جدید" } }, "expected": true },
+    { "id": "tools-002", "input": "UPDATE_NOTE", "params": { "noteId": "11111111-1111-4111-8111-111111111111", "updates": { "tags": ["کار"] } }, "expected": true },
+    { "id": "tools-003", "input": "UPDATE_PROJECT", "params": { "projectTitle": "سایت", "updates": { "priority": "high" } }, "expected": true },
+    { "id": "tools-004", "input": "UPDATE_PROJECT", "params": { "projectId": "11111111-1111-4111-8111-111111111111", "updates": { "status": "paused" } }, "expected": true },
+    { "id": "tools-005", "input": "UPDATE_HABIT", "params": { "habitName": "مطالعه", "updates": { "target_count": 2 } }, "expected": true },
+    { "id": "tools-006", "input": "SET_HABIT_COMPLETION", "params": { "habitName": "مطالعه", "completionDate": "2026-08-19", "completed": true }, "expected": true },
+    { "id": "tools-007", "input": "SET_HABIT_COMPLETION", "params": { "habitId": "11111111-1111-4111-8111-111111111111", "completionDate": "2026-08-19", "completed": false }, "expected": true },
+    { "id": "tools-008", "input": "CREATE_REMINDER", "params": { "title": "جلسه", "remindAt": "2026-08-20T10:00:00+03:30" }, "expected": true },
+    { "id": "tools-009", "input": "CREATE_REMINDER", "params": { "title": "ورزش", "body": "یادآوری", "remindAt": "2026-08-20T18:00:00+03:30", "type": "custom" }, "expected": true },
+    { "id": "tools-010", "input": "UPDATE_REMINDER", "params": { "reminderTitle": "جلسه", "updates": { "isRead": true } }, "expected": true },
+    { "id": "tools-011", "input": "LINK_TASK_NOTE", "params": { "taskTitle": "خرید", "noteTitle": "لیست" }, "expected": true },
+    { "id": "tools-012", "input": "UNLINK_TASK_NOTE", "params": { "taskId": "11111111-1111-4111-8111-111111111111", "noteId": "22222222-2222-4222-8222-222222222222" }, "expected": true },
+    { "id": "tools-013", "input": "UPDATE_NOTE", "params": { "noteTitle": "ایده", "updates": {} }, "expected": false },
+    { "id": "tools-014", "input": "UPDATE_PROJECT", "params": { "projectTitle": "سایت", "updates": { "priority": "urgent" } }, "expected": false },
+    { "id": "tools-015", "input": "UPDATE_HABIT", "params": { "habitName": "مطالعه", "updates": { "target_count": 0 } }, "expected": false },
+    { "id": "tools-016", "input": "SET_HABIT_COMPLETION", "params": { "habitName": "مطالعه", "completionDate": "2026-08-19", "completed": "yes" }, "expected": false },
+    { "id": "tools-017", "input": "CREATE_REMINDER", "params": { "title": "جلسه" }, "expected": false },
+    { "id": "tools-018", "input": "CREATE_REMINDER", "params": { "title": "جلسه", "remindAt": "tomorrow", "type": "email" }, "expected": false },
+    { "id": "tools-019", "input": "UPDATE_REMINDER", "params": { "reminderTitle": "جلسه", "updates": {} }, "expected": false },
+    { "id": "tools-020", "input": "LINK_TASK_NOTE", "params": { "taskTitle": 12, "noteTitle": "لیست" }, "expected": false },
+    { "id": "tools-021", "input": "UPDATE_NOTE", "params": { "noteTitle": "ایده", "updates": { "secret": true } }, "expected": false },
+    { "id": "tools-022", "input": "UNLINK_TASK_NOTE", "params": { "taskTitle": "خرید", "noteTitle": null }, "expected": true }
+  ]
+}

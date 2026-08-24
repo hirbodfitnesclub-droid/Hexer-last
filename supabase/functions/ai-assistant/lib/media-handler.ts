@@ -1,5 +1,6 @@
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { encodeBase64 } from "jsr:@std/encoding/base64";
+import { buildAudioInputPart, resolveAudioInputFormat } from './media-contract.ts';
 
 function getCleanAndValidatedPath(rawPath: string, userId: string): string | null {
   if (!rawPath) return null;
@@ -68,12 +69,9 @@ export async function downloadMediaParts(
       const arrayBuffer = await fileBlob.arrayBuffer();
       const base64Data = encodeBase64(new Uint8Array(arrayBuffer));
 
-      mediaParts.push({
-        type: "image_url",
-        image_url: {
-          url: `data:${mimeType};base64,${base64Data}`
-        }
-      });
+      mediaParts.push(
+        buildAudioInputPart(base64Data, resolveAudioInputFormat(cleanPath, mimeType))
+      );
     }
   }
 

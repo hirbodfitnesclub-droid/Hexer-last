@@ -1,71 +1,82 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-admin-secret',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-};
+import { enforceRateLimit, getAllowedCorsHeaders, jsonResponse, requireAdmin, safeErrorResponse } from '../_shared/security.ts';
 
 declare const Deno: any;
 
+// Admin panels are small (a dozen users today) but must not become unbounded scans
+// as the user base grows. Every list endpoint reads at most this many rows.
+const LIST_LIMIT = 500;
+const listQuery = <T extends { limit: (n: number) => T }>(query: T) => query.limit(LIST_LIMIT);
+
 Deno.serve(async (req: Request) => {
-  // 1. CORS Preflight Handler (Must be at the absolute top of the handler)
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders,
-    });
-  }
+  const corsHeaders = getAllowedCorsHeaders(req);
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders });
+  if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405, corsHeaders);
 
-  // 2. Fallback Secret & Admin Authentication
-  const systemSecret = Deno.env.get('ADMIN_API_SECRET') || '3128';
-  const adminSecretHeader = req.headers.get('x-admin-secret');
-
-  if (adminSecretHeader !== systemSecret) {
-    return new Response(JSON.stringify({ error: "عدم انطباق یا نبود رمز ادمین معتبر" }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-  }
-
+  let auditFailure: (() => Promise<void>) | null = null;
   try {
-    // 3. Parse body and check action
+    enforceRateLimit(req, 'admin-api', 60, 60_000);
+    const { user: adminUser, service: supabaseService } = await requireAdmin(req);
     const body = await req.json().catch(() => ({}));
     const { action } = body;
 
-    if (!action) {
-      return new Response(JSON.stringify({ error: "پارامتر action ضروری است" }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+    if (!action || typeof action !== 'string') {
+      return jsonResponse({ error: "پارامتر action ضروری است" }, 400, corsHeaders);
     }
 
-    // 4. Create Supabase service role client to bypass Row Level Security constraints
-    const supabaseService = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-        }
-      }
-    );
+    const requestId = crypto.randomUUID();
+    console.info('Admin action requested', { requestId, adminId: adminUser.id, action });
+
+    const mutatingActions = new Set([
+      'update_profile', 'upsert_subscription', 'save_discount', 'delete_discount',
+      'approve_manual_payment', 'reject_manual_payment', 'save_telegram_settings',
+      'marketing_save_campaign',
+    ]);
+    const auditAdminAction = async (status: 'requested' | 'succeeded' | 'failed', details: Record<string, unknown> = {}) => {
+      const { error: auditError } = await supabaseService.from('admin_audit_log').insert({
+        request_id: requestId,
+        admin_user_id: adminUser.id,
+        action,
+        status,
+        target_type: typeof body.id === 'string' ? 'resource' : null,
+        target_id: typeof (body.id || body.payment_id || body.user_id) === 'string'
+          ? String(body.id || body.payment_id || body.user_id)
+          : null,
+        metadata: details,
+      });
+      if (auditError) console.error('Admin audit write failed', { requestId, action, code: auditError.code });
+    };
+    auditFailure = mutatingActions.has(action)
+      ? () => auditAdminAction('failed', { reason: 'action_failed' })
+      : null;
+    if (mutatingActions.has(action)) await auditAdminAction('requested');
+
+    const success = async (body: unknown) => {
+      if (mutatingActions.has(action)) await auditAdminAction('succeeded');
+      return jsonResponse(body, 200, corsHeaders);
+    };
 
     // 5. Routing based on action
     switch (action) {
       case 'list_profiles': {
         // Fetch profiles
-        const { data: profiles, error: pErr } = await supabaseService
+        const { data: profiles, error: pErr } = await listQuery(supabaseService
           .from('profiles')
           .select('*')
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false }));
 
         if (pErr) throw pErr;
 
-        // Fetch auth users using Admin API
-        const { data: { users }, error: uErr } = await supabaseService.auth.admin.listUsers();
-        if (uErr) throw uErr;
+        // Fetch auth users using Admin API (paged; only what the profile page needs)
+        const users: any[] = [];
+        let page = 1;
+        for (;;) {
+          const { data, error: uErr } = await supabaseService.auth.admin.listUsers({ page, perPage: 500 });
+          if (uErr) throw uErr;
+          users.push(...(data?.users ?? []));
+          const totalPages = Math.ceil((data?.total ?? 0) / 500);
+          if ((data?.users ?? []).length === 0 || page >= totalPages || page >= 10) break;
+          page += 1;
+        }
 
         // Perform custom join and map to frontend interface
         const profileDTOs = (profiles || []).map(p => {
@@ -109,9 +120,7 @@ Deno.serve(async (req: Request) => {
 
         if (authErr) throw authErr;
 
-        return new Response(JSON.stringify({ ok: true }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        return success({ ok: true });
       }
 
       case 'list_plans': {
@@ -135,10 +144,10 @@ Deno.serve(async (req: Request) => {
 
       case 'list_subscriptions': {
         // Fetch subscriptions
-        const { data: subs, error: sErr } = await supabaseService
+        const { data: subs, error: sErr } = await listQuery(supabaseService
           .from('subscriptions')
           .select('*')
-          .order('started_at', { ascending: false });
+          .order('started_at', { ascending: false }));
 
         if (sErr) throw sErr;
 
@@ -218,17 +227,15 @@ Deno.serve(async (req: Request) => {
 
         if (error) throw error;
 
-        return new Response(JSON.stringify({ ok: true }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        return success({ ok: true });
       }
 
       case 'list_payments': {
         // Fetch payments
-        const { data: payments, error: pErr } = await supabaseService
+        const { data: payments, error: pErr } = await listQuery(supabaseService
           .from('payments')
           .select('*')
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false }));
 
         if (pErr) throw pErr;
 
@@ -285,10 +292,10 @@ Deno.serve(async (req: Request) => {
       }
 
       case 'list_discounts': {
-        const { data: discounts, error } = await supabaseService
+        const { data: discounts, error } = await listQuery(supabaseService
           .from('discount_codes')
           .select('*')
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false }));
 
         if (error) throw error;
 
@@ -321,9 +328,7 @@ Deno.serve(async (req: Request) => {
 
         if (error) throw error;
 
-        return new Response(JSON.stringify({ ok: true }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        return success({ ok: true });
       }
 
       case 'delete_discount': {
@@ -337,18 +342,16 @@ Deno.serve(async (req: Request) => {
 
         if (error) throw error;
 
-        return new Response(JSON.stringify({ ok: true }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        return success({ ok: true });
       }
 
       case 'list_manual_payments': {
         // دریافت لیست تراکنش‌ها با وضعیت pending_manual
-        const { data: payments, error: pErr } = await supabaseService
+        const { data: payments, error: pErr } = await listQuery(supabaseService
           .from('payments')
           .select('*')
           .eq('status', 'pending_manual')
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false }));
 
         if (pErr) throw pErr;
 
@@ -437,9 +440,7 @@ Deno.serve(async (req: Request) => {
           await supabaseService.storage.from('receipts').remove([receiptPath]);
         }
 
-        return new Response(JSON.stringify({ ok: true }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        return success({ ok: true });
       }
 
       case 'reject_manual_payment': {
@@ -471,9 +472,7 @@ Deno.serve(async (req: Request) => {
           await supabaseService.storage.from('receipts').remove([receiptPath]);
         }
 
-        return new Response(JSON.stringify({ ok: true }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        return success({ ok: true });
       }
 
       case 'get_telegram_settings': {
@@ -505,16 +504,14 @@ Deno.serve(async (req: Request) => {
 
         if (error) throw error;
 
-        return new Response(JSON.stringify({ ok: true }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        return success({ ok: true });
       }
 
       case 'list_tickets': {
-        const { data: tickets, error: tErr } = await supabaseService
+        const { data: tickets, error: tErr } = await listQuery(supabaseService
           .from('support_tickets')
           .select('*')
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false }));
 
         if (tErr) throw tErr;
 
@@ -529,8 +526,12 @@ Deno.serve(async (req: Request) => {
           if (pData) profiles = pData;
         }
 
-        const { data: { users }, error: uErr } = await supabaseService.auth.admin.listUsers();
-        const usersList = users || [];
+        // Only fetch auth records for the users that actually appear in the tickets.
+        const usersList: any[] = [];
+        for (const uid of userIds.slice(0, LIST_LIMIT)) {
+          const { data, error: uErr } = await supabaseService.auth.admin.getUserById(uid);
+          if (!uErr && data?.user) usersList.push(data.user);
+        }
 
         const ticketDTOs = (tickets || []).map(ticket => {
           const profile = (profiles || []).find(p => p.id === ticket.user_id);
@@ -636,11 +637,11 @@ Deno.serve(async (req: Request) => {
       }
 
       case 'marketing_campaigns': {
-        const { data, error } = await supabaseService
+        const { data, error } = await listQuery(supabaseService
           .schema('marketing')
           .from('campaigns_fdw')
           .select('*')
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false }));
 
         if (error) throw error;
 
@@ -725,9 +726,7 @@ Deno.serve(async (req: Request) => {
 
         if (saveError) throw saveError;
 
-        return new Response(JSON.stringify({ ok: true }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        return success({ ok: true });
       }
 
       default:
@@ -737,11 +736,8 @@ Deno.serve(async (req: Request) => {
         });
     }
 
-  } catch (error: any) {
-    console.error("موتور گیت‌وی با خطا مواجه شد:", error);
-    return new Response(JSON.stringify({ error: error.message || String(error) }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+  } catch (error: unknown) {
+    if (auditFailure) await auditFailure();
+    return safeErrorResponse(error, corsHeaders);
   }
 });

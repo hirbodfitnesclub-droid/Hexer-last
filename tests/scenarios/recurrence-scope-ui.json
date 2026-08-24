@@ -1,0 +1,272 @@
+{
+  "behavior": "recurrence-scope-ui-decisions",
+  "minimumScenarios": 20,
+  "scenarios": [
+    {
+      "id": "scope-ui-001",
+      "kind": "needsScope",
+      "input": {
+        "isNew": false,
+        "recurrence": {
+          "type": "daily"
+        },
+        "seriesId": "s1"
+      },
+      "expected": true
+    },
+    {
+      "id": "scope-ui-002",
+      "kind": "needsScope",
+      "input": {
+        "isNew": true,
+        "recurrence": {
+          "type": "daily"
+        },
+        "seriesId": "s1"
+      },
+      "expected": false
+    },
+    {
+      "id": "scope-ui-003",
+      "kind": "needsScope",
+      "input": {
+        "isNew": false,
+        "recurrence": null,
+        "seriesId": "s1"
+      },
+      "expected": false
+    },
+    {
+      "id": "scope-ui-004",
+      "kind": "needsScope",
+      "input": {
+        "isNew": false,
+        "recurrence": {
+          "type": "daily"
+        },
+        "seriesId": null
+      },
+      "expected": false
+    },
+    {
+      "id": "scope-ui-005",
+      "kind": "needsScope",
+      "input": {
+        "isNew": false,
+        "recurrence": {
+          "type": "weekly",
+          "weekdays": [
+            6
+          ]
+        },
+        "seriesId": "s1"
+      },
+      "expected": true
+    },
+    {
+      "id": "scope-ui-006",
+      "kind": "needsScope",
+      "input": {
+        "isNew": false,
+        "recurrence": {
+          "type": "weekly",
+          "weekdays": []
+        },
+        "seriesId": "s1"
+      },
+      "expected": false
+    },
+    {
+      "id": "scope-ui-007",
+      "kind": "updateKeys",
+      "input": {
+        "hasDate": true,
+        "hasTime": true
+      },
+      "expected": [
+        "title",
+        "description",
+        "priority",
+        "project_id",
+        "tags",
+        "checklist",
+        "due_date"
+      ]
+    },
+    {
+      "id": "scope-ui-008",
+      "kind": "updateKeys",
+      "input": {
+        "hasDate": false,
+        "hasTime": false
+      },
+      "expected": [
+        "title",
+        "description",
+        "priority",
+        "project_id",
+        "tags",
+        "checklist"
+      ]
+    },
+    {
+      "id": "scope-ui-009",
+      "kind": "futureCount",
+      "input": {
+        "seriesId": "s1",
+        "dueDate": "2026-08-20T08:00:00Z",
+        "tasks": [
+          {
+            "id": "a",
+            "recurrence_series_id": "s1",
+            "status": "todo",
+            "due_date": "2026-08-21T08:00:00Z"
+          },
+          {
+            "id": "b",
+            "recurrence_series_id": "s1",
+            "status": "todo",
+            "due_date": "2026-08-22T08:00:00Z"
+          }
+        ]
+      },
+      "expected": 2
+    },
+    {
+      "id": "scope-ui-010",
+      "kind": "futureCount",
+      "input": {
+        "seriesId": "s1",
+        "dueDate": "2026-08-20T08:00:00Z",
+        "tasks": [
+          {
+            "id": "a",
+            "recurrence_series_id": "s1",
+            "status": "done",
+            "due_date": "2026-08-21T08:00:00Z"
+          }
+        ]
+      },
+      "expected": 0
+    },
+    {
+      "id": "scope-ui-011",
+      "kind": "futureCount",
+      "input": {
+        "seriesId": "s1",
+        "dueDate": "2026-08-20T08:00:00Z",
+        "tasks": [
+          {
+            "id": "a",
+            "recurrence_series_id": "s1",
+            "status": "todo",
+            "due_date": "2026-08-19T08:00:00Z"
+          }
+        ]
+      },
+      "expected": 0
+    },
+    {
+      "id": "scope-ui-012",
+      "kind": "futureCount",
+      "input": {
+        "seriesId": "s1",
+        "dueDate": "2026-08-20T08:00:00Z",
+        "tasks": [
+          {
+            "id": "self",
+            "recurrence_series_id": "s1",
+            "status": "todo",
+            "due_date": "2026-08-21T08:00:00Z"
+          }
+        ]
+      },
+      "expected": 0
+    },
+    {
+      "id": "scope-ui-013",
+      "kind": "futureCount",
+      "input": {
+        "seriesId": "s1",
+        "dueDate": "2026-08-20T08:00:00Z",
+        "tasks": [
+          {
+            "id": "a",
+            "recurrence_series_id": "other",
+            "status": "todo",
+            "due_date": "2026-08-21T08:00:00Z"
+          }
+        ]
+      },
+      "expected": 0
+    },
+    {
+      "id": "scope-ui-014",
+      "kind": "futureCount",
+      "input": {
+        "seriesId": null,
+        "dueDate": "2026-08-20T08:00:00Z",
+        "tasks": []
+      },
+      "expected": 0
+    },
+    {
+      "id": "scope-ui-015",
+      "kind": "futureCount",
+      "input": {
+        "seriesId": "s1",
+        "dueDate": null,
+        "tasks": []
+      },
+      "expected": 0
+    },
+    {
+      "id": "scope-ui-016",
+      "kind": "sendsRule",
+      "input": "edit_future",
+      "expected": true
+    },
+    {
+      "id": "scope-ui-017",
+      "kind": "sendsRule",
+      "input": "edit_current",
+      "expected": false
+    },
+    {
+      "id": "scope-ui-018",
+      "kind": "sendsRule",
+      "input": "skip",
+      "expected": false
+    },
+    {
+      "id": "scope-ui-019",
+      "kind": "sendsRule",
+      "input": "stop",
+      "expected": false
+    },
+    {
+      "id": "scope-ui-020",
+      "kind": "keepCurrent",
+      "input": {
+        "keepCurrent": null
+      },
+      "expected": true
+    },
+    {
+      "id": "scope-ui-021",
+      "kind": "keepCurrent",
+      "input": {
+        "keepCurrent": true
+      },
+      "expected": true
+    },
+    {
+      "id": "scope-ui-022",
+      "kind": "keepCurrent",
+      "input": {
+        "keepCurrent": false
+      },
+      "expected": false
+    }
+  ]
+}

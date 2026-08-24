@@ -1,11 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { ChatMessage, ChatMode, Citation, Task, Note, ActionResult, Project, ChatSession, ExtractionProposal, Page, ChatSearchFilters } from '../../types';
 import { BotIcon, UserIcon, SendIcon, SparklesIcon, TargetIcon, LightbulbIcon, PencilIcon, NotebookIcon, ListChecksIcon, LinkIcon, CheckIcon, BriefcaseIcon, FlameIcon, PaperclipIcon, MicrophoneIcon, CalendarIcon, PlusIcon, XIcon, TrashIcon } from '../../components/icons';
 import { uploadChatMedia } from '../../services/mediaService';
-import { sendChatMessage, extractFromMedia } from '../../services/geminiService';
+import { sendChatMessage, extractFromMedia, undoAgentAction } from '../../services/geminiService';
 import { compressImage, dataURLtoBlob } from '../../utils/imageUtils';
 import { useMediaRecorder } from './hooks/useMediaRecorder';
 import { getTehranDateString } from '../../utils/dateUtils';
@@ -63,6 +63,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
 
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [undoingReceiptId, setUndoingReceiptId] = useState<string | null>(null);
   const [mode, setMode] = useState<ChatMode>('auto');
   
   // Search Semantic Filter States (Task I5)
@@ -101,8 +102,26 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
     recordedAudio,
     setRecordedAudio,
     cancelRecording,
-    handleMicClick
+    handleMicClick,
+    error: recorderError,
+    elapsedMs: recordingElapsedMs
   } = useMediaRecorder();
+
+  // One stable object URL per recording, revoked when it changes or unmounts — a URL
+  // created inside render leaks on every re-render (QA ISSUE_04-C).
+  const recordedAudioUrl = useMemo(
+    () => (recordedAudio ? URL.createObjectURL(recordedAudio) : null),
+    [recordedAudio]
+  );
+  useEffect(() => () => {
+    if (recordedAudioUrl) URL.revokeObjectURL(recordedAudioUrl);
+  }, [recordedAudioUrl]);
+
+  // Surface recorder problems through the normal notification path instead of a
+  // blocking alert, and announce them to assistive tech via the live region below.
+  useEffect(() => {
+    if (recorderError) addNotification(recorderError.message, 'error');
+  }, [recorderError, addNotification]);
 
   // Image Upload states
   const [selectedImagePreview, setSelectedImagePreview] = useState<string | null>(null);
@@ -490,7 +509,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
     const list = activeProposals.filter(p => p.status === 'pending');
     if (list.length === 0) return;
 
-    let successfulCount = 0;
+    const succeededIds: string[] = [];
     for (const prop of list) {
       try {
         if (prop.kind === 'task') {
@@ -511,14 +530,27 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
             tags: prop.draft.tags || []
           });
         }
-        successfulCount++;
+        succeededIds.push(prop.id);
       } catch (err) {
         console.error('Error approving bulk item:', err);
       }
     }
 
-    setActiveProposals(prev => prev.map(p => p.status === 'pending' ? { ...p, status: 'approved' } : p));
-    addNotification(`تعداد ${successfulCount} کار پیشنهادی با موفقیت تایید و ذخیره شدند.`, 'success');
+    // Only items that actually saved are marked approved; failures stay pending so
+    // the user can retry them instead of silently losing their draft.
+    setActiveProposals(prev => prev.map(p =>
+      succeededIds.includes(p.id) ? { ...p, status: 'approved' } : p
+    ));
+
+    const failedCount = list.length - succeededIds.length;
+    if (failedCount > 0) {
+      addNotification(
+        `${succeededIds.length} مورد ذخیره شد، اما ${failedCount} مورد ناموفق بود و در لیست باقی ماند. دوباره تلاش کنید.`,
+        'error'
+      );
+    } else {
+      addNotification(`تعداد ${succeededIds.length} کار پیشنهادی با موفقیت تایید و ذخیره شدند.`, 'success');
+    }
   };
 
   // --- Smart Linker ---
@@ -556,6 +588,29 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
     } else if (citation.type === 'project') {
       const project = projects.find(p => p.id === citation.id);
       if (project) onEditProject(project);
+    }
+  };
+
+  const handleUndoAction = async (result: ActionResult) => {
+    if (!result.receiptId || undoingReceiptId) return;
+    setUndoingReceiptId(result.receiptId);
+    try {
+      const response = await undoAgentAction(result.receiptId);
+      const undoResult = response.actionResults?.[0] as ActionResult | undefined;
+      if (undoResult && ['task', 'note', 'project', 'habit'].includes(undoResult.type)) {
+        injectAIProposalResult(undoResult);
+      }
+      setMessages(prev => prev.map(message => ({
+        ...message,
+        actionResults: message.actionResults?.map(item => item.receiptId === result.receiptId
+          ? { ...item, receiptId: undefined, undoExpiresAt: undefined }
+          : item),
+      })));
+      addNotification('تغییر با موفقیت بازگردانی شد.', 'success');
+    } catch (error: any) {
+      addNotification(error?.message || 'بازگردانی تغییر ممکن نبود.', 'error');
+    } finally {
+      setUndoingReceiptId(null);
     }
   };
 
@@ -822,7 +877,13 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
                     }
 
                     return (
-                      <ActionResultCard key={idx} result={result} onClick={handleActionResultClick} />
+                      <ActionResultCard
+                        key={idx}
+                        result={result}
+                        onClick={handleActionResultClick}
+                        onUndo={handleUndoAction}
+                        undoing={undoingReceiptId === result.receiptId}
+                      />
                     );
                   })}
                 </div>
@@ -892,6 +953,14 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
         <div className={`relative flex items-center border transition-colors rounded-2xl p-1.5 ${
           isRecording ? 'border-error/50 bg-[var(--semantic-error-soft)]' : 'glass-card border-[var(--border-subtle)] focus-within:border-primary/50'
         }`}>
+          {/* Recording state is announced, not only shown, so screen readers follow it. */}
+          <div className="sr-only" role="status" aria-live="polite">
+            {isRecording
+              ? `در حال ضبط صدا، ${Math.floor(recordingElapsedMs / 1000)} ثانیه`
+              : recordedAudio
+                ? 'ضبط صدا آماده ارسال است'
+                : ''}
+          </div>
           {recordedAudio ? (
             // Recorded Audio confirmation bubble
             <div className="flex items-center gap-2 w-full px-2 py-1 flex-row-reverse">
@@ -902,9 +971,9 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
               >
                 <TrashIcon className="w-5 h-5"/>
               </button>
-              <audio 
-                src={URL.createObjectURL(recordedAudio)} 
-                controls 
+              <audio
+                src={recordedAudioUrl ?? undefined}
+                controls
                 className="flex-1 h-8"
               />
               <button
@@ -950,9 +1019,11 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
                 <button
                   onClick={handleMicClick}
                   disabled={isReadOnly}
+                  aria-pressed={isRecording}
+                  aria-label={isRecording ? 'توقف ضبط صدا' : 'شروع ضبط صدا'}
                   className={`p-2.5 rounded-xl transition-all duration-300 disabled:opacity-50 ${
-                    isRecording 
-                      ? 'bg-error text-white shadow-lg shadow-error/30 animate-pulse' 
+                    isRecording
+                      ? 'bg-error text-white shadow-lg shadow-error/30 animate-pulse'
                       : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--nav-hover-bg)]'
                   }`}
                 >

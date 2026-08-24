@@ -1,0 +1,286 @@
+{
+  "behavior": "offline-operation-queue",
+  "minimumScenarios": 20,
+  "scenarios": [
+    {
+      "id": "opqueue-001",
+      "kind": "create",
+      "input": {
+        "opId": "o1",
+        "userId": "u1",
+        "deviceId": "d1",
+        "entity": "tasks",
+        "entityId": "t1",
+        "action": "update"
+      },
+      "expected": {
+        "status": "pending",
+        "dependsOn": []
+      }
+    },
+    {
+      "id": "opqueue-002",
+      "kind": "create",
+      "input": {
+        "opId": "o1",
+        "userId": "u1",
+        "deviceId": "d1",
+        "entity": "tasks",
+        "entityId": "t1",
+        "action": "insert",
+        "dependsOn": [
+          "p1"
+        ]
+      },
+      "expected": {
+        "status": "blocked",
+        "dependsOn": [
+          "p1"
+        ]
+      }
+    },
+    {
+      "id": "opqueue-003",
+      "kind": "create",
+      "input": {
+        "opId": "o1",
+        "userId": "u1",
+        "deviceId": "d1",
+        "entity": "tasks",
+        "entityId": "t1",
+        "action": "update",
+        "dependsOn": [
+          "p1",
+          "p1"
+        ]
+      },
+      "expected": {
+        "dependsOn": [
+          "p1"
+        ]
+      }
+    },
+    {
+      "id": "opqueue-004",
+      "kind": "create",
+      "input": {
+        "opId": "o1",
+        "userId": "u1",
+        "deviceId": "d1",
+        "entity": "tasks",
+        "entityId": "t1",
+        "action": "update",
+        "dependsOn": [
+          "o1"
+        ]
+      },
+      "expected": {
+        "status": "pending",
+        "dependsOn": []
+      }
+    },
+    {
+      "id": "opqueue-005",
+      "kind": "create",
+      "input": {
+        "opId": "o1",
+        "userId": "u1",
+        "deviceId": "d1",
+        "entity": "tasks",
+        "entityId": "t1",
+        "action": "update",
+        "baseVersion": 4
+      },
+      "expected": {
+        "baseVersion": 4
+      }
+    },
+    {
+      "id": "opqueue-006",
+      "kind": "classify",
+      "input": {
+        "status": 409,
+        "hasSession": true
+      },
+      "expected": "conflict"
+    },
+    {
+      "id": "opqueue-007",
+      "kind": "classify",
+      "input": {
+        "status": 401,
+        "hasSession": true
+      },
+      "expected": "auth_refresh"
+    },
+    {
+      "id": "opqueue-008",
+      "kind": "classify",
+      "input": {
+        "status": 401,
+        "hasSession": false
+      },
+      "expected": "auth_pause"
+    },
+    {
+      "id": "opqueue-009",
+      "kind": "classify",
+      "input": {
+        "status": 403,
+        "hasSession": true
+      },
+      "expected": "permanent"
+    },
+    {
+      "id": "opqueue-010",
+      "kind": "classify",
+      "input": {
+        "status": 422,
+        "hasSession": true
+      },
+      "expected": "permanent"
+    },
+    {
+      "id": "opqueue-011",
+      "kind": "classify",
+      "input": {
+        "status": 408,
+        "hasSession": true
+      },
+      "expected": "retryable"
+    },
+    {
+      "id": "opqueue-012",
+      "kind": "classify",
+      "input": {
+        "status": 429,
+        "hasSession": true
+      },
+      "expected": "retryable"
+    },
+    {
+      "id": "opqueue-013",
+      "kind": "classify",
+      "input": {
+        "status": 500,
+        "hasSession": true
+      },
+      "expected": "retryable"
+    },
+    {
+      "id": "opqueue-014",
+      "kind": "classify",
+      "input": {
+        "status": null,
+        "hasSession": true,
+        "message": "Failed to fetch"
+      },
+      "expected": "retryable"
+    },
+    {
+      "id": "opqueue-015",
+      "kind": "apply",
+      "input": {
+        "failure": "conflict",
+        "attemptCount": 0
+      },
+      "expected": {
+        "status": "conflicted"
+      }
+    },
+    {
+      "id": "opqueue-016",
+      "kind": "apply",
+      "input": {
+        "failure": "permanent",
+        "attemptCount": 0
+      },
+      "expected": {
+        "status": "failed"
+      }
+    },
+    {
+      "id": "opqueue-017",
+      "kind": "apply",
+      "input": {
+        "failure": "auth_pause",
+        "attemptCount": 3
+      },
+      "expected": {
+        "status": "pending",
+        "attemptCount": 3
+      }
+    },
+    {
+      "id": "opqueue-018",
+      "kind": "apply",
+      "input": {
+        "failure": "retryable",
+        "attemptCount": 0
+      },
+      "expected": {
+        "status": "pending",
+        "attemptCount": 1
+      }
+    },
+    {
+      "id": "opqueue-019",
+      "kind": "apply",
+      "input": {
+        "failure": "retryable",
+        "attemptCount": 7
+      },
+      "expected": {
+        "status": "failed",
+        "attemptCount": 8
+      }
+    },
+    {
+      "id": "opqueue-020",
+      "kind": "remap",
+      "input": {
+        "payload": {
+          "project_id": "temp-1",
+          "title": "temp-1 in text"
+        },
+        "entityId": "t1",
+        "tempId": "temp-1",
+        "realId": "real-1"
+      },
+      "expected": {
+        "project_id": "real-1",
+        "title": "temp-1 in text"
+      }
+    },
+    {
+      "id": "opqueue-021",
+      "kind": "remap",
+      "input": {
+        "payload": {
+          "content": "see temp-1"
+        },
+        "entityId": "temp-1",
+        "tempId": "temp-1",
+        "realId": "real-1"
+      },
+      "expected": {
+        "content": "see temp-1"
+      }
+    },
+    {
+      "id": "opqueue-022",
+      "kind": "remap",
+      "input": {
+        "payload": {
+          "related_entity_id": "temp-1"
+        },
+        "entityId": "x",
+        "tempId": "temp-1",
+        "realId": "real-1"
+      },
+      "expected": {
+        "related_entity_id": "real-1"
+      }
+    }
+  ]
+}

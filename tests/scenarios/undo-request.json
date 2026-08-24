@@ -1,0 +1,26 @@
+{
+  "behavior": "persistent-undo-request-validation",
+  "minimumScenarios": 20,
+  "scenarios": [
+    { "id": "undo-001", "input": "11111111-1111-4111-8111-111111111111", "expected": true },
+    { "id": "undo-002", "input": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "expected": true },
+    { "id": "undo-003", "input": "00000000-0000-4000-8000-000000000000", "expected": true },
+    { "id": "undo-004", "input": "ffffffff-ffff-4fff-bfff-ffffffffffff", "expected": true },
+    { "id": "undo-005", "input": "123e4567-e89b-42d3-a456-426614174000", "expected": true },
+    { "id": "undo-006", "input": "123e4567-e89b-12d3-a456-426614174000", "expected": true },
+    { "id": "undo-007", "input": "123e4567-e89b-52d3-a456-426614174000", "expected": true },
+    { "id": "undo-008", "input": "ABCDEFAB-CDEF-4ABC-8DEF-ABCDEFABCDEF", "expected": true },
+    { "id": "undo-009", "input": "9b2ef2d4-6dc1-4bb5-9dc1-85bcc73ff001", "expected": true },
+    { "id": "undo-010", "input": "7af7f19d-d9bb-47a1-8283-ef577a686777", "expected": true },
+    { "id": "undo-011", "input": "", "expected": false },
+    { "id": "undo-012", "input": "not-a-uuid", "expected": false },
+    { "id": "undo-013", "input": "11111111-1111-1111-1111-111111111111", "expected": false },
+    { "id": "undo-014", "input": "11111111-1111-6111-8111-111111111111", "expected": false },
+    { "id": "undo-015", "input": "11111111111141118111111111111111", "expected": false },
+    { "id": "undo-016", "input": " 11111111-1111-4111-8111-111111111111", "expected": false },
+    { "id": "undo-017", "input": "11111111-1111-4111-8111-111111111111 ", "expected": false },
+    { "id": "undo-018", "input": "11111111-1111-4111-8111-11111111111g", "expected": false },
+    { "id": "undo-019", "input": 123, "expected": false },
+    { "id": "undo-020", "input": null, "expected": false }
+  ]
+}

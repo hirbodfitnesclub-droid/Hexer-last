@@ -1,0 +1,302 @@
+{
+  "behavior": "versioned-operation-conflicts",
+  "minimumScenarios": 20,
+  "scenarios": [
+    {
+      "id": "conflict-001",
+      "kind": "version",
+      "input": {
+        "baseVersion": 1,
+        "serverVersion": 1
+      },
+      "expected": "current"
+    },
+    {
+      "id": "conflict-002",
+      "kind": "version",
+      "input": {
+        "baseVersion": 1,
+        "serverVersion": 2
+      },
+      "expected": "stale"
+    },
+    {
+      "id": "conflict-003",
+      "kind": "version",
+      "input": {
+        "baseVersion": null,
+        "serverVersion": 2
+      },
+      "expected": "unknown"
+    },
+    {
+      "id": "conflict-004",
+      "kind": "version",
+      "input": {
+        "baseVersion": 0,
+        "serverVersion": 1
+      },
+      "expected": "unknown"
+    },
+    {
+      "id": "conflict-005",
+      "kind": "version",
+      "input": {
+        "baseVersion": 1.5,
+        "serverVersion": 1
+      },
+      "expected": "unknown"
+    },
+    {
+      "id": "conflict-006",
+      "kind": "field",
+      "expected": "local_only",
+      "input": {
+        "base": {
+          "title": "a"
+        },
+        "local": {
+          "title": "b"
+        },
+        "server": {
+          "title": "a"
+        },
+        "fields": [
+          "title"
+        ]
+      }
+    },
+    {
+      "id": "conflict-007",
+      "kind": "field",
+      "expected": "server_only",
+      "input": {
+        "base": {
+          "title": "a"
+        },
+        "local": {
+          "title": "a"
+        },
+        "server": {
+          "title": "b"
+        },
+        "fields": [
+          "title"
+        ]
+      }
+    },
+    {
+      "id": "conflict-008",
+      "kind": "field",
+      "expected": "same_change",
+      "input": {
+        "base": {
+          "title": "a"
+        },
+        "local": {
+          "title": "b"
+        },
+        "server": {
+          "title": "b"
+        },
+        "fields": [
+          "title"
+        ]
+      }
+    },
+    {
+      "id": "conflict-009",
+      "kind": "field",
+      "expected": "conflict",
+      "input": {
+        "base": {
+          "title": "a"
+        },
+        "local": {
+          "title": "b"
+        },
+        "server": {
+          "title": "c"
+        },
+        "fields": [
+          "title"
+        ]
+      }
+    },
+    {
+      "id": "conflict-010",
+      "kind": "field",
+      "expected": "local_only",
+      "input": {
+        "base": {
+          "tags": [
+            "a"
+          ]
+        },
+        "local": {
+          "tags": [
+            "a",
+            "b"
+          ]
+        },
+        "server": {
+          "tags": [
+            "a"
+          ]
+        },
+        "fields": [
+          "tags"
+        ]
+      }
+    },
+    {
+      "id": "conflict-011",
+      "kind": "field",
+      "expected": "conflict",
+      "input": {
+        "base": {
+          "tags": [
+            "a"
+          ]
+        },
+        "local": {
+          "tags": [
+            "a",
+            "b"
+          ]
+        },
+        "server": {
+          "tags": [
+            "b",
+            "a"
+          ]
+        },
+        "fields": [
+          "tags"
+        ]
+      }
+    },
+    {
+      "id": "conflict-012",
+      "kind": "field",
+      "expected": "same_change",
+      "input": {
+        "base": {
+          "meta": {
+            "a": 1,
+            "b": 2
+          }
+        },
+        "local": {
+          "meta": {
+            "b": 2,
+            "a": 1
+          }
+        },
+        "server": {
+          "meta": {
+            "a": 1,
+            "b": 2
+          }
+        },
+        "fields": [
+          "meta"
+        ]
+      }
+    },
+    {
+      "id": "conflict-013",
+      "kind": "field",
+      "expected": "local_only",
+      "input": {
+        "base": {
+          "value": null
+        },
+        "local": {
+          "value": "x"
+        },
+        "server": {
+          "value": null
+        },
+        "fields": [
+          "value"
+        ]
+      }
+    },
+    {
+      "id": "conflict-014",
+      "kind": "field",
+      "expected": "same_change",
+      "input": {
+        "base": {},
+        "local": {},
+        "server": {},
+        "fields": [
+          "missing"
+        ]
+      }
+    },
+    {
+      "id": "conflict-015",
+      "kind": "recommend",
+      "expected": "accept_server",
+      "input": {
+        "conflicts": [
+          "server_only"
+        ]
+      }
+    },
+    {
+      "id": "conflict-016",
+      "kind": "recommend",
+      "expected": "accept_server",
+      "input": {
+        "conflicts": [
+          "same_change"
+        ]
+      }
+    },
+    {
+      "id": "conflict-017",
+      "kind": "recommend",
+      "expected": "reapply_local",
+      "input": {
+        "conflicts": [
+          "local_only"
+        ]
+      }
+    },
+    {
+      "id": "conflict-018",
+      "kind": "recommend",
+      "expected": "reapply_local",
+      "input": {
+        "conflicts": [
+          "server_only",
+          "local_only"
+        ]
+      }
+    },
+    {
+      "id": "conflict-019",
+      "kind": "recommend",
+      "expected": "review_merge",
+      "input": {
+        "conflicts": [
+          "conflict"
+        ]
+      }
+    },
+    {
+      "id": "conflict-020",
+      "kind": "recommend",
+      "expected": "review_merge",
+      "input": {
+        "conflicts": [
+          "local_only",
+          "conflict"
+        ]
+      }
+    }
+  ]
+}

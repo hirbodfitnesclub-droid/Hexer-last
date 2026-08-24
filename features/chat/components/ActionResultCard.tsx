@@ -5,6 +5,8 @@ import { CheckIcon, ListChecksIcon, NotebookIcon, BriefcaseIcon, FlameIcon, Link
 interface ActionResultCardProps {
   result: ActionResult;
   onClick: (result: ActionResult) => void;
+  onUndo?: (result: ActionResult) => void;
+  undoing?: boolean;
 }
 
 function taskUpdateLabel(data: Task): string {
@@ -12,7 +14,7 @@ function taskUpdateLabel(data: Task): string {
   return 'تسک به‌روز شد';
 }
 
-export const ActionResultCard: React.FC<ActionResultCardProps> = ({ result, onClick }) => {
+export const ActionResultCard: React.FC<ActionResultCardProps> = ({ result, onClick, onUndo, undoing = false }) => {
   let icon = <CheckIcon className="w-5 h-5 text-on-primary"/>;
   let label = "آیتم ساخته شد";
   let title = "";
@@ -40,8 +42,10 @@ export const ActionResultCard: React.FC<ActionResultCardProps> = ({ result, onCl
     title = (result.data as any).name;
   }
 
+  const canUndo = Boolean(result.receiptId && result.undoExpiresAt && Date.parse(result.undoExpiresAt) > Date.now());
+
   return (
-    <div className="mt-3 flex" dir="rtl">
+    <div className="mt-3 flex flex-col gap-2" dir="rtl">
       <button 
         onClick={() => onClick(result)}
         className="flex items-center gap-3 glass-card border-subtle p-3 rounded-xl hover:bg-[var(--nav-hover-bg)] transition-all group w-full sm:w-auto min-w-[200px]"
@@ -57,6 +61,16 @@ export const ActionResultCard: React.FC<ActionResultCardProps> = ({ result, onCl
           <LinkIcon className="w-4 h-4 text-muted group-hover:text-main" />
         </div>
       </button>
+      {canUndo && onUndo && (
+        <button
+          type="button"
+          disabled={undoing}
+          onClick={() => onUndo(result)}
+          className="self-start rounded-lg border border-[var(--border-subtle)] px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:text-main disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {undoing ? 'در حال بازگردانی…' : 'بازگردانی تغییر'}
+        </button>
+      )}
     </div>
   );
 };

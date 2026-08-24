@@ -21,8 +21,8 @@ begin
   if not exists (select 1 from vault.decrypted_secrets where name = 'push_dispatch_url') then
     perform vault.create_secret('https://rvgiidesehuaqqncqilu.supabase.co/functions/v1/push-dispatch', 'push_dispatch_url', 'URL for the push-dispatch Edge Function');
   end if;
-  if not exists (select 1 from vault.decrypted_secrets where name = 'service_role_key') then
-    perform vault.create_secret('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2Z2lpZGVzZWh1YXFxbmNxaWx1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDA1NzQ0NCwiZXhwIjoyMDk1NjMzNDQ0fQ.wGF2rnZzi6zRMGO52rki4vLvLeyK-AdGeplwd_ujUvg', 'service_role_key', 'Service role key for Authorization header');
+  if not exists (select 1 from vault.decrypted_secrets where name = 'push_dispatch_secret') then
+    perform vault.create_secret('REPLACE_IN_DASHBOARD', 'push_dispatch_secret', 'Dedicated push worker secret for x-worker-secret');
   end if;
 end;
 $$;
@@ -46,7 +46,7 @@ select cron.schedule(
     url := (select coalesce(max(decrypted_secret), 'https://rvgiidesehuaqqncqilu.supabase.co/functions/v1/push-dispatch') from vault.decrypted_secrets where name = 'push_dispatch_url'),
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer ' || (select coalesce(max(decrypted_secret), '') from vault.decrypted_secrets where name = 'service_role_key')
+      'x-worker-secret', (select coalesce(max(decrypted_secret), '') from vault.decrypted_secrets where name = 'push_dispatch_secret')
     ),
     body := '{}'::jsonb
   );

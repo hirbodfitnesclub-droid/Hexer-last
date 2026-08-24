@@ -252,20 +252,9 @@ const MainApp: React.FC = () => {
       case Page.Dashboard:
         return <Dashboard />;
       case Page.Tasks:
-        return (
-          <TasksView 
-            tasks={tasks} projects={projects} notes={notes}
-            addTask={addTask} updateTask={updateTask}
-            toggleTaskCompletion={toggleTaskCompletion} deleteTask={deleteTask}
-          />
-        );
+        return <TasksView />;
       case Page.Notes:
-        return (
-          <NotesView 
-            notes={notes} projects={projects} tasks={tasks}
-            addNote={addNote} updateNote={updateNote} deleteNote={deleteNote}
-          />
-        );
+        return <NotesView />;
       case Page.Projects:
         return (
           <Suspense fallback={<LoadingSpinner />}>

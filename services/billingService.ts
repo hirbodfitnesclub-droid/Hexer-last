@@ -135,7 +135,7 @@ export async function submitManualPayment(planCode: string, code: string | null,
     .from('receipts')
     .upload(filePath, currentBlob, {
       contentType: 'image/jpeg',
-      upsert: true
+      upsert: false
     });
 
   if (uploadError) {

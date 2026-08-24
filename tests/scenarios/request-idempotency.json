@@ -1,0 +1,168 @@
+{
+  "behavior": "assistant-request-idempotency",
+  "minimumScenarios": 20,
+  "scenarios": [
+    {
+      "id": "request-idem-001",
+      "expected": true,
+      "input": {
+        "requestId": "11111111-1111-4111-8111-111111111111",
+        "idempotencyKey": "chat:11111111-1111-4111-8111-111111111111"
+      }
+    },
+    {
+      "id": "request-idem-002",
+      "expected": true,
+      "input": {
+        "requestId": "22222222-2222-4222-8222-222222222222",
+        "idempotencyKey": "search:22222222-2222-4222-8222-222222222222"
+      }
+    },
+    {
+      "id": "request-idem-003",
+      "expected": true,
+      "input": {
+        "requestId": "33333333-3333-4333-8333-333333333333",
+        "idempotencyKey": "media:33333333-3333-4333-8333-333333333333"
+      }
+    },
+    {
+      "id": "request-idem-004",
+      "expected": true,
+      "input": {
+        "requestId": "44444444-4444-4444-8444-444444444444",
+        "idempotencyKey": "agent.write:v1_123"
+      }
+    },
+    {
+      "id": "request-idem-005",
+      "expected": true,
+      "input": {
+        "requestId": "55555555-5555-4555-8555-555555555555",
+        "idempotencyKey": "retry-key.01"
+      }
+    },
+    {
+      "id": "request-idem-006",
+      "expected": true,
+      "input": {
+        "requestId": null,
+        "idempotencyKey": null
+      }
+    },
+    {
+      "id": "request-idem-007",
+      "expected": true,
+      "input": {
+        "requestId": "",
+        "idempotencyKey": ""
+      }
+    },
+    {
+      "id": "request-idem-008",
+      "expected": true,
+      "input": {
+        "requestId": "66666666-6666-4666-8666-666666666666",
+        "idempotencyKey": "12345678"
+      }
+    },
+    {
+      "id": "request-idem-009",
+      "expected": true,
+      "input": {
+        "requestId": "77777777-7777-4777-8777-777777777777",
+        "idempotencyKey": "UPPER_lower-1:2.3"
+      }
+    },
+    {
+      "id": "request-idem-010",
+      "expected": true,
+      "input": {
+        "requestId": "88888888-8888-4888-8888-888888888888",
+        "idempotencyKey": "a1234567"
+      }
+    },
+    {
+      "id": "request-idem-011",
+      "expected": false,
+      "input": {
+        "requestId": "bad",
+        "idempotencyKey": "chat:validkey"
+      }
+    },
+    {
+      "id": "request-idem-012",
+      "expected": false,
+      "input": {
+        "requestId": 12,
+        "idempotencyKey": "chat:validkey"
+      }
+    },
+    {
+      "id": "request-idem-013",
+      "expected": false,
+      "input": {
+        "requestId": "99999999-9999-4999-8999-999999999999",
+        "idempotencyKey": "short"
+      }
+    },
+    {
+      "id": "request-idem-014",
+      "expected": false,
+      "input": {
+        "requestId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "idempotencyKey": "contains space"
+      }
+    },
+    {
+      "id": "request-idem-015",
+      "expected": false,
+      "input": {
+        "requestId": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "idempotencyKey": "contains/slash"
+      }
+    },
+    {
+      "id": "request-idem-016",
+      "expected": false,
+      "input": {
+        "requestId": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        "idempotencyKey": "contains?query"
+      }
+    },
+    {
+      "id": "request-idem-017",
+      "expected": false,
+      "input": {
+        "requestId": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+        "idempotencyKey": 12
+      }
+    },
+    {
+      "id": "request-idem-018",
+      "expected": false,
+      "input": {
+        "requestId": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+        "idempotencyKey": {
+          "bad": true
+        }
+      }
+    },
+    {
+      "id": "request-idem-019",
+      "expected": false,
+      "input": {
+        "requestId": "ffffffff-ffff-4fff-8fff-ffffffffffff",
+        "idempotencyKey": "x"
+      }
+    },
+    {
+      "id": "request-idem-020",
+      "expected": false,
+      "input": {
+        "requestId": "00000000-0000-4000-8000-000000000000",
+        "idempotencyKey": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  ]
+}
