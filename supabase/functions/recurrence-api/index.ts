@@ -1,8 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import { getAuthUser } from '../_shared/auth-guard.ts';
-import { resolveFeatureDecision } from '../_shared/feature-flag-service.ts';
-import { calculateNextOccurrence } from '../_shared/recurrence-calculator.ts';
+import { calculateNextOccurrence, calculateRecurrenceCompletion } from '../_shared/recurrence-calculator.ts';
 import { parseRecurrenceRequest } from './request-contract.ts';
 
 declare const Deno: any;
@@ -19,13 +18,6 @@ Deno.serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SECRET_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
     );
 
-    const decision = await resolveFeatureDecision({
-      serviceClient: service,
-      key: 'recurrence_rpc_v2',
-      userId: user.id,
-      requestId: body.requestId,
-    });
-    if (!decision.enabled) return json({ error: 'Recurrence API is not enabled', reason: 'feature_disabled' }, 409);
 
     const { data: task, error: taskError } = await supabaseClient
       .from('tasks')
@@ -64,7 +56,30 @@ async function dispatch(input: {
 }): Promise<{ data: unknown; error: { message: string } | null }> {
   const { service, userId, task, body } = input;
 
-  if (body.operation === 'complete' || body.operation === 'skip') {
+  if (body.operation === 'complete') {
+    const plan = calculateRecurrenceCompletion({ fromDue: task.due_date, recurrence: task.recurrence });
+    if (plan.kind === 'invalid') {
+      const invalid: any = new Error('Invalid recurrence rule');
+      invalid.status = 409;
+      throw invalid;
+    }
+    return service.rpc('complete_recurring_task_v3', {
+      p_user_id: userId,
+      p_task_id: task.id,
+      p_expected_version: body.expectedVersion,
+      p_op_id: body.opId,
+      p_idempotency_key: body.idempotencyKey,
+      p_next_due: plan.kind === 'advance' ? plan.nextDue : null,
+      p_next_recurrence: plan.kind === 'advance' ? plan.nextRecurrence : null,
+      p_occurrence_key: plan.kind === 'advance' ? plan.occurrenceKey : null,
+      p_calculator_version: plan.calculatorVersion,
+      p_is_terminal: plan.kind === 'terminal',
+      p_provenance: 'user',
+      p_request_id: body.requestId,
+    });
+  }
+
+  if (body.operation === 'skip') {
     const next = calculateNextOccurrence({ fromDue: task.due_date, recurrence: task.recurrence });
     if (!next) {
       const finished: any = new Error('No next occurrence');
@@ -82,9 +97,7 @@ async function dispatch(input: {
       p_occurrence_key: next.occurrenceKey,
       p_calculator_version: next.calculatorVersion,
     };
-    return body.operation === 'complete'
-      ? service.rpc('complete_recurring_task_v2', shared)
-      : service.rpc('skip_recurring_occurrence_v2', shared);
+    return service.rpc('skip_recurring_occurrence_v2', shared);
   }
 
   if (body.operation === 'stop') {

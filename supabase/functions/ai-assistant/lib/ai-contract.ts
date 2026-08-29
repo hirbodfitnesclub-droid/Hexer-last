@@ -222,6 +222,7 @@ export const AI_RESPONSE_JSON_SCHEMA = {
     reply: { type: 'string' },
     actions: {
       type: 'array',
+      maxItems: 64,
       items: {
         oneOf: [
           actionSchema('CREATE_TASK', ['title'], {
@@ -339,6 +340,7 @@ export function validateAiResponse(value: unknown): ValidationResult {
   requireString(value.transcription, '$.transcription', errors);
   requireString(value.reply, '$.reply', errors);
   if (!Array.isArray(value.actions)) errors.push('$.actions must be an array');
+  else if (value.actions.length > 64) errors.push('$.actions must contain at most 64 items');
   else value.actions.forEach((action, index) => validateAction(action, `$.actions[${index}]`, errors));
   if (!Array.isArray(value.proposals)) errors.push('$.proposals must be an array');
   else value.proposals.forEach((proposal, index) => validateProposal(proposal, `$.proposals[${index}]`, errors));

@@ -1,0 +1,2 @@
+-- Historical production marker. The recurrence flag seed is included in
+-- 20260820101101_recurrence_series_foundation.sql for fresh local bootstraps.

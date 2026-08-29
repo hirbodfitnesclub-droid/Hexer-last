@@ -490,15 +490,15 @@ export const useDataManager = (user: any) => {
   /**
    * Server-authoritative completion for recurring tasks. Marking done and creating
    * the next occurrence happen in one transaction there, so two devices cannot both
-   * spawn. Returns 'fallback' whenever the server declines, keeping the legacy
-   * client path as the safety net until the flag is fully rolled out.
+   * spawn. A recurring completion never falls back to browser spawning because that
+   * could persist the completed row without its authoritative successor.
    */
   const completeRecurringViaServer = useCallback(async (
     task: Task
-  ): Promise<'handled' | 'conflict' | 'fallback'> => {
-    if (!navigator.onLine) return 'fallback';
-    if (!normalizeRecurrence(task.recurrence)) return 'fallback';
-    if (typeof task.version !== 'number') return 'fallback';
+  ): Promise<'handled' | 'conflict' | 'blocked'> => {
+    if (!navigator.onLine) return 'blocked';
+    if (!normalizeRecurrence(task.recurrence)) return 'blocked';
+    if (typeof task.version !== 'number') return 'blocked';
 
     const outcome = await completeRecurringTask({
       task,
@@ -533,7 +533,7 @@ export const useDataManager = (user: any) => {
       return 'conflict';
     }
 
-    return 'fallback';
+    return 'blocked';
   }, [userId, addNotification]);
 
   const updateTask = useCallback(async (
@@ -552,9 +552,12 @@ export const useDataManager = (user: any) => {
       prevTask.status !== 'done' &&
       task.status === 'done' &&
       !hasMeaningfulEdit(task);
-    if (isPlainCompletion && prevTask) {
+    if (isPlainCompletion && prevTask && normalizeRecurrence(prevTask.recurrence)) {
       const serverOutcome = await completeRecurringViaServer(prevTask);
-      if (serverOutcome !== 'fallback') return;
+      if (serverOutcome === 'blocked') {
+        addNotification('تکمیل کار تکرارشونده موقتاً در دسترس نیست؛ تغییری ذخیره نشد.', 'info');
+      }
+      return;
     }
 
     const hasRecurrenceKey = Object.prototype.hasOwnProperty.call(task, 'recurrence');
@@ -677,8 +680,8 @@ export const useDataManager = (user: any) => {
         }
       }
 
-      // Spawn when transitioning to done (recurring → one "نوبت بعدی" toast; non-recurring → one done toast)
-      if (becameDone && prevTask) {
+      // Recurring completion returns above and is handled by the server transaction.
+      if (becameDone && prevTask && !normalizeRecurrence(prevTask.recurrence)) {
         const completed: Task = {
           ...prevTask,
           ...patch,
@@ -840,9 +843,12 @@ export const useDataManager = (user: any) => {
     const newStatus = task.status === 'done' ? 'todo' : 'done';
     const completed_at = newStatus === 'done' ? new Date().toISOString() : null;
 
-    if (newStatus === 'done') {
+    if (newStatus === 'done' && normalizeRecurrence(task.recurrence)) {
       const serverOutcome = await completeRecurringViaServer(task);
-      if (serverOutcome !== 'fallback') return;
+      if (serverOutcome === 'blocked') {
+        addNotification('تکمیل کار تکرارشونده موقتاً در دسترس نیست؛ تغییری ذخیره نشد.', 'info');
+      }
+      return;
     }
 
     const nextTasks = tasks.map(t =>
@@ -855,7 +861,7 @@ export const useDataManager = (user: any) => {
 
     if (!navigator.onLine) {
       await enqueue({ id, entity: 'tasks', action: 'update', payload });
-      if (newStatus === 'done') {
+      if (newStatus === 'done' && !normalizeRecurrence(task.recurrence)) {
         await maybeSpawnNextRecurrence({ ...task, status: 'done', completed_at });
       }
       return;
@@ -866,7 +872,7 @@ export const useDataManager = (user: any) => {
       setTasks(prev => prev.map(t => (t.id === id ? updatedTask : t)));
       const finalTasks = nextTasks.map(t => (t.id === id ? updatedTask : t));
       await saveSnapshot(userId, 'tasks', finalTasks);
-      if (newStatus === 'done') {
+      if (newStatus === 'done' && !normalizeRecurrence(task.recurrence)) {
         await maybeSpawnNextRecurrence({ ...task, ...updatedTask, status: 'done' });
       }
     } catch (error) {
@@ -877,7 +883,7 @@ export const useDataManager = (user: any) => {
         error instanceof TypeError;
       if (isRetry) {
         await enqueue({ id, entity: 'tasks', action: 'update', payload });
-        if (newStatus === 'done') {
+        if (newStatus === 'done' && !normalizeRecurrence(task.recurrence)) {
           await maybeSpawnNextRecurrence({ ...task, status: 'done', completed_at });
         }
       } else {
@@ -1202,6 +1208,20 @@ export const useDataManager = (user: any) => {
     };
 
     if (type === 'task') {
+      if (result.compound?.kind === 'recurring_completion') {
+        const removeIds = new Set(result.compound.removeIds);
+        const replacements = new Map(result.compound.upsert.map(task => [task.id, task]));
+        const next = tasksRef.current
+          .filter(task => !removeIds.has(task.id))
+          .map(task => replacements.get(task.id) ?? task);
+        for (const task of replacements.values()) {
+          if (!next.some(existing => existing.id === task.id)) next.push(task);
+        }
+        void saveSnapshot(userId, 'tasks', next);
+        setTasks(next);
+        return;
+      }
+
       // B3: only spawn on real transition non-done → done (never re-inject of already-done)
       const prevTask = tasksRef.current.find(t => t.id === data?.id);
       const shouldSpawn =

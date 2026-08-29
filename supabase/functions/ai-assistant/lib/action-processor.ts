@@ -1,8 +1,9 @@
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { generateEmbedding } from '../../_shared/gemini-client.ts';
 import type { AiAction, JsonObject } from './ai-contract.ts';
+import { calculateRecurrenceCompletion } from '../../_shared/recurrence-calculator.ts';
 
-export type ActionFailureReason = 'not_found' | 'ambiguous' | 'database_error' | 'invalid_action' | 'already_applied';
+export type ActionFailureReason = 'not_found' | 'ambiguous' | 'database_error' | 'invalid_action' | 'already_applied' | 'policy_rejected';
 
 export interface ActionFailure {
   index: number;
@@ -33,7 +34,7 @@ export async function processActions(
   for (let index = 0; index < actions.length; index += 1) {
     const item = actions[index];
     try {
-      const result = await executeAction(item, userClient, serviceClient, ai, userId, requestId);
+      const result = await executeAction(item, userClient, serviceClient, ai, userId, requestId, item.policyIndex ?? index);
       if ('failure' in result) {
         failures.push({ index, action: item.action, reason: result.failure });
       } else if (result.value?.operation === 'suggest_link' && Array.isArray(result.value.data)) {
@@ -58,7 +59,8 @@ async function executeAction(
   service: SupabaseClient,
   ai: any,
   userId: string,
-  requestId: string
+  requestId: string,
+  actionIndex: number
 ): Promise<{ value: any } | { failure: ActionFailureReason }> {
   if (item.action === 'CREATE_TASK') {
     const p = item.params;
@@ -106,6 +108,48 @@ async function executeAction(
       item.action === 'COMPLETE_TASK'
     );
     if (!found.ok) return { failure: found.reason };
+    // Recurring completion owns its successor and receipt in one database transaction.
+    if (item.action === 'COMPLETE_TASK' && found.row.recurrence != null) {
+      if (typeof found.row.version !== 'number') return { failure: 'policy_rejected' };
+      const plan = calculateRecurrenceCompletion({
+        fromDue: found.row.due_date,
+        recurrence: found.row.recurrence,
+      });
+      if (plan.kind === 'invalid') return { failure: 'invalid_action' };
+      const { data, error } = await service.rpc('complete_recurring_task_v3', {
+        p_user_id: userId,
+        p_task_id: found.row.id,
+        p_expected_version: found.row.version,
+        p_op_id: operationIdForAction(requestId, actionIndex),
+        p_idempotency_key: `agent:${requestId}:action:${actionIndex}`,
+        p_next_due: plan.kind === 'advance' ? plan.nextDue : null,
+        p_next_recurrence: plan.kind === 'advance' ? plan.nextRecurrence : null,
+        p_occurrence_key: plan.kind === 'advance' ? plan.occurrenceKey : null,
+        p_calculator_version: plan.calculatorVersion,
+        p_is_terminal: plan.kind === 'terminal',
+        p_provenance: 'ai',
+        p_request_id: requestId,
+      });
+      if (error) throw error;
+      if (data?.status !== 'succeeded' || !data.current) {
+        return { failure: data?.errorCode === 'already_applied' ? 'already_applied' : 'policy_rejected' };
+      }
+      return {
+        value: {
+          type: 'task',
+          operation: 'complete',
+          data: data.current,
+          receiptId: data.receiptId ?? undefined,
+          undoExpiresAt: data.undoExpiresAt ?? undefined,
+          compound: {
+            kind: 'recurring_completion',
+            upsert: data.next ? [data.current, data.next] : [data.current],
+            removeIds: [],
+            terminal: data.terminal === true,
+          },
+        },
+      };
+    }
     const patch = item.action === 'COMPLETE_TASK'
       ? { status: 'done', completed_at: new Date().toISOString() }
       : item.action === 'REOPEN_TASK'
@@ -204,6 +248,15 @@ async function executeAction(
     } };
   }
   return { failure: 'invalid_action' };
+}
+
+function operationIdForAction(requestId: string, actionIndex: number): string {
+  const bytes = new Uint8Array(requestId.replace(/-/g, '').match(/.{2}/g)!.map(value => Number.parseInt(value, 16)));
+  bytes[15] ^= actionIndex & 0xff;
+  bytes[6] = (bytes[6] & 0x0f) | 0x50;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = [...bytes].map(value => value.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
 async function createWithReceipt(service: SupabaseClient, userId: string, requestId: string, action: string, entityType: EntityType, table: string, row: JsonObject) {

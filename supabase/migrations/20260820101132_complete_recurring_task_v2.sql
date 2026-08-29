@@ -1,0 +1,3 @@
+-- Historical production marker. The original v2 function is included in
+-- 20260820101101_recurrence_series_foundation.sql and replaced by the later
+-- 20260820152519 fix during a fresh local bootstrap.

@@ -107,6 +107,12 @@ export interface ActionResult {
     receiptId?: string;
     undoExpiresAt?: string;
     undoKind?: string;
+    compound?: {
+      kind: 'recurring_completion';
+      upsert: Task[];
+      removeIds: string[];
+      terminal: boolean;
+    };
 }
 
 export interface ChatMessage {

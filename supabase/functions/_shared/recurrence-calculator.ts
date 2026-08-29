@@ -12,6 +12,17 @@ export type RecurrenceRule =
 
 export const RECURRENCE_CALCULATOR_VERSION = 'tehran-jalali-v1';
 
+export type RecurrenceCompletionPlan =
+  | { kind: 'invalid' }
+  | { kind: 'terminal'; calculatorVersion: string }
+  | {
+      kind: 'advance';
+      nextDue: string;
+      nextRecurrence: RecurrenceRule;
+      occurrenceKey: string;
+      calculatorVersion: string;
+    };
+
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export function normalizeServerRecurrence(input: unknown): RecurrenceRule | null {
@@ -50,14 +61,27 @@ export function calculateNextOccurrence(input: {
   recurrence: unknown;
   now?: Date;
 }): { nextDue: string; nextRecurrence: RecurrenceRule; occurrenceKey: string; calculatorVersion: string } | null {
+  const plan = calculateRecurrenceCompletion(input);
+  return plan.kind === 'advance' ? plan : null;
+}
+
+/** Distinguishes an exhausted valid rule from malformed recurrence input. */
+export function calculateRecurrenceCompletion(input: {
+  fromDue: string | null | undefined;
+  recurrence: unknown;
+  now?: Date;
+}): RecurrenceCompletionPlan {
   const recurrence = normalizeServerRecurrence(input.recurrence);
-  if (!recurrence) return null;
+  if (!recurrence) return { kind: 'invalid' };
   const now = input.now ?? new Date();
   let anchor = input.fromDue ? new Date(input.fromDue) : new Date(tehranDayAtWallClock(tehranDate(now), 12, 0, 0));
   if (!Number.isFinite(anchor.getTime())) anchor = new Date(tehranDayAtWallClock(tehranDate(now), 12, 0, 0));
   const nextDue = nextDueDate(anchor, recurrence);
-  if (!nextDue || !canContinue(recurrence, nextDue)) return null;
+  if (!nextDue || !canContinue(recurrence, nextDue)) {
+    return { kind: 'terminal', calculatorVersion: RECURRENCE_CALCULATOR_VERSION };
+  }
   return {
+    kind: 'advance',
     nextDue,
     nextRecurrence: decrementRecurrence(recurrence),
     occurrenceKey: `${tehranDate(new Date(nextDue))}:${wallClockKey(new Date(nextDue))}`,

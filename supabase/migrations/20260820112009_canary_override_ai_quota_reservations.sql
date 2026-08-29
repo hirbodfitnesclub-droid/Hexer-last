@@ -1,0 +1,2 @@
+-- Historical production marker for a one-time internal canary override.
+-- User-specific operational state is intentionally not replayed or committed.

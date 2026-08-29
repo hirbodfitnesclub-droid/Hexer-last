@@ -56,6 +56,7 @@ const required = [
   ['Undo RPC', 'undo_agent_action'],
   ['server feature flag resolution', 'feature_flags'],
   ['agent write kill switch', 'agent_writes'],
+  ['atomic recurring completion RPC', 'complete_recurring_task_v3'],
   ['feature exposure audit', 'feature_flag_exposures'],
   ['quota reservation RPC', 'reserve_ai_quota'],
   ['quota success finalization', 'finalize_ai_request_success'],
@@ -66,6 +67,7 @@ const required = [
 const sourceRequired = [
   ['Persian reminder classifier', 'تنظیمش کن'],
   ['Persian reminder noun', 'یادآور'],
+  ['stable recurring completion action key', 'agent:${requestId}:action:${actionIndex}'],
 ];
 
 const violations = forbidden
@@ -75,7 +77,8 @@ const missing = required
   .filter(([, marker]) => !bundle.includes(marker))
   .map(([label]) => `missing: ${label}`);
 const missingSource = sourceRequired
-  .filter(([, marker]) => !source.includes(marker))
+  .filter(([, marker]) => !source.includes(marker)
+    && !readFileSync(resolve(root, 'supabase/functions/ai-assistant/lib/action-processor.ts'), 'utf8').includes(marker))
   .map(([label]) => `missing from source: ${label}`);
 
 if (violations.length || missing.length || missingSource.length) {

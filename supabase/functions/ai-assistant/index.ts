@@ -103,7 +103,20 @@ Deno.serve(async (req) => {
       }
       return new Response(JSON.stringify({
         reply: 'تغییر با موفقیت بازگردانی شد.', citations: [], proposals: [], transcription: '',
-        actionResults: [{ type: data.entityType, operation: 'undo', data: data.data, undoKind: data.undoKind }],
+        actionResults: [{
+          type: data.entityType,
+          operation: 'undo',
+          data: data.data?.current ?? data.data,
+          undoKind: data.undoKind,
+          compound: data.undoKind === 'restore_recurring_completion'
+            ? {
+              kind: 'recurring_completion',
+              upsert: data.data?.current ? [data.data.current] : [],
+              removeIds: data.data?.deletedNextId ? [data.data.deletedNextId] : [],
+              terminal: !data.data?.deletedNextId,
+            }
+            : undefined,
+        }],
         meta: { intent: 'mutate', honesty: 'none', requestId },
       }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
@@ -298,7 +311,9 @@ Deno.serve(async (req) => {
         console.warn('Zero-write enforcement removed model actions from extraction mode.');
       }
     } else if (writesEnabled && policy.accepted.length > 0) {
-      const execution = await processActions(policy.accepted, supabaseClient, supabaseService, ai, user.id, requestId);
+      const execution = await processActions(
+        policy.accepted, supabaseClient, supabaseService, ai, user.id, requestId
+      );
       actionResults = execution.results;
       executionFailures.push(...execution.failures);
     }

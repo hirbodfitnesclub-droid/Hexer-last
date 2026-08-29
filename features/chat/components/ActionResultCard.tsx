@@ -15,6 +15,15 @@ function taskUpdateLabel(data: Task): string {
 }
 
 export const ActionResultCard: React.FC<ActionResultCardProps> = ({ result, onClick, onUndo, undoing = false }) => {
+  const [now, setNow] = React.useState(() => Date.now());
+
+  React.useEffect(() => {
+    if (!result.undoExpiresAt) return;
+    const delay = Math.max(0, Date.parse(result.undoExpiresAt) - Date.now()) + 1;
+    const timeoutId = window.setTimeout(() => setNow(Date.now()), delay);
+    return () => window.clearTimeout(timeoutId);
+  }, [result.undoExpiresAt]);
+
   let icon = <CheckIcon className="w-5 h-5 text-on-primary"/>;
   let label = "آیتم ساخته شد";
   let title = "";
@@ -25,6 +34,8 @@ export const ActionResultCard: React.FC<ActionResultCardProps> = ({ result, onCl
     title = task?.title || '';
     if (result.operation === 'update') {
       label = taskUpdateLabel(task);
+    } else if (result.operation === 'complete') {
+      label = 'تسک انجام شد';
     } else {
       label = "تسک جدید";
     }
@@ -42,7 +53,7 @@ export const ActionResultCard: React.FC<ActionResultCardProps> = ({ result, onCl
     title = (result.data as any).name;
   }
 
-  const canUndo = Boolean(result.receiptId && result.undoExpiresAt && Date.parse(result.undoExpiresAt) > Date.now());
+  const canUndo = Boolean(result.receiptId && result.undoExpiresAt && Date.parse(result.undoExpiresAt) > now);
 
   return (
     <div className="mt-3 flex flex-col gap-2" dir="rtl">

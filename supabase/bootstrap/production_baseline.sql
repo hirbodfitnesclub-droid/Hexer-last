@@ -1,5 +1,8 @@
 begin;
 
+-- Local fresh-environment baseline reconstructed from the live catalog.
+-- Never include this file in a linked production db push.
+
 create extension if not exists pg_cron with schema pg_catalog;
 create extension if not exists pg_net with schema public;
 create extension if not exists pg_trgm with schema public;

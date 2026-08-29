@@ -14,6 +14,7 @@
     "test:e2e": "playwright test",
     "test:ai": "npm run test:scenarios && vitest run tests/unit/model-registry.test.ts",
     "bundle:ai-assistant": "node scripts/bundle-ai-assistant.mjs",
+    "supabase:prepare-local": "node scripts/prepare-local-supabase.mjs",
     "quality": "npm run typecheck && npm run test:scenarios && npm run test:coverage && npm run bundle:ai-assistant && npm run build"
   },
   "dependencies": {

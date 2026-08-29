@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import manifest from '../scenarios/recurrence-calculator.json';
-import { calculateNextOccurrence } from '../../supabase/functions/_shared/recurrence-calculator';
+import { calculateNextOccurrence, calculateRecurrenceCompletion } from '../../supabase/functions/_shared/recurrence-calculator';
 import { buildNextRecurrence, canContinueRecurrence, computeNextDueDate, normalizeRecurrence } from '../../utils/recurrenceUtils';
 
 describe('server recurrence calculator parity', () => {
@@ -25,4 +25,18 @@ describe('server recurrence calculator parity', () => {
       }
     });
   }
+
+  it('marks exhausted valid rules as terminal instead of invalid', () => {
+    const terminal = calculateRecurrenceCompletion({
+      fromDue: '2026-08-20T08:30:00Z',
+      recurrence: { type: 'daily', end: { kind: 'after_n', remaining: 0 } },
+    });
+    expect(terminal.kind).toBe('terminal');
+
+    const invalid = calculateRecurrenceCompletion({
+      fromDue: '2026-08-20T08:30:00Z',
+      recurrence: { type: 'weekly', weekdays: [] },
+    });
+    expect(invalid.kind).toBe('invalid');
+  });
 });

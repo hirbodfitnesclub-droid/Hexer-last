@@ -30,6 +30,8 @@ jobs:
       - run: npm run typecheck
       - run: npm run test:scenarios
       - run: npm run test:coverage
+      - run: npm run bundle:ai-assistant
+      - run: git diff --exit-code -- supabase/functions/ai-assistant/deploy.bundle.ts
       - run: npm run build
 
   e2e:

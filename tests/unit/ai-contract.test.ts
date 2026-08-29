@@ -22,4 +22,12 @@ describe('strict AI response contract scenarios', () => {
   it('throws from the strict parser for invalid model output', () => {
     expect(() => parseAiResponse({ reply: 'سلام' })).toThrow('Invalid AI response');
   });
+
+  it('caps model actions below the operation-id collision boundary', () => {
+    const response = {
+      transcription: '', reply: '', proposals: [],
+      actions: Array.from({ length: 65 }, () => ({ action: 'COMPLETE_TASK', params: {} })),
+    };
+    expect(validateAiResponse(response).ok).toBe(false);
+  });
 });

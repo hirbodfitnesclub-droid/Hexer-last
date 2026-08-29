@@ -18,7 +18,7 @@ export interface RejectedAction {
 }
 
 export interface ActionPolicyResult {
-  accepted: AiAction[];
+  accepted: Array<AiAction & { policyIndex: number }>;
   rejected: RejectedAction[];
 }
 
@@ -38,7 +38,7 @@ export function filterActionsByPolicy(intent: AiIntent, actions: unknown): Actio
     return { accepted: [], rejected: [{ index: -1, action: actions, reason: 'invalid_shape' }] };
   }
   const allowed = allowedActionsFor(intent);
-  const accepted: AiAction[] = [];
+  const accepted: Array<AiAction & { policyIndex: number }> = [];
   const rejected: RejectedAction[] = [];
 
   actions.forEach((candidate, index) => {
@@ -58,7 +58,7 @@ export function filterActionsByPolicy(intent: AiIntent, actions: unknown): Actio
       rejected.push({ index, action: candidate, reason: `intent_${intent}_disallows` });
       return;
     }
-    accepted.push(candidate as unknown as AiAction);
+    accepted.push({ ...(candidate as AiAction), policyIndex: index });
   });
 
   return { accepted, rejected };
