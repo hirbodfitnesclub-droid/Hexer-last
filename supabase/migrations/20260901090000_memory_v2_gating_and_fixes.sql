@@ -327,16 +327,21 @@ $function$;
 
 -- ---------------------------------------------------------------------------
 -- 6. Indexes matching the exact expressions used by search_memory_v2.
+--    (memory_chunks has no title column; titles live on memory_documents.)
 -- ---------------------------------------------------------------------------
 create index if not exists memory_chunks_lexical_gin
   on public.memory_chunks using gin (to_tsvector('simple', content));
-create index if not exists memory_chunks_title_trgm_gin
-  on public.memory_chunks using gin (title gin_trgm_ops);
+create index if not exists memory_documents_title_trgm_gin
+  on public.memory_documents using gin (title gin_trgm_ops);
 
 -- ---------------------------------------------------------------------------
 -- 6b. search_memory_v2: also return the document's updated_at so callers can
 --     apply time filters without a second query, and expose it for citations.
+--     The signature keeps the same identity, but the OUT row type changes, so
+--     the function must be dropped before recreation.
 -- ---------------------------------------------------------------------------
+drop function if exists public.search_memory_v2(uuid, vector, text, text[], text[], timestamptz, uuid[], integer);
+
 create or replace function public.search_memory_v2(
   p_user_id uuid,
   p_query_embedding vector,
