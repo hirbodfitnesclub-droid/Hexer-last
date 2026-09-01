@@ -133,10 +133,16 @@ Deno.serve(async (req) => {
       temperature: 0.0,
     });
  
-    const rawText = response.choices[0].message.content;
+    const choice = response.choices?.[0];
+    if (!choice?.message?.content) {
+      const finishReason = choice?.finish_reason || 'unknown';
+      console.error("AI returned empty response. finish_reason:", finishReason, "choices:", JSON.stringify(response.choices));
+      throw new Error(`AI provider returned an empty response (finish_reason: ${finishReason})`);
+    }
+    const rawText = choice.message.content;
     let aiResult;
     try {
-      const cleanText = rawText?.replace(/```json\n?|\n?```/g, '').trim() || "{}";
+      const cleanText = rawText.replace(/```json\n?|\n?```/g, '').trim() || "{}";
       aiResult = JSON.parse(cleanText);
     } catch (e) {
       console.error("JSON Parse Error. Raw Text:", rawText);
@@ -165,10 +171,11 @@ Deno.serve(async (req) => {
     });
 
   } catch (error: any) {
-    console.error("AI Assistant Orchestrator General Error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const errMsg = error?.message || error?.error?.message || String(error) || 'An unexpected error occurred';
+    console.error("AI Assistant Orchestrator General Error:", errMsg, error);
+    return new Response(JSON.stringify({ error: errMsg }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: error.status || 500,
+      status: (typeof error?.status === 'number' && error.status >= 400 && error.status < 600) ? error.status : 500,
     });
   }
 });
