@@ -1,5 +1,5 @@
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { generateEmbedding } from '../../_shared/gemini-client.ts';
+import { searchUserMemory } from '../../_shared/memory-retrieval.ts';
 import type { AiAction, JsonObject } from './ai-contract.ts';
 import { calculateRecurrenceCompletion } from '../../_shared/recurrence-calculator.ts';
 
@@ -237,14 +237,13 @@ async function executeAction(
     return { value: actionResult('link', 'unlink', state, receipt) };
   }
   if (item.action === 'SUGGEST_LINK') {
-    const embedding = await generateEmbedding(ai, item.params.queryText, 'query');
-    const { data, error } = await userClient.rpc('hybrid_search', {
-      p_query_embedding: embedding, p_query_text: item.params.queryText, p_match_count: 5,
+    const { hits } = await searchUserMemory({
+      userClient, serviceClient: service, userId, ai,
+      message: item.params.queryText, matchCount: 5,
     });
-    if (error) throw error;
     return { value: {
       type: 'link', operation: 'suggest_link',
-      data: (data || []).map((doc: any) => ({ type: doc.type, id: doc.id, title: doc.title, snippet: doc.snippet, score: doc.score })),
+      data: hits.map((doc) => ({ type: doc.type, id: doc.id, title: doc.title, snippet: doc.snippet, score: doc.score })),
     } };
   }
   return { failure: 'invalid_action' };

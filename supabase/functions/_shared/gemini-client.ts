@@ -10,9 +10,9 @@ let openAIInstance: OpenAI | null = null;
 
 export function getGoogleGenAI(): any {
   if (!openAIInstance) {
-    const apiKey = Deno.env.get('OPENROUTER_API_KEY');
+    const apiKey = Deno.env.get('OPENROUTER_API_KEY') ?? Deno.env.get('GEMINI_API_KEY');
     if (!apiKey) {
-      throw new Error('Missing OPENROUTER_API_KEY environment variable');
+      throw new Error('Missing both OPENROUTER_API_KEY and GEMINI_API_KEY environment variables');
     }
     openAIInstance = new OpenAI({
       baseURL: "https://openrouter.ai/api/v1",
@@ -25,9 +25,12 @@ export function getGoogleGenAI(): any {
 export async function generateEmbedding(ai: any, text: string, prefixType?: 'query' | 'document'): Promise<number[]> {
   let processedText = text;
   if (prefixType === 'query') {
-    processedText = `task: search result | query: ${text}`;
+    // Keep the legacy Gemini task prefixes: every legacy vector in
+    // tasks/notes/projects.embedding was built with them, and the memory_chunks
+    // backfill re-embeds with the same format. Never change one side alone.
+    processedText = "task: search_query | query: " + text;
   } else if (prefixType === 'document') {
-    processedText = `title: ${text.slice(0, 200)} | text: ${text}`;
+    processedText = "task: search_document | document: " + text;
   }
 
   const client = (ai && typeof ai.embeddings?.create === 'function') ? ai : getGoogleGenAI();

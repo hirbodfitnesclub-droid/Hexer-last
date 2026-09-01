@@ -224,7 +224,7 @@ Deno.serve(async (req) => {
     const [metaContext, ragData] = await Promise.all([
       buildMetaContext(supabaseClient, mode, isProposalMode, todayStr),
       needsRag(intent)
-        ? buildRagContext(supabaseClient, ai, message, filters)
+        ? buildRagContext(supabaseClient, supabaseService, user.id, ai, message, filters)
         : Promise.resolve({ contextString: '', citations: [] })
     ]);
 

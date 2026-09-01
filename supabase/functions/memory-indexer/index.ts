@@ -10,6 +10,12 @@ import {
 
 declare const Deno: any;
 
+/** md5 hex of the raw "title body" join, matching the enqueue trigger's hash. */
+async function md5Hex(text: string): Promise<string> {
+  const digest = await crypto.subtle.digest('MD5', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': 'null',
   'Access-Control-Allow-Headers': 'content-type, x-worker-secret',
@@ -56,6 +62,7 @@ Deno.serve(async (req: Request) => {
     let stale = 0;
     let deleted = 0;
     let failed = 0;
+    let unchanged = 0;
 
     for (const job of jobs) {
       try {
@@ -102,8 +109,20 @@ Deno.serve(async (req: Request) => {
 
         const source = row as Record<string, unknown>;
         const currentVersion = typeof source.version === 'number' ? source.version : 1;
-        if (job.source_version !== null && currentVersion > job.source_version) {
-          // A newer revision exists; a fresher job already covers it.
+
+        // Stale detection is content-based: the enqueue trigger bumps only on
+        // title/body changes but the row version moves on every edit, so a
+        // version comparison would wrongly discard valid text edits. When the
+        // hash matches, the text is unchanged and re-embedding is a no-op.
+        const rawJoined = `${source[mapping.titleField] ?? ''} ${source[mapping.bodyField] ?? ''}`;
+        if (job.content_hash !== null && job.content_hash !== undefined) {
+          if ((await md5Hex(rawJoined)) === job.content_hash) {
+            await supabase.rpc('finalize_memory_job', { p_job_id: job.id, p_status: 'succeeded' });
+            unchanged += 1;
+            continue;
+          }
+        } else if (job.source_version !== null && currentVersion > job.source_version) {
+          // Legacy job without a content hash; keep the conservative version check.
           await supabase.rpc('finalize_memory_job', { p_job_id: job.id, p_status: 'stale' });
           stale += 1;
           continue;
@@ -168,7 +187,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    return jsonResponse({ claimed: jobs.length, indexed, stale, deleted, failed }, 200, corsHeaders);
+    return jsonResponse({ claimed: jobs.length, indexed, stale, deleted, failed, unchanged }, 200, corsHeaders);
   } catch (error: any) {
     console.error('Memory indexer error:', error);
     return safeErrorResponse(error, corsHeaders);

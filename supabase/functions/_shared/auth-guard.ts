@@ -10,7 +10,9 @@ export async function getAuthUser(authHeader: string | null): Promise<{ user: an
   }
 
   const url = Deno.env.get('SUPABASE_URL') ?? '';
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+  const anonKey = Deno.env.get('SUPABASE_PUBLISHABLE_KEY')
+    ?? Deno.env.get('SUPABASE_ANON_KEY')
+    ?? '';
   const supabaseClient = createClient(url, anonKey, {
     global: { headers: { Authorization: authHeader } }
   });
