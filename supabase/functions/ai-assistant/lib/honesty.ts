@@ -71,9 +71,10 @@ export function applyHonesty(input: ApplyHonestyInput): HonestyResult {
     return hintedReason ?? (acceptedMutationCount > 0 ? 'all_failed' : 'no_actions');
   };
 
-  // گارد مستقل از intent: اگر مدل ادعای موفقیت کرده ولی هیچ نوشتن واقعی در
-  // دیتابیس تأیید نشده، پاسخ باید به شکست صادقانه جایگزین شود — حتی وقتی
-  // classifier جمله را اشتباه به chat/search فرستاده و گارد قدیمی خاموش مانده.
+  // گارد مستقل از intent (تصمیم محصولی ثبت‌شده در honesty-enforcement.json):
+  // اگر مدل ادعای موفقیت کرده ولی هیچ نوشتن واقعی در دیتابیس تأیید نشده،
+  // پاسخ باید به شکست صادقانه جایگزین شود — حتی وقتی classifier جمله را
+  // اشتباه به chat/search فرستاده. «انجام شد» بدون write واقعی توهم است.
   if (successMutationCount === 0 && looksLikeSuccessClaim(input.reply)) {
     return {
       reply: buildHonestFailureReply({ intent: input.intent, reason: resolveReason() }),

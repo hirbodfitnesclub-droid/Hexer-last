@@ -38,18 +38,25 @@ export async function resolveFeatureDecision(input: {
   });
   if (!flag) return decision;
 
-  const { error: exposureError } = await input.serviceClient
-    .from('feature_flag_exposures')
-    .upsert({
-      request_id: input.requestId,
-      user_id: input.userId,
-      flag_key: input.key,
-      flag_version: decision.version,
-      stage: decision.stage,
-      enabled: decision.enabled,
-      bucket: decision.bucket,
-      reason: decision.reason,
-    }, { onConflict: 'request_id,flag_key', ignoreDuplicates: true });
-  if (exposureError) throw new Error(`Feature exposure insert failed: ${exposureError.message}`);
+  try {
+    const { error: exposureError } = await input.serviceClient
+      .from('feature_flag_exposures')
+      .upsert({
+        request_id: input.requestId,
+        user_id: input.userId,
+        flag_key: input.key,
+        flag_version: decision.version,
+        stage: decision.stage,
+        enabled: decision.enabled,
+        bucket: decision.bucket,
+        reason: decision.reason,
+      }, { onConflict: 'request_id,flag_key', ignoreDuplicates: true });
+    if (exposureError) {
+      // Telemetry must never break a user-facing request.
+      console.error('Feature exposure insert failed:', exposureError.message);
+    }
+  } catch (exposureError) {
+    console.error('Feature exposure insert failed:', exposureError);
+  }
   return decision;
 }

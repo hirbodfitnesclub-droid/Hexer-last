@@ -1,5 +1,5 @@
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { generateEmbedding } from '../../_shared/gemini-client.ts';
+import { generateEmbedding } from './gemini-client.ts';
 
 export interface MemoryHit {
   id: string;

@@ -80,8 +80,14 @@ Deno.serve(async (req) => {
       });
     }
     const { message, history, mode, audioPath, imagePath, undoReceiptId, filters } = requestBody;
-    const requestId = requestBody.requestId ?? crypto.randomUUID();
-    const idempotencyKey = requestBody.idempotencyKey ?? `server:${requestId}`;
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const requestId = typeof requestBody.requestId === 'string' && UUID_RE.test(requestBody.requestId)
+      ? requestBody.requestId
+      : crypto.randomUUID();
+    const idempotencyKey = typeof requestBody.idempotencyKey === 'string'
+      && requestBody.idempotencyKey.length >= 8 && requestBody.idempotencyKey.length <= 200
+      ? requestBody.idempotencyKey
+      : `server:${requestId}`;
     const supabaseService = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SECRET_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
@@ -357,22 +363,28 @@ Deno.serve(async (req) => {
     if (auditError) console.error('Agent audit insert failed:', auditError);
 
     if (quotaReservation) {
-      await finalizeAiSuccess({
-        serviceClient: quotaReservation.serviceClient,
-        reservationId: quotaReservation.id,
-        userId: quotaReservation.userId,
-        usage: normalizeOpenRouterUsage(response),
-        latencyMs: Date.now() - requestStartedAt,
-        metadata: {
-          schemaName: 'hexer_assistant_response_v1',
-          schemaVersion: '1',
-          promptVersion: 'agent-core-v2',
-          thinkingEffort,
-          intent,
-          successfulActionCount: actionResults.length,
-          failedActionCount: executionFailures.length,
-        },
-      });
+      try {
+        await finalizeAiSuccess({
+          serviceClient: quotaReservation.serviceClient,
+          reservationId: quotaReservation.id,
+          userId: quotaReservation.userId,
+          usage: normalizeOpenRouterUsage(response),
+          latencyMs: Date.now() - requestStartedAt,
+          metadata: {
+            schemaName: 'hexer_assistant_response_v1',
+            schemaVersion: '1',
+            promptVersion: 'agent-core-v2',
+            thinkingEffort,
+            intent,
+            successfulActionCount: actionResults.length,
+            failedActionCount: executionFailures.length,
+          },
+        });
+      } catch (finalizeError) {
+        // Actions (if any) are already committed; a stale reservation must not
+        // turn a completed request into a client-visible 500.
+        console.error('Quota success finalization failed (request still succeeded):', finalizeError);
+      }
       quotaFinalized = true;
     }
 
