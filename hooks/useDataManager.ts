@@ -1209,8 +1209,9 @@ export const useDataManager = (user: any) => {
 
     if (type === 'task') {
       if (result.compound?.kind === 'recurring_completion') {
-        const removeIds = new Set(result.compound.removeIds);
-        const replacements = new Map(result.compound.upsert.map(task => [task.id, task]));
+        const removeIds = new Set(Array.isArray(result.compound.removeIds) ? result.compound.removeIds : []);
+        const upsertList = Array.isArray(result.compound.upsert) ? result.compound.upsert : [];
+        const replacements = new Map(upsertList.map(task => [task.id, task]));
         const next = tasksRef.current
           .filter(task => !removeIds.has(task.id))
           .map(task => replacements.get(task.id) ?? task);

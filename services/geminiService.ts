@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { ChatMessage, ChatMode, ChatSearchFilters } from '../types';
+import { newId } from '../utils/uuid';
 
 /**
  * Helper to recognize quota exhausted (402 Payment Required) errors.
@@ -49,7 +50,7 @@ export const sendChatMessage = async (
   filters?: ChatSearchFilters
 ): Promise<any> => {
   try {
-    const requestId = crypto.randomUUID();
+    const requestId = newId();
     const body: Record<string, unknown> = {
       message,
       history: history.slice(-8), // AI_HISTORY_LIMIT — keep in sync with edge ai-constants
@@ -107,7 +108,7 @@ export const searchSemantic = async (
   filters?: ChatSearchFilters
 ): Promise<any[]> => {
   try {
-    const requestId = crypto.randomUUID();
+    const requestId = newId();
     const body: Record<string, unknown> = {
       message: query,
       mode: 'memory', // Forced memory RAG mode for semantic search
@@ -155,7 +156,7 @@ export const extractFromMedia = async (
   message?: string
 ): Promise<any> => {
   try {
-    const requestId = crypto.randomUUID();
+    const requestId = newId();
     const { data, error } = await supabase.functions.invoke('ai-assistant', {
       body: {
         message: message || '',
