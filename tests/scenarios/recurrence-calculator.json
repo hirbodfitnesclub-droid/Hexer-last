@@ -1,0 +1,26 @@
+{
+  "behavior": "tehran-jalali-recurrence-calculator-parity",
+  "minimumScenarios": 20,
+  "scenarios": [
+    { "id": "rec-calc-001", "input": { "fromDue": "2026-08-20T08:30:00Z", "recurrence": { "type": "daily" }, "now": "2026-08-20T00:00:00Z" }, "expected": true },
+    { "id": "rec-calc-002", "input": { "fromDue": null, "recurrence": { "type": "daily" }, "now": "2026-08-20T00:00:00Z" }, "expected": true },
+    { "id": "rec-calc-003", "input": { "fromDue": "bad", "recurrence": { "type": "daily" }, "now": "2026-08-20T00:00:00Z" }, "expected": true },
+    { "id": "rec-calc-004", "input": { "fromDue": "2026-08-20T08:30:00Z", "recurrence": { "type": "weekly", "weekdays": [6] }, "now": "2026-08-20T00:00:00Z" }, "expected": true },
+    { "id": "rec-calc-005", "input": { "fromDue": "2026-08-20T08:30:00Z", "recurrence": { "type": "weekly", "weekdays": [0, 3, 6] }, "now": "2026-08-20T00:00:00Z" }, "expected": true },
+    { "id": "rec-calc-006", "input": { "fromDue": "2026-08-20T08:30:00Z", "recurrence": { "type": "weekly", "weekdays": [6, 6, 9] }, "now": "2026-08-20T00:00:00Z" }, "expected": true },
+    { "id": "rec-calc-007", "input": { "fromDue": "2026-03-20T08:30:00Z", "recurrence": { "type": "monthly", "days": [1] }, "now": "2026-03-20T00:00:00Z" }, "expected": true },
+    { "id": "rec-calc-008", "input": { "fromDue": "2026-08-20T08:30:00Z", "recurrence": { "type": "monthly", "days": [1, 15, 31] }, "now": "2026-08-20T00:00:00Z" }, "expected": true },
+    { "id": "rec-calc-009", "input": { "fromDue": "2026-02-28T08:30:00Z", "recurrence": { "type": "monthly", "days": [30, 31] }, "now": "2026-02-28T00:00:00Z" }, "expected": true },
+    { "id": "rec-calc-010", "input": { "fromDue": "2026-03-20T08:30:00Z", "recurrence": { "type": "yearly", "dates": [{ "month": 1, "day": 1 }] }, "now": "2026-03-20T00:00:00Z" }, "expected": true },
+    { "id": "rec-calc-011", "input": { "fromDue": "2026-08-20T08:30:00Z", "recurrence": { "type": "yearly", "dates": [{ "month": 12, "day": 30 }, { "month": 1, "day": 1 }] }, "now": "2026-08-20T00:00:00Z" }, "expected": true },
+    { "id": "rec-calc-012", "input": { "fromDue": "2026-08-20T08:30:00Z", "recurrence": { "type": "daily", "end": { "kind": "after_n", "remaining": 2 } }, "now": "2026-08-20T00:00:00Z" }, "expected": true },
+    { "id": "rec-calc-013", "input": { "fromDue": "2026-08-20T08:30:00Z", "recurrence": { "type": "daily", "end": { "kind": "after_n", "remaining": 1 } }, "now": "2026-08-20T00:00:00Z" }, "expected": true },
+    { "id": "rec-calc-014", "input": { "fromDue": "2026-08-20T08:30:00Z", "recurrence": { "type": "daily", "end": { "kind": "after_n", "remaining": 0 } }, "now": "2026-08-20T00:00:00Z" }, "expected": true },
+    { "id": "rec-calc-015", "input": { "fromDue": "2026-08-20T08:30:00Z", "recurrence": { "type": "daily", "end": { "kind": "on_date", "date": "2026-08-21" } }, "now": "2026-08-20T00:00:00Z" }, "expected": true },
+    { "id": "rec-calc-016", "input": { "fromDue": "2026-08-20T08:30:00Z", "recurrence": { "type": "daily", "end": { "kind": "on_date", "date": "2026-08-20" } }, "now": "2026-08-20T00:00:00Z" }, "expected": true },
+    { "id": "rec-calc-017", "input": { "fromDue": "2026-08-20T08:30:00Z", "recurrence": { "type": "weekly", "weekdays": [] }, "now": "2026-08-20T00:00:00Z" }, "expected": true },
+    { "id": "rec-calc-018", "input": { "fromDue": "2026-08-20T08:30:00Z", "recurrence": null, "now": "2026-08-20T00:00:00Z" }, "expected": true },
+    { "id": "rec-calc-019", "input": { "fromDue": "2026-08-20T08:30:00Z", "recurrence": { "type": "yearly", "dates": [{ "month": 13, "day": 1 }] }, "now": "2026-08-20T00:00:00Z" }, "expected": true },
+    { "id": "rec-calc-020", "input": { "fromDue": "2026-08-20T20:45:30Z", "recurrence": { "type": "daily" }, "now": "2026-08-20T00:00:00Z" }, "expected": true }
+  ]
+}

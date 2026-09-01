@@ -1,0 +1,3 @@
+-- Historical production marker. The final privilege reconciliation is included in
+-- 20260819092305_secure_worker_transport.sql for fresh local bootstrap environments.
+-- No SQL is replayed because production already recorded this one-time correction.

@@ -8,8 +8,10 @@ import * as habitService from '../services/habitService';
 import * as billingService from '../services/billingService';
 import { loadSnapshot, saveSnapshot } from '../services/offline/snapshot';
 import { enqueue } from '../services/offline/outbox';
+import { completeRecurringTask, runRecurrenceScopeOperation, type RecurrenceScopeOperation } from '../services/recurrenceService';
 import { useOfflineSync } from './useOfflineSync';
 import { newId } from '../utils/uuid';
+import { hasMeaningfulEdit } from '../utils/taskPatch';
 import { formatPersianDate, isSameTehranDay } from '../utils/dateUtils';
 import {
   buildNextRecurrence,
@@ -29,6 +31,8 @@ export interface AppNotification {
   };
 }
 
+const isBrowserOffline = (): boolean => !window.navigator.onLine;
+
 export const useDataManager = (user: any) => {
   const userId = user?.id;
   const [currentPage, setCurrentPage] = useState<Page>(Page.Dashboard);
@@ -45,11 +49,23 @@ export const useDataManager = (user: any) => {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [entityLinks, setEntityLinks] = useState<EntityLink[]>([]);
   const [loadingData, setLoadingData] = useState(true);
-  /** Always-current task list for spawn/inject guards (avoids stale closure + double-spawn). */
+  /** Always-current lists for spawn/inject guards (avoids stale closure + double-spawn). */
   const tasksRef = useRef<Task[]>([]);
   useEffect(() => {
     tasksRef.current = tasks;
   }, [tasks]);
+  const notesRef = useRef<Note[]>([]);
+  useEffect(() => {
+    notesRef.current = notes;
+  }, [notes]);
+  const projectsRef = useRef<Project[]>([]);
+  useEffect(() => {
+    projectsRef.current = projects;
+  }, [projects]);
+  const habitsRef = useRef<Habit[]>([]);
+  useEffect(() => {
+    habitsRef.current = habits;
+  }, [habits]);
 
   // Pagination states
   const [tasksLimit, setTasksLimit] = useState(50);
@@ -241,7 +257,7 @@ export const useDataManager = (user: any) => {
       addNotification("پروژه با موفقیت ساخته شد.");
     } catch (error) {
       const msg = (error as any)?.message || '';
-      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      const isRetry = isBrowserOffline() || msg.includes('Failed to fetch') || error instanceof TypeError;
       if (isRetry) {
         await enqueue({ id: tempId, entity: 'projects', action: 'insert', payload: project });
         addNotification("پروژه به صورت آفلاین ثبت شد.", "info");
@@ -273,7 +289,7 @@ export const useDataManager = (user: any) => {
       addNotification("پروژه به‌روزرسانی شد.");
     } catch (error) {
       const msg = (error as any)?.message || '';
-      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      const isRetry = isBrowserOffline() || msg.includes('Failed to fetch') || error instanceof TypeError;
       if (isRetry) {
         await enqueue({ id: project.id, entity: 'projects', action: 'update', payload: project });
         addNotification("تغییرات پروژه به صورت آفلاین ثبت شد.", "info");
@@ -372,7 +388,7 @@ export const useDataManager = (user: any) => {
       return newTask;
     } catch (error) {
       const msg = (error as any)?.message || '';
-      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      const isRetry = isBrowserOffline() || msg.includes('Failed to fetch') || error instanceof TypeError;
       if (isRetry) {
         await enqueue({ id: tempId, entity: 'tasks', action: 'insert', payload });
         if (!opts?.silent) addNotification('کار جدید به صورت آفلاین ثبت شد.', 'info');
@@ -471,6 +487,55 @@ export const useDataManager = (user: any) => {
     }
   }, [addNotification]);
 
+  /**
+   * Server-authoritative completion for recurring tasks. Marking done and creating
+   * the next occurrence happen in one transaction there, so two devices cannot both
+   * spawn. A recurring completion never falls back to browser spawning because that
+   * could persist the completed row without its authoritative successor.
+   */
+  const completeRecurringViaServer = useCallback(async (
+    task: Task
+  ): Promise<'handled' | 'conflict' | 'blocked'> => {
+    if (!navigator.onLine) return 'blocked';
+    if (!normalizeRecurrence(task.recurrence)) return 'blocked';
+    if (typeof task.version !== 'number') return 'blocked';
+
+    const outcome = await completeRecurringTask({
+      task,
+      opId: newId(),
+      requestId: newId(),
+      idempotencyKey: `recurrence.complete:${task.id}:${task.version}`,
+    });
+
+    if (outcome.kind === 'handled') {
+      setTasks(prev => {
+        const merged = prev.map(t => (t.id === outcome.current.id ? { ...t, ...outcome.current } : t));
+        if (outcome.next && !merged.some(t => t.id === outcome.next!.id)) merged.push(outcome.next);
+        void saveSnapshot(userId, 'tasks', merged);
+        return merged;
+      });
+      if (outcome.next?.due_date) {
+        addNotification(`نوبت بعدی ثبت شد · ${formatPersianDate(outcome.next.due_date)}`, 'info', {
+          label: 'مشاهده',
+          onClick: () => {
+            window.dispatchEvent(new CustomEvent('hexer:open-task-editor', { detail: outcome.next }));
+          },
+        });
+      }
+      return 'handled';
+    }
+
+    if (outcome.kind === 'conflict') {
+      if (outcome.server) {
+        setTasks(prev => prev.map(t => (t.id === outcome.server!.id ? { ...t, ...outcome.server } : t)));
+      }
+      addNotification('این کار روی دستگاه دیگری تغییر کرده بود؛ نسخهٔ تازه بارگذاری شد.', 'info');
+      return 'conflict';
+    }
+
+    return 'blocked';
+  }, [userId, addNotification]);
+
   const updateTask = useCallback(async (
     task: Task | Partial<Task>,
     opts?: UpdateTaskOpts
@@ -478,6 +543,22 @@ export const useDataManager = (user: any) => {
     if (!task.id) return;
     const originalTasks = [...tasks];
     const prevTask = tasks.find(t => t.id === task.id);
+
+    // A plain "mark done" on a recurring task belongs to the server RPC, which owns
+    // the completion and the next occurrence atomically. Anything that also edits
+    // other fields keeps the legacy path so the edit is not silently dropped.
+    const isPlainCompletion =
+      !!prevTask &&
+      prevTask.status !== 'done' &&
+      task.status === 'done' &&
+      !hasMeaningfulEdit(task);
+    if (isPlainCompletion && prevTask && normalizeRecurrence(prevTask.recurrence)) {
+      const serverOutcome = await completeRecurringViaServer(prevTask);
+      if (serverOutcome === 'blocked') {
+        addNotification('تکمیل کار تکرارشونده موقتاً در دسترس نیست؛ تغییری ذخیره نشد.', 'info');
+      }
+      return;
+    }
 
     const hasRecurrenceKey = Object.prototype.hasOwnProperty.call(task, 'recurrence');
     let patch: Task | Partial<Task> = { ...task };
@@ -551,7 +632,7 @@ export const useDataManager = (user: any) => {
       } catch (error) {
         const msg = (error as any)?.message || '';
         const isRetry =
-          navigator.onLine === false ||
+          isBrowserOffline() ||
           msg.includes('Failed to fetch') ||
           error instanceof TypeError;
         if (isRetry) {
@@ -599,8 +680,8 @@ export const useDataManager = (user: any) => {
         }
       }
 
-      // Spawn when transitioning to done (recurring → one "نوبت بعدی" toast; non-recurring → one done toast)
-      if (becameDone && prevTask) {
+      // Recurring completion returns above and is handled by the server transaction.
+      if (becameDone && prevTask && !normalizeRecurrence(prevTask.recurrence)) {
         const completed: Task = {
           ...prevTask,
           ...patch,
@@ -617,7 +698,7 @@ export const useDataManager = (user: any) => {
     } catch (error) {
       const msg = (error as any)?.message || '';
       const isRetry =
-        navigator.onLine === false ||
+        isBrowserOffline() ||
         msg.includes('Failed to fetch') ||
         error instanceof TypeError;
       if (isRetry) {
@@ -632,11 +713,76 @@ export const useDataManager = (user: any) => {
     }
   }, [tasks, userId, addNotification, maybeSpawnNextRecurrence]);
 
+  /**
+   * Runs a recurrence scope operation on the server and merges the result. Returns
+   * 'fallback' when the server declines, so callers keep their legacy behaviour while
+   * `recurrence_rpc_v2` is still rolling out.
+   */
+  const runRecurrenceScope = useCallback(async (input: {
+    task: Task;
+    operation: RecurrenceScopeOperation;
+    updates?: Record<string, unknown>;
+    recurrence?: Record<string, unknown> | null;
+    keepCurrent?: boolean;
+  }): Promise<'handled' | 'conflict' | 'fallback'> => {
+    if (!navigator.onLine) return 'fallback';
+    if (typeof input.task.version !== 'number') return 'fallback';
+
+    const outcome = await runRecurrenceScopeOperation({
+      operation: input.operation,
+      task: input.task,
+      opId: newId(),
+      requestId: newId(),
+      idempotencyKey: `recurrence.${input.operation}:${input.task.id}:${input.task.version}`,
+      updates: input.updates,
+      recurrence: input.recurrence,
+      keepCurrent: input.keepCurrent,
+    });
+
+    if (outcome.kind === 'handled') {
+      const updated = outcome.result.task;
+      if (updated) {
+        setTasks(prev => {
+          const merged = prev.map(t => (t.id === updated.id ? { ...t, ...updated } : t));
+          void saveSnapshot(userId, 'tasks', merged);
+          return merged;
+        });
+      } else if (input.operation === 'stop') {
+        // Stop clears the rule across the series, so refresh from the server rather
+        // than guessing which sibling rows changed.
+        try {
+          const fresh = await taskService.getTasks(tasksLimit);
+          setTasks(fresh);
+          await saveSnapshot(userId, 'tasks', fresh);
+        } catch {
+          /* the next revalidation will reconcile */
+        }
+      }
+      return 'handled';
+    }
+
+    if (outcome.kind === 'conflict') {
+      if (outcome.server) {
+        setTasks(prev => prev.map(t => (t.id === outcome.server!.id ? { ...t, ...outcome.server } : t)));
+      }
+      addNotification('این کار روی دستگاه دیگری تغییر کرده بود؛ نسخهٔ تازه بارگذاری شد.', 'info');
+      return 'conflict';
+    }
+
+    return 'fallback';
+  }, [userId, tasksLimit, addNotification]);
+
   const skipRecurrenceOccurrence = useCallback(async (id: string) => {
     const task = tasksRef.current.find(t => t.id === id) || tasks.find(t => t.id === id);
     if (!task || task.status === 'done') return;
     const r = normalizeRecurrence(task.recurrence);
     if (!r) return;
+
+    // Prefer the server RPC: it records a skip exception and advances the occurrence in
+    // one transaction. Fall back to the client path whenever the server declines.
+    const viaServer = await runRecurrenceScope({ task, operation: 'skip' });
+    if (viaServer !== 'fallback') return;
+
     const nextDue = computeNextDueDate(task.due_date, r);
     // B6: explicit feedback when series cannot advance
     if (!nextDue || !canContinueRecurrence(r, nextDue)) {
@@ -648,7 +794,7 @@ export const useDataManager = (user: any) => {
       { id, due_date: nextDue, recurrence: nextR },
       { skipSeriesFanOut: true }
     );
-  }, [tasks, updateTask, addNotification]);
+  }, [tasks, updateTask, addNotification, runRecurrenceScope]);
 
   const deleteTask = useCallback(async (id: string) => {
     const taskToDelete = tasks.find(t => t.id === id);
@@ -697,6 +843,14 @@ export const useDataManager = (user: any) => {
     const newStatus = task.status === 'done' ? 'todo' : 'done';
     const completed_at = newStatus === 'done' ? new Date().toISOString() : null;
 
+    if (newStatus === 'done' && normalizeRecurrence(task.recurrence)) {
+      const serverOutcome = await completeRecurringViaServer(task);
+      if (serverOutcome === 'blocked') {
+        addNotification('تکمیل کار تکرارشونده موقتاً در دسترس نیست؛ تغییری ذخیره نشد.', 'info');
+      }
+      return;
+    }
+
     const nextTasks = tasks.map(t =>
       t.id === id ? { ...t, status: newStatus, completed_at } : t
     );
@@ -707,7 +861,7 @@ export const useDataManager = (user: any) => {
 
     if (!navigator.onLine) {
       await enqueue({ id, entity: 'tasks', action: 'update', payload });
-      if (newStatus === 'done') {
+      if (newStatus === 'done' && !normalizeRecurrence(task.recurrence)) {
         await maybeSpawnNextRecurrence({ ...task, status: 'done', completed_at });
       }
       return;
@@ -718,18 +872,18 @@ export const useDataManager = (user: any) => {
       setTasks(prev => prev.map(t => (t.id === id ? updatedTask : t)));
       const finalTasks = nextTasks.map(t => (t.id === id ? updatedTask : t));
       await saveSnapshot(userId, 'tasks', finalTasks);
-      if (newStatus === 'done') {
+      if (newStatus === 'done' && !normalizeRecurrence(task.recurrence)) {
         await maybeSpawnNextRecurrence({ ...task, ...updatedTask, status: 'done' });
       }
     } catch (error) {
       const msg = (error as any)?.message || '';
       const isRetry =
-        navigator.onLine === false ||
+        isBrowserOffline() ||
         msg.includes('Failed to fetch') ||
         error instanceof TypeError;
       if (isRetry) {
         await enqueue({ id, entity: 'tasks', action: 'update', payload });
-        if (newStatus === 'done') {
+        if (newStatus === 'done' && !normalizeRecurrence(task.recurrence)) {
           await maybeSpawnNextRecurrence({ ...task, status: 'done', completed_at });
         }
       } else {
@@ -738,7 +892,7 @@ export const useDataManager = (user: any) => {
         addNotification('خطا در تغییر وضعیت کار.', 'error');
       }
     }
-  }, [tasks, userId, addNotification, maybeSpawnNextRecurrence]);
+  }, [tasks, userId, addNotification, maybeSpawnNextRecurrence, completeRecurringViaServer]);
 
   // Notes CRUD - Optimistic UI & Offline Queue support
   const addNote = useCallback(async (note: Omit<Note, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<Note> => {
@@ -771,7 +925,7 @@ export const useDataManager = (user: any) => {
       return newNote;
     } catch (error) {
       const msg = (error as any)?.message || '';
-      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      const isRetry = isBrowserOffline() || msg.includes('Failed to fetch') || error instanceof TypeError;
       if (isRetry) {
         await enqueue({ id: tempId, entity: 'notes', action: 'insert', payload: note });
         addNotification("یادداشت به صورت آفلاین ذخیره شد.", "info");
@@ -806,7 +960,7 @@ export const useDataManager = (user: any) => {
       addNotification("یادداشت به‌روزرسانی شد.");
     } catch (error) {
       const msg = (error as any)?.message || '';
-      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      const isRetry = isBrowserOffline() || msg.includes('Failed to fetch') || error instanceof TypeError;
       if (isRetry) {
         await enqueue({ id: note.id, entity: 'notes', action: 'update', payload: note });
         addNotification("تغییرات یادداشت به صورت آفلاین ذخیره شد.", "info");
@@ -888,7 +1042,7 @@ export const useDataManager = (user: any) => {
       addNotification("عادت با موفقیت ساخته شد.");
     } catch (error) {
       const msg = (error as any)?.message || '';
-      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      const isRetry = isBrowserOffline() || msg.includes('Failed to fetch') || error instanceof TypeError;
       if (isRetry) {
         await enqueue({ id: tempId, entity: 'habits', action: 'insert', payload: habit });
         addNotification("عادت جدید به صورت آفلاین ذخیره شد.", "info");
@@ -921,7 +1075,7 @@ export const useDataManager = (user: any) => {
       addNotification("عادت به‌روزرسانی شد.");
     } catch (error) {
       const msg = (error as any)?.message || '';
-      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      const isRetry = isBrowserOffline() || msg.includes('Failed to fetch') || error instanceof TypeError;
       if (isRetry) {
         await enqueue({ id: habit.id, entity: 'habits', action: 'update', payload: habit });
         addNotification("تغییرات عادت به صورت آفلاین ذخیره شد.", "info");
@@ -1006,7 +1160,7 @@ export const useDataManager = (user: any) => {
       await habitService.setHabitCompletion(habitId, date, desired);
     } catch (error) {
       const msg = (error as any)?.message || '';
-      const isRetry = navigator.onLine === false || msg.includes('Failed to fetch') || error instanceof TypeError;
+      const isRetry = isBrowserOffline() || msg.includes('Failed to fetch') || error instanceof TypeError;
       if (isRetry) {
         await enqueue({
           id: `set-${habitId}-${date}`,
@@ -1026,25 +1180,48 @@ export const useDataManager = (user: any) => {
   const injectAIProposalResult = useCallback((result: ActionResult) => {
     const { type, operation, data } = result;
 
-    const updateState = <T extends { id: string }>(
-      setter: React.Dispatch<React.SetStateAction<T[]>>
-    ) => {
-      setter(prev => {
-        if (operation === 'create') {
-          return [data, ...prev.filter(i => i.id !== data.id)];
-        }
-        // update: replace if present; upsert if missing (stale/paginated cache)
-        const idx = prev.findIndex(i => i.id === data.id);
+    // Computes the next list from the current one, persists it like every other CRUD
+    // path so AI-created entities survive a refresh (QA ISSUE_04-B), and returns it.
+    const applyUpdate = <T extends { id: string }>(
+      current: T[],
+      setter: React.Dispatch<React.SetStateAction<T[]>>,
+      store: 'tasks' | 'notes' | 'projects' | 'habits'
+    ): T[] => {
+      let next: T[];
+      if (operation === 'undo' && result.undoKind === 'delete_created') {
+        next = current.filter(i => i.id !== data.id);
+      } else if (operation === 'create') {
+        next = [data, ...current.filter(i => i.id !== data.id)];
+      } else {
+        // update/restore: replace if present; upsert if missing (stale/paginated cache)
+        const idx = current.findIndex(i => i.id === data.id);
         if (idx === -1) {
-          return [data, ...prev];
+          next = [data, ...current];
+        } else {
+          next = current.slice();
+          next[idx] = data;
         }
-        const next = prev.slice();
-        next[idx] = data;
-        return next;
-      });
+      }
+      void saveSnapshot(userId, store, next);
+      setter(next);
+      return next;
     };
 
     if (type === 'task') {
+      if (result.compound?.kind === 'recurring_completion') {
+        const removeIds = new Set(result.compound.removeIds);
+        const replacements = new Map(result.compound.upsert.map(task => [task.id, task]));
+        const next = tasksRef.current
+          .filter(task => !removeIds.has(task.id))
+          .map(task => replacements.get(task.id) ?? task);
+        for (const task of replacements.values()) {
+          if (!next.some(existing => existing.id === task.id)) next.push(task);
+        }
+        void saveSnapshot(userId, 'tasks', next);
+        setTasks(next);
+        return;
+      }
+
       // B3: only spawn on real transition non-done → done (never re-inject of already-done)
       const prevTask = tasksRef.current.find(t => t.id === data?.id);
       const shouldSpawn =
@@ -1053,7 +1230,7 @@ export const useDataManager = (user: any) => {
         !!prevTask &&
         prevTask.status !== 'done';
 
-      updateState(setTasks);
+      applyUpdate(tasksRef.current, setTasks, 'tasks');
 
       if (shouldSpawn) {
         void maybeSpawnNextRecurrence({
@@ -1062,20 +1239,24 @@ export const useDataManager = (user: any) => {
           status: 'done',
         } as Task);
       }
-    } else if (type === 'note') updateState(setNotes);
-    else if (type === 'project') updateState(setProjects);
+    } else if (type === 'note') applyUpdate(notesRef.current, setNotes, 'notes');
+    else if (type === 'project') applyUpdate(projectsRef.current, setProjects, 'projects');
     else if (type === 'habit') {
       const habitData = operation === 'create' ? { ...data, completedDates: [] } : data;
-      setHabits(prev => {
-        if (operation === 'create') return [habitData, ...prev.filter(h => h.id !== habitData.id)];
-        const idx = prev.findIndex(h => h.id === habitData.id);
-        if (idx === -1) return [habitData, ...prev];
-        const next = prev.slice();
-        next[idx] = habitData;
-        return next;
-      });
+      const current = habitsRef.current;
+      let next: Habit[];
+      if (operation === 'create') {
+        next = [habitData, ...current.filter(h => h.id !== habitData.id)];
+      } else {
+        const idx = current.findIndex(h => h.id === habitData.id);
+        next = idx === -1
+          ? [habitData, ...current]
+          : (() => { const copy = current.slice(); copy[idx] = habitData; return copy; })();
+      }
+      void saveSnapshot(userId, 'habits', next);
+      setHabits(next);
     }
-  }, [maybeSpawnNextRecurrence]);
+  }, [maybeSpawnNextRecurrence, userId]);
 
   const { isSyncing, pendingCount, flushOutbox } = useOfflineSync(userId, addNotification, loadInitial);
 
@@ -1132,6 +1313,7 @@ export const useDataManager = (user: any) => {
     deleteTask,
     toggleTaskCompletion,
     skipRecurrenceOccurrence,
+    runRecurrenceScope,
     addNote,
     updateNote,
     deleteNote,

@@ -1,0 +1,26 @@
+{
+  "behavior": "openrouter-usage-normalization",
+  "minimumScenarios": 20,
+  "scenarios": [
+    { "id": "telemetry-001", "input": {}, "expected": { "usageSource": "unknown", "actualModel": null, "inputTokens": null } },
+    { "id": "telemetry-002", "input": { "id": "gen-1", "model": "google/gemini-3.1-flash-lite" }, "expected": { "providerRequestId": "gen-1", "actualModel": "google/gemini-3.1-flash-lite", "usageSource": "unknown" } },
+    { "id": "telemetry-003", "input": { "provider": "Google", "usage": { "prompt_tokens": 10, "completion_tokens": 5 } }, "expected": { "actualProvider": "Google", "inputTokens": 10, "outputTokens": 5, "usageSource": "provider" } },
+    { "id": "telemetry-004", "input": { "metadata": { "provider": "google-ai-studio" } }, "expected": { "actualProvider": "google-ai-studio" } },
+    { "id": "telemetry-005", "input": { "usage": { "input_tokens": 11, "output_tokens": 6 } }, "expected": { "inputTokens": 11, "outputTokens": 6 } },
+    { "id": "telemetry-006", "input": { "usage": { "reasoning_tokens": 7 } }, "expected": { "reasoningTokens": 7 } },
+    { "id": "telemetry-007", "input": { "usage": { "completion_tokens_details": { "reasoning_tokens": 8 } } }, "expected": { "reasoningTokens": 8 } },
+    { "id": "telemetry-008", "input": { "usage": { "cached_tokens": 9 } }, "expected": { "cachedTokens": 9 } },
+    { "id": "telemetry-009", "input": { "usage": { "prompt_tokens_details": { "cached_tokens": 4 } } }, "expected": { "cachedTokens": 4 } },
+    { "id": "telemetry-010", "input": { "usage": { "cost": 0.000125 } }, "expected": { "costMicrounits": 125, "currency": "USD" } },
+    { "id": "telemetry-011", "input": { "cost": 1.25 }, "expected": { "costMicrounits": 1250000, "currency": "USD" } },
+    { "id": "telemetry-012", "input": { "usage": { "prompt_tokens": -1 } }, "expected": { "inputTokens": null, "usageSource": "unknown" } },
+    { "id": "telemetry-013", "input": { "usage": { "completion_tokens": 2.9 } }, "expected": { "outputTokens": 2 } },
+    { "id": "telemetry-014", "input": { "usage": { "cost": -1 } }, "expected": { "costMicrounits": null, "currency": null } },
+    { "id": "telemetry-015", "input": { "usage": { "cost": "0.1" } }, "expected": { "costMicrounits": null } },
+    { "id": "telemetry-016", "input": { "id": " ", "model": " " }, "expected": { "providerRequestId": null, "actualModel": null } },
+    { "id": "telemetry-017", "input": null, "expected": { "usageSource": "unknown", "providerRequestId": null } },
+    { "id": "telemetry-018", "input": [], "expected": { "usageSource": "unknown", "actualProvider": null } },
+    { "id": "telemetry-019", "input": { "provider": "", "metadata": { "provider": "fallback" } }, "expected": { "actualProvider": "fallback" } },
+    { "id": "telemetry-020", "input": { "usage": { "prompt_tokens": 0, "completion_tokens": 0, "cost": 0 } }, "expected": { "inputTokens": 0, "outputTokens": 0, "costMicrounits": 0, "usageSource": "provider" } }
+  ]
+}

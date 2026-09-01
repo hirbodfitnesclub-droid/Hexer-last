@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, type Variants } from 'motion/react';
 import { ONBOARDING_SLIDES } from '../data/slides';
 import SlideCard from './SlideCard';
 import { ChevronRightIcon, ChevronLeftIcon } from '../../../components/icons';
@@ -32,7 +32,7 @@ export const SlideViewer: React.FC<SlideViewerProps> = ({ onFinish, onSkip }) =>
   const currentSlide = ONBOARDING_SLIDES[currentIndex];
 
   // Motion animation parameters for beautiful and fluid walkthrough transitions
-  const slideVariants = {
+  const slideVariants: Variants = {
     enter: (dir: number) => ({
       x: dir > 0 ? 80 : -80,
       opacity: 0

@@ -1,0 +1,455 @@
+{
+  "behavior": "server-feature-flag-resolution",
+  "minimumScenarios": 20,
+  "scenarios": [
+    {
+      "id": "flags-001",
+      "input": {
+        "flag": null,
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "enabled": false,
+        "reason": "missing"
+      }
+    },
+    {
+      "id": "flags-002",
+      "input": {
+        "flag": {
+          "stage": "off",
+          "enabled": true,
+          "rollout_percent": 100
+        },
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "enabled": false,
+        "reason": "inactive"
+      }
+    },
+    {
+      "id": "flags-003",
+      "input": {
+        "flag": {
+          "stage": "active",
+          "enabled": false,
+          "rollout_percent": 100
+        },
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "enabled": false,
+        "reason": "inactive"
+      }
+    },
+    {
+      "id": "flags-004",
+      "input": {
+        "flag": {
+          "stage": "active",
+          "enabled": true,
+          "rollout_percent": 100,
+          "starts_at": "2026-08-21T00:00:00Z"
+        },
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "enabled": false,
+        "reason": "inactive"
+      }
+    },
+    {
+      "id": "flags-005",
+      "input": {
+        "flag": {
+          "stage": "active",
+          "enabled": true,
+          "rollout_percent": 100,
+          "expires_at": "2026-08-20T00:00:00Z"
+        },
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "enabled": false,
+        "reason": "inactive"
+      }
+    },
+    {
+      "id": "flags-006",
+      "input": {
+        "flag": {
+          "stage": "active",
+          "enabled": true,
+          "rollout_percent": 100
+        },
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "enabled": true,
+        "reason": "enabled"
+      }
+    },
+    {
+      "id": "flags-007",
+      "input": {
+        "flag": {
+          "stage": "gradual",
+          "enabled": true,
+          "rollout_percent": 0
+        },
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "enabled": false,
+        "reason": "rollout"
+      }
+    },
+    {
+      "id": "flags-008",
+      "input": {
+        "flag": {
+          "stage": "gradual",
+          "enabled": true,
+          "rollout_percent": -10
+        },
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "enabled": false,
+        "reason": "rollout",
+        "rolloutPercent": 0
+      }
+    },
+    {
+      "id": "flags-009",
+      "input": {
+        "flag": {
+          "stage": "gradual",
+          "enabled": true,
+          "rollout_percent": 150
+        },
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "enabled": true,
+        "reason": "enabled",
+        "rolloutPercent": 100
+      }
+    },
+    {
+      "id": "flags-010",
+      "input": {
+        "flag": {
+          "stage": "gradual",
+          "enabled": true,
+          "rollout_percent": "nan"
+        },
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "enabled": false,
+        "rolloutPercent": 0
+      }
+    },
+    {
+      "id": "flags-011",
+      "input": {
+        "flag": {
+          "stage": "active",
+          "enabled": true,
+          "rollout_percent": 100
+        },
+        "override": {
+          "enabled": false
+        },
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "enabled": false,
+        "reason": "override"
+      }
+    },
+    {
+      "id": "flags-012",
+      "input": {
+        "flag": {
+          "stage": "off",
+          "enabled": false,
+          "rollout_percent": 0
+        },
+        "override": {
+          "enabled": true,
+          "stage": "canary_write"
+        },
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "enabled": false,
+        "reason": "inactive"
+      }
+    },
+    {
+      "id": "flags-013",
+      "input": {
+        "flag": {
+          "stage": "suggestion",
+          "enabled": true,
+          "rollout_percent": 0
+        },
+        "override": {
+          "enabled": true,
+          "stage": "canary_write"
+        },
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "enabled": true,
+        "stage": "canary_write",
+        "reason": "override"
+      }
+    },
+    {
+      "id": "flags-014",
+      "input": {
+        "flag": {
+          "stage": "active",
+          "enabled": true,
+          "rollout_percent": 100
+        },
+        "override": {
+          "enabled": false,
+          "expires_at": "2026-08-19T00:00:00Z"
+        },
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "enabled": true,
+        "reason": "enabled"
+      }
+    },
+    {
+      "id": "flags-015",
+      "input": {
+        "flag": {
+          "stage": "active",
+          "enabled": true,
+          "rollout_percent": 100,
+          "config": {
+            "a": 1,
+            "b": 1
+          }
+        },
+        "override": {
+          "config": {
+            "b": 2,
+            "c": 3
+          }
+        },
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "config": {
+          "a": 1,
+          "b": 2,
+          "c": 3
+        },
+        "reason": "override"
+      }
+    },
+    {
+      "id": "flags-016",
+      "input": {
+        "flag": {
+          "stage": "active",
+          "enabled": true,
+          "rollout_percent": 100
+        },
+        "userId": "u1",
+        "now": "invalid"
+      },
+      "expected": {
+        "enabled": false,
+        "reason": "inactive"
+      }
+    },
+    {
+      "id": "flags-017",
+      "input": {
+        "flag": {
+          "stage": "active",
+          "enabled": true,
+          "rollout_percent": 100,
+          "starts_at": "invalid"
+        },
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "enabled": false,
+        "reason": "inactive"
+      }
+    },
+    {
+      "id": "flags-018",
+      "input": {
+        "flag": {
+          "stage": "active",
+          "enabled": true,
+          "rollout_percent": 100,
+          "expires_at": "invalid"
+        },
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "enabled": false,
+        "reason": "inactive"
+      }
+    },
+    {
+      "id": "flags-019",
+      "input": {
+        "flag": {
+          "stage": "shadow",
+          "enabled": true,
+          "rollout_percent": 100
+        },
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "enabled": true,
+        "stage": "shadow"
+      }
+    },
+    {
+      "id": "flags-020",
+      "input": {
+        "flag": {
+          "stage": "deprecated",
+          "enabled": true,
+          "rollout_percent": 100
+        },
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "enabled": true,
+        "stage": "deprecated"
+      }
+    },
+    {
+      "id": "flags-021",
+      "input": {
+        "flag": {
+          "stage": "canary_write",
+          "enabled": false,
+          "rollout_percent": 0
+        },
+        "override": {
+          "enabled": true,
+          "stage": "canary_write"
+        },
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "enabled": true,
+        "stage": "canary_write",
+        "reason": "override"
+      }
+    },
+    {
+      "id": "flags-022",
+      "input": {
+        "flag": {
+          "stage": "canary_write",
+          "enabled": false,
+          "rollout_percent": 0
+        },
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "enabled": false,
+        "reason": "inactive"
+      }
+    },
+    {
+      "id": "flags-023",
+      "input": {
+        "flag": {
+          "stage": "canary_write",
+          "enabled": false,
+          "rollout_percent": 100,
+          "expires_at": "2026-08-19T00:00:00Z"
+        },
+        "override": {
+          "enabled": true
+        },
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "enabled": false,
+        "reason": "inactive"
+      }
+    },
+    {
+      "id": "flags-024",
+      "input": {
+        "flag": {
+          "stage": "suggestion",
+          "enabled": false,
+          "rollout_percent": 0
+        },
+        "override": {
+          "enabled": false
+        },
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "enabled": false,
+        "reason": "override"
+      }
+    },
+    {
+      "id": "flags-025",
+      "input": {
+        "flag": {
+          "stage": "canary_write",
+          "enabled": false,
+          "rollout_percent": 0
+        },
+        "override": {
+          "stage": "off",
+          "enabled": true
+        },
+        "userId": "u1",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": {
+        "enabled": false,
+        "stage": "off",
+        "reason": "override"
+      }
+    }
+  ]
+}

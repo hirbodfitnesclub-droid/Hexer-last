@@ -1,0 +1,29 @@
+{
+  "behavior": "agent-reversible-task-reminder-tools",
+  "minimumScenarios": 20,
+  "scenarios": [
+    { "id": "reversible-tools-001", "input": "REOPEN_TASK", "params": { "taskTitle": "گزارش" }, "expected": true },
+    { "id": "reversible-tools-002", "input": "REOPEN_TASK", "params": { "taskId": "11111111-1111-4111-8111-111111111111" }, "expected": true },
+    { "id": "reversible-tools-003", "input": "REOPEN_TASK", "params": { "title": "خرید" }, "expected": true },
+    { "id": "reversible-tools-004", "input": "REOPEN_TASK", "params": { "taskTitle": 12 }, "expected": false },
+    { "id": "reversible-tools-005", "input": "REOPEN_TASK", "params": { "taskTitle": "گزارش", "force": true }, "expected": false },
+
+    { "id": "reversible-tools-006", "input": "UPDATE_TASK_CHECKLIST", "params": { "taskTitle": "خرید", "updates": { "checklist": [{ "text": "شیر", "isCompleted": false }] } }, "expected": true },
+    { "id": "reversible-tools-007", "input": "UPDATE_TASK_CHECKLIST", "params": { "taskId": "11111111-1111-4111-8111-111111111111", "updates": { "checklist": [] } }, "expected": true },
+    { "id": "reversible-tools-008", "input": "UPDATE_TASK_CHECKLIST", "params": { "title": "گزارش", "updates": { "checklist": [{ "id": "item-1", "text": "بازبینی", "isCompleted": true }] } }, "expected": true },
+    { "id": "reversible-tools-009", "input": "UPDATE_TASK_CHECKLIST", "params": { "taskTitle": "خرید" }, "expected": false },
+    { "id": "reversible-tools-010", "input": "UPDATE_TASK_CHECKLIST", "params": { "taskTitle": "خرید", "updates": { "checklist": [{ "text": "" }] } }, "expected": false },
+
+    { "id": "reversible-tools-011", "input": "SNOOZE_REMINDER", "params": { "reminderTitle": "جلسه", "remindAt": "2026-08-21T10:00:00+03:30" }, "expected": true },
+    { "id": "reversible-tools-012", "input": "SNOOZE_REMINDER", "params": { "reminderId": "11111111-1111-4111-8111-111111111111", "remindAt": "2026-08-22T08:00:00Z" }, "expected": true },
+    { "id": "reversible-tools-013", "input": "SNOOZE_REMINDER", "params": { "reminderTitle": "دارو", "remindAt": "فردا" }, "expected": true },
+    { "id": "reversible-tools-014", "input": "SNOOZE_REMINDER", "params": { "reminderTitle": "جلسه" }, "expected": false },
+    { "id": "reversible-tools-015", "input": "SNOOZE_REMINDER", "params": { "reminderTitle": "جلسه", "remindAt": 123 }, "expected": false },
+
+    { "id": "reversible-tools-016", "input": "MARK_REMINDER_READ", "params": { "reminderTitle": "جلسه", "isRead": true }, "expected": true },
+    { "id": "reversible-tools-017", "input": "MARK_REMINDER_READ", "params": { "reminderId": "11111111-1111-4111-8111-111111111111", "isRead": false }, "expected": true },
+    { "id": "reversible-tools-018", "input": "MARK_REMINDER_READ", "params": { "reminderTitle": "دارو", "isRead": false }, "expected": true },
+    { "id": "reversible-tools-019", "input": "MARK_REMINDER_READ", "params": { "reminderTitle": "جلسه" }, "expected": false },
+    { "id": "reversible-tools-020", "input": "MARK_REMINDER_READ", "params": { "reminderTitle": "جلسه", "isRead": "yes" }, "expected": false }
+  ]
+}

@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getGoogleGenAI, generateEmbedding } from '../_shared/gemini-client.ts';
 import { corsHeaders } from '../_shared/cors.ts';
+import { jsonResponse, requireWorkerSecret, safeErrorResponse } from '../_shared/security.ts';
 
 declare const Deno: any;
 
@@ -10,16 +11,18 @@ Deno.serve(async (req) => {
   }
 
   try {
+    if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405, corsHeaders);
+    await requireWorkerSecret(req, 'VECTORIZE_WORKER_SECRET');
     const payload = await req.json();
     const { type, id } = payload;
-    
-    if (!id || !type) {
-      console.error("Missing payload required fields (id, type):", payload);
-      return new Response(JSON.stringify({ message: "Invalid payload: id or type missing" }), { status: 400, headers: corsHeaders });
+    const validTypes = new Set(['task', 'note', 'project']);
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!validTypes.has(type) || typeof id !== 'string' || !uuidPattern.test(id)) {
+      return jsonResponse({ error: 'Invalid vectorization payload' }, 400, corsHeaders);
     }
 
-    const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!SERVICE_ROLE_KEY) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
+    const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SECRET_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!SERVICE_ROLE_KEY) throw new Error("Missing privileged Supabase key");
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -67,6 +70,9 @@ Deno.serve(async (req) => {
     console.log(`Generating embedding for ${type} ID: ${id} with consistent model...`);
     
     const embeddingValues = await generateEmbedding(ai, combinedText, 'document');
+    if (embeddingValues.length !== 768 || embeddingValues.some((value) => !Number.isFinite(value))) {
+      throw new Error('Embedding contract violation');
+    }
 
     // به‌روزرسانی مقدار برداری رکورد
     const { error: updateError } = await supabaseClient
@@ -83,14 +89,7 @@ Deno.serve(async (req) => {
       status: 200,
     });
 
-  } catch (error: any) {
-    console.error("Vectorize Error Details:", error);
-    return new Response(JSON.stringify({ 
-      error: error.message,
-      stack: error.stack 
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    });
+  } catch (error: unknown) {
+    return safeErrorResponse(error, corsHeaders);
   }
 });

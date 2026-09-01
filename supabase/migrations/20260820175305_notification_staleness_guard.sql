@@ -1,0 +1,2 @@
+-- Historical production marker. The verified final live claim function is reproduced
+-- by 20260824094000_sync_claim_staleness_guard.sql during fresh local bootstraps.

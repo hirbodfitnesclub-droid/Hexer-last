@@ -1,0 +1,264 @@
+{
+  "behavior": "notification-outbox-delivery",
+  "minimumScenarios": 20,
+  "scenarios": [
+    {
+      "id": "outbox-001",
+      "kind": "classify",
+      "input": 410,
+      "expected": {
+        "outcome": "expired",
+        "permanent": true,
+        "errorCode": "push_410"
+      }
+    },
+    {
+      "id": "outbox-002",
+      "kind": "classify",
+      "input": 404,
+      "expected": {
+        "outcome": "expired",
+        "permanent": true,
+        "errorCode": "push_404"
+      }
+    },
+    {
+      "id": "outbox-003",
+      "kind": "classify",
+      "input": 400,
+      "expected": {
+        "outcome": "failed",
+        "permanent": true,
+        "errorCode": "push_400"
+      }
+    },
+    {
+      "id": "outbox-004",
+      "kind": "classify",
+      "input": 403,
+      "expected": {
+        "outcome": "failed",
+        "permanent": true,
+        "errorCode": "push_403"
+      }
+    },
+    {
+      "id": "outbox-005",
+      "kind": "classify",
+      "input": 413,
+      "expected": {
+        "outcome": "failed",
+        "permanent": true,
+        "errorCode": "push_413"
+      }
+    },
+    {
+      "id": "outbox-006",
+      "kind": "classify",
+      "input": 408,
+      "expected": {
+        "outcome": "failed",
+        "permanent": false,
+        "errorCode": "push_408"
+      }
+    },
+    {
+      "id": "outbox-007",
+      "kind": "classify",
+      "input": 429,
+      "expected": {
+        "outcome": "failed",
+        "permanent": false,
+        "errorCode": "push_429"
+      }
+    },
+    {
+      "id": "outbox-008",
+      "kind": "classify",
+      "input": 500,
+      "expected": {
+        "outcome": "failed",
+        "permanent": false,
+        "errorCode": "push_500"
+      }
+    },
+    {
+      "id": "outbox-009",
+      "kind": "classify",
+      "input": 503,
+      "expected": {
+        "outcome": "failed",
+        "permanent": false,
+        "errorCode": "push_503"
+      }
+    },
+    {
+      "id": "outbox-010",
+      "kind": "classify",
+      "input": null,
+      "expected": {
+        "outcome": "failed",
+        "permanent": false,
+        "errorCode": "push_unknown"
+      }
+    },
+    {
+      "id": "outbox-011",
+      "kind": "classify",
+      "input": "410",
+      "expected": {
+        "outcome": "failed",
+        "permanent": false,
+        "errorCode": "push_unknown"
+      }
+    },
+    {
+      "id": "outbox-012",
+      "kind": "tally",
+      "input": [
+        {
+          "outcome": "succeeded"
+        }
+      ],
+      "expected": {
+        "succeeded": 1,
+        "failed": 0,
+        "permanent": 0
+      }
+    },
+    {
+      "id": "outbox-013",
+      "kind": "tally",
+      "input": [
+        {
+          "outcome": "failed",
+          "permanent": false,
+          "errorCode": "push_500"
+        }
+      ],
+      "expected": {
+        "succeeded": 0,
+        "failed": 1,
+        "permanent": 0,
+        "lastErrorCode": "push_500"
+      }
+    },
+    {
+      "id": "outbox-014",
+      "kind": "tally",
+      "input": [
+        {
+          "outcome": "expired",
+          "permanent": true,
+          "errorCode": "push_410"
+        }
+      ],
+      "expected": {
+        "succeeded": 0,
+        "failed": 0,
+        "permanent": 1,
+        "lastErrorCode": "push_410"
+      }
+    },
+    {
+      "id": "outbox-015",
+      "kind": "tally",
+      "input": [
+        {
+          "outcome": "succeeded"
+        },
+        {
+          "outcome": "failed",
+          "permanent": false,
+          "errorCode": "push_503"
+        }
+      ],
+      "expected": {
+        "succeeded": 1,
+        "failed": 1,
+        "permanent": 0
+      }
+    },
+    {
+      "id": "outbox-016",
+      "kind": "tally",
+      "input": [
+        {
+          "outcome": "expired",
+          "permanent": true,
+          "errorCode": "push_410"
+        },
+        {
+          "outcome": "expired",
+          "permanent": true,
+          "errorCode": "push_404"
+        }
+      ],
+      "expected": {
+        "succeeded": 0,
+        "failed": 0,
+        "permanent": 2,
+        "lastErrorCode": "push_404"
+      }
+    },
+    {
+      "id": "outbox-017",
+      "kind": "tally",
+      "input": [],
+      "expected": {
+        "succeeded": 0,
+        "failed": 0,
+        "permanent": 0,
+        "lastErrorCode": null
+      }
+    },
+    {
+      "id": "outbox-018",
+      "kind": "taskKey",
+      "input": {
+        "taskId": "t1",
+        "dueDate": "2026-08-21T08:30:00Z"
+      },
+      "expected": "task:t1:1787301000000"
+    },
+    {
+      "id": "outbox-019",
+      "kind": "taskKey",
+      "input": {
+        "taskId": "t1",
+        "dueDate": "2026-08-21T08:30:00.000Z"
+      },
+      "expected": "task:t1:1787301000000"
+    },
+    {
+      "id": "outbox-020",
+      "kind": "reminderKey",
+      "input": {
+        "reminderId": "r1",
+        "remindAt": "2026-08-21T08:30:00Z"
+      },
+      "expected": "reminder:r1:1787301000000"
+    },
+    {
+      "id": "outbox-021",
+      "kind": "nudgeKey",
+      "input": "2026-08-21",
+      "expected": "nudge:2026-08-21"
+    },
+    {
+      "id": "outbox-022",
+      "kind": "taskKeyInvalid",
+      "input": {
+        "taskId": "t1",
+        "dueDate": "not-a-date"
+      },
+      "expected": "throws"
+    },
+    {
+      "id": "outbox-023",
+      "kind": "nudgeKeyInvalid",
+      "input": "2026-8-1",
+      "expected": "throws"
+    }
+  ]
+}

@@ -1,0 +1,444 @@
+{
+  "behavior": "honesty-reply-enforcement",
+  "minimumScenarios": 20,
+  "scenarios": [
+    {
+      "id": "honesty-001",
+      "input": {
+        "intent": "create",
+        "reply": "ساختم",
+        "actionResults": [],
+        "acceptedMutationCount": 0
+      },
+      "expected": {
+        "mode": "full",
+        "replyIncludes": "نتونستم"
+      }
+    },
+    {
+      "id": "honesty-002",
+      "input": {
+        "intent": "create",
+        "reply": "باشه",
+        "actionResults": [],
+        "acceptedMutationCount": 0
+      },
+      "expected": {
+        "mode": "full",
+        "replyIncludes": "عملیات ساخت"
+      }
+    },
+    {
+      "id": "honesty-003",
+      "input": {
+        "intent": "create",
+        "reply": "ایجاد شد",
+        "actionResults": [],
+        "acceptedMutationCount": 1
+      },
+      "expected": {
+        "mode": "full",
+        "replyIncludes": "موفق نبود"
+      }
+    },
+    {
+      "id": "honesty-004",
+      "input": {
+        "intent": "mutate",
+        "reply": "آپدیت کردم",
+        "actionResults": [],
+        "acceptedMutationCount": 1
+      },
+      "expected": {
+        "mode": "full",
+        "replyIncludes": "موفق نبود"
+      }
+    },
+    {
+      "id": "honesty-005",
+      "input": {
+        "intent": "mutate",
+        "reply": "تکمیل شد",
+        "actionResults": [],
+        "failureHints": [
+          "ambiguous"
+        ]
+      },
+      "expected": {
+        "mode": "full",
+        "replyIncludes": "چند تسک"
+      }
+    },
+    {
+      "id": "honesty-006",
+      "input": {
+        "intent": "mutate",
+        "reply": "انجام شد",
+        "actionResults": [],
+        "failureHints": [
+          "not_found"
+        ]
+      },
+      "expected": {
+        "mode": "full",
+        "replyIncludes": "پیدا نشد"
+      }
+    },
+    {
+      "id": "honesty-007",
+      "input": {
+        "intent": "mutate",
+        "reply": "انجام شد",
+        "actionResults": [],
+        "failureHints": [
+          "policy_rejected"
+        ]
+      },
+      "expected": {
+        "mode": "full",
+        "replyIncludes": "مجاز نبود"
+      }
+    },
+    {
+      "id": "honesty-008",
+      "input": {
+        "intent": "create",
+        "reply": "دو مورد ساختم",
+        "actionResults": [
+          {
+            "operation": "create"
+          }
+        ],
+        "acceptedMutationCount": 2
+      },
+      "expected": {
+        "mode": "partial",
+        "replyIncludes": "1 مورد"
+      }
+    },
+    {
+      "id": "honesty-009",
+      "input": {
+        "intent": "mutate",
+        "reply": "همه انجام شد",
+        "actionResults": [
+          {
+            "operation": "update"
+          }
+        ],
+        "acceptedMutationCount": 3
+      },
+      "expected": {
+        "mode": "partial",
+        "replyIncludes": "2 مورد انجام نشد"
+      }
+    },
+    {
+      "id": "honesty-010",
+      "input": {
+        "intent": "create",
+        "reply": "ساختم",
+        "actionResults": [
+          {
+            "operation": "create"
+          }
+        ],
+        "acceptedMutationCount": 1
+      },
+      "expected": {
+        "mode": "none",
+        "replyIncludes": "ساختم"
+      }
+    },
+    {
+      "id": "honesty-011",
+      "input": {
+        "intent": "mutate",
+        "reply": "تسک تکمیل شد",
+        "actionResults": [
+          {
+            "operation": "update"
+          }
+        ],
+        "acceptedMutationCount": 1
+      },
+      "expected": {
+        "mode": "none",
+        "replyIncludes": "تکمیل شد"
+      }
+    },
+    {
+      "id": "honesty-012",
+      "input": {
+        "intent": "chat",
+        "reply": "سلام!",
+        "actionResults": []
+      },
+      "expected": {
+        "mode": "none",
+        "replyIncludes": "سلام"
+      }
+    },
+    {
+      "id": "honesty-013",
+      "input": {
+        "intent": "search",
+        "reply": "چیزی پیدا نکردم",
+        "actionResults": []
+      },
+      "expected": {
+        "mode": "none",
+        "replyIncludes": "پیدا نکردم"
+      }
+    },
+    {
+      "id": "honesty-014",
+      "input": {
+        "intent": "link",
+        "reply": "پیشنهادها آماده‌اند",
+        "actionResults": [
+          {
+            "operation": "suggest_link"
+          }
+        ]
+      },
+      "expected": {
+        "mode": "none",
+        "replyIncludes": "آماده"
+      }
+    },
+    {
+      "id": "honesty-015",
+      "input": {
+        "intent": "extract",
+        "reply": "پیش‌نویس آماده است",
+        "actionResults": []
+      },
+      "expected": {
+        "mode": "none",
+        "replyIncludes": "پیش‌نویس"
+      }
+    },
+    {
+      "id": "honesty-016",
+      "input": {
+        "intent": "create",
+        "reply": "ساختم 550e8400-e29b-41d4-a716-446655440000",
+        "actionResults": [
+          {
+            "operation": "create"
+          }
+        ],
+        "acceptedMutationCount": 1
+      },
+      "expected": {
+        "mode": "none",
+        "replyExcludes": "550e8400"
+      }
+    },
+    {
+      "id": "honesty-017",
+      "input": {
+        "intent": "mutate",
+        "reply": "[TASK] انجام شد",
+        "actionResults": [
+          {
+            "operation": "update"
+          }
+        ],
+        "acceptedMutationCount": 1
+      },
+      "expected": {
+        "mode": "none",
+        "replyExcludes": "[TASK]"
+      }
+    },
+    {
+      "id": "honesty-018",
+      "input": {
+        "intent": "create",
+        "reply": "#internal ساخته شد",
+        "actionResults": [
+          {
+            "operation": "create"
+          }
+        ],
+        "acceptedMutationCount": 1
+      },
+      "expected": {
+        "mode": "none",
+        "replyExcludes": "#internal"
+      }
+    },
+    {
+      "id": "honesty-019",
+      "input": {
+        "intent": "create",
+        "reply": "",
+        "actionResults": [
+          {
+            "operation": "create"
+          }
+        ],
+        "acceptedMutationCount": 1
+      },
+      "expected": {
+        "mode": "none",
+        "replyIncludes": "موفقیت"
+      }
+    },
+    {
+      "id": "honesty-020",
+      "input": {
+        "intent": "chat",
+        "reply": "",
+        "actionResults": []
+      },
+      "expected": {
+        "mode": "none",
+        "replyIncludes": "در خدمتم"
+      }
+    },
+    {
+      "id": "honesty-021",
+      "input": {
+        "intent": "create",
+        "reply": "همه ساختم",
+        "actionResults": [
+          {
+            "operation": "suggest_link"
+          }
+        ],
+        "acceptedMutationCount": 1
+      },
+      "expected": {
+        "mode": "full",
+        "replyIncludes": "موفق نبود"
+      }
+    },
+    {
+      "id": "honesty-022",
+      "input": {
+        "intent": "mutate",
+        "reply": "انجام دادم",
+        "actionResults": null,
+        "hadAcceptedActions": true
+      },
+      "expected": {
+        "mode": "full",
+        "replyIncludes": "موفق نبود"
+      }
+    },
+    {
+      "id": "honesty-023",
+      "input": {
+        "intent": "create",
+        "reply": null,
+        "actionResults": [],
+        "acceptedMutationCount": 0
+      },
+      "expected": {
+        "mode": "full",
+        "replyIncludes": "واضح‌تر"
+      }
+    },
+    {
+      "id": "honesty-024",
+      "input": {
+        "intent": "mutate",
+        "reply": "done",
+        "actionResults": [
+          {
+            "operation": "update"
+          },
+          {
+            "operation": "update"
+          }
+        ],
+        "acceptedMutationCount": 2
+      },
+      "expected": {
+        "mode": "none",
+        "replyIncludes": "done"
+      }
+    },
+    {
+      "id": "honesty-025",
+      "input": {
+        "intent": "chat",
+        "reply": "تسک «واریز پول مکمل» برای فردا با موفقیت ایجاد شد.",
+        "actionResults": [],
+        "acceptedMutationCount": 0
+      },
+      "expected": {
+        "mode": "full",
+        "replyExcludes": "ایجاد شد"
+      }
+    },
+    {
+      "id": "honesty-026",
+      "input": {
+        "intent": "search",
+        "reply": "یادآورت تنظیم شد!",
+        "actionResults": [],
+        "acceptedMutationCount": 0
+      },
+      "expected": {
+        "mode": "full",
+        "replyExcludes": "تنظیم شد"
+      }
+    },
+    {
+      "id": "honesty-027",
+      "input": {
+        "intent": "chat",
+        "reply": "یادت هست گفتی یادآور بذارم؟ الان انجام شد.",
+        "actionResults": [],
+        "acceptedMutationCount": 0
+      },
+      "expected": {
+        "mode": "full",
+        "replyExcludes": "انجام شد"
+      }
+    },
+    {
+      "id": "honesty-028",
+      "input": {
+        "intent": "chat",
+        "reply": "حله، تکمیلش کردم.",
+        "actionResults": [
+          {
+            "operation": "complete"
+          }
+        ],
+        "acceptedMutationCount": 0
+      },
+      "expected": {
+        "mode": "none",
+        "replyIncludes": "تکمیلش کردم"
+      }
+    },
+    {
+      "id": "honesty-029",
+      "input": {
+        "intent": "mutate",
+        "reply": "هر دو تسک را به‌روز کردم.",
+        "actionResults": [
+          {
+            "operation": "update"
+          },
+          {
+            "operation": "update"
+          },
+          {
+            "operation": "update"
+          }
+        ],
+        "acceptedMutationCount": 3
+      },
+      "expected": {
+        "mode": "none"
+      }
+    }
+  ]
+}

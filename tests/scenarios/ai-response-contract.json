@@ -1,0 +1,31 @@
+{
+  "behavior": "strict-ai-response-contract",
+  "minimumScenarios": 20,
+  "scenarios": [
+    { "id": "contract-001", "input": { "transcription": "", "reply": "سلام", "actions": [], "proposals": [] }, "expected": true },
+    { "id": "contract-002", "input": { "transcription": "", "reply": "", "actions": [{ "action": "CREATE_TASK", "params": { "title": "خرید" } }], "proposals": [] }, "expected": true },
+    { "id": "contract-003", "input": { "transcription": "", "reply": "", "actions": [{ "action": "CREATE_NOTE", "params": { "title": "ایده", "content": null, "tags": ["کار"] } }], "proposals": [] }, "expected": true },
+    { "id": "contract-004", "input": { "transcription": "", "reply": "", "actions": [{ "action": "CREATE_PROJECT", "params": { "title": "سایت", "priority": "high" } }], "proposals": [] }, "expected": true },
+    { "id": "contract-005", "input": { "transcription": "", "reply": "", "actions": [{ "action": "CREATE_HABIT", "params": { "name": "مطالعه", "target_count": 1 } }], "proposals": [] }, "expected": true },
+    { "id": "contract-006", "input": { "transcription": "", "reply": "", "actions": [{ "action": "SUGGEST_LINK", "params": { "queryText": "ورزش" } }], "proposals": [] }, "expected": true },
+    { "id": "contract-007", "input": { "transcription": "", "reply": "", "actions": [{ "action": "UPDATE_TASK", "params": { "title": "خرید", "updates": { "priority": "low" } } }], "proposals": [] }, "expected": true },
+    { "id": "contract-008", "input": { "transcription": "", "reply": "", "actions": [{ "action": "COMPLETE_TASK", "params": { "taskId": null, "title": "خرید" } }], "proposals": [] }, "expected": true },
+    { "id": "contract-009", "input": { "transcription": "متن", "reply": "پیش‌نویس", "actions": [], "proposals": [{ "kind": "task", "draft": { "title": "کار", "priority": "medium" }, "confidence": 0.9 }] }, "expected": true },
+    { "id": "contract-010", "input": null, "expected": false },
+    { "id": "contract-011", "input": [], "expected": false },
+    { "id": "contract-012", "input": { "reply": "سلام", "actions": [], "proposals": [] }, "expected": false },
+    { "id": "contract-013", "input": { "transcription": "", "reply": "سلام", "actions": [], "proposals": [], "extra": true }, "expected": false },
+    { "id": "contract-014", "input": { "transcription": "", "reply": 1, "actions": [], "proposals": [] }, "expected": false },
+    { "id": "contract-015", "input": { "transcription": "", "reply": "", "actions": {}, "proposals": [] }, "expected": false },
+    { "id": "contract-016", "input": { "transcription": "", "reply": "", "actions": [{ "action": "DELETE_TASK", "params": {} }], "proposals": [] }, "expected": false },
+    { "id": "contract-017", "input": { "transcription": "", "reply": "", "actions": [{ "action": "CREATE_TASK", "params": {} }], "proposals": [] }, "expected": false },
+    { "id": "contract-018", "input": { "transcription": "", "reply": "", "actions": [{ "action": "CREATE_TASK", "params": { "title": " " } }], "proposals": [] }, "expected": false },
+    { "id": "contract-019", "input": { "transcription": "", "reply": "", "actions": [{ "action": "CREATE_TASK", "params": { "title": "کار", "priority": "urgent" } }], "proposals": [] }, "expected": false },
+    { "id": "contract-020", "input": { "transcription": "", "reply": "", "actions": [{ "action": "CREATE_TASK", "params": { "title": "کار", "tags": [1] } }], "proposals": [] }, "expected": false },
+    { "id": "contract-021", "input": { "transcription": "", "reply": "", "actions": [{ "action": "CREATE_TASK", "params": { "title": "کار", "checklist": ["زیرکار"] } }], "proposals": [] }, "expected": false },
+    { "id": "contract-022", "input": { "transcription": "", "reply": "", "actions": [{ "action": "UPDATE_TASK", "params": { "title": "کار", "updates": {} } }], "proposals": [] }, "expected": false },
+    { "id": "contract-023", "input": { "transcription": "", "reply": "", "actions": [{ "action": "CREATE_NOTE", "params": { "title": "نوت", "secret": true } }], "proposals": [] }, "expected": false },
+    { "id": "contract-024", "input": { "transcription": "", "reply": "", "actions": [], "proposals": [{ "kind": "task", "draft": { "title": "کار" }, "confidence": 1.2 }] }, "expected": false },
+    { "id": "contract-025", "input": { "transcription": "", "reply": "", "actions": [], "proposals": [{ "kind": "event", "draft": { "title": "کار" }, "confidence": 0.8 }] }, "expected": false }
+  ]
+}

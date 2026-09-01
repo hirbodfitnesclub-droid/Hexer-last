@@ -1,0 +1,196 @@
+{
+  "behavior": "voice-recorder-constraints",
+  "minimumScenarios": 20,
+  "scenarios": [
+    {
+      "id": "rec-mime-001",
+      "kind": "select",
+      "input": [
+        "audio/webm;codecs=opus",
+        "audio/webm"
+      ],
+      "expected": "audio/webm;codecs=opus"
+    },
+    {
+      "id": "rec-mime-002",
+      "kind": "select",
+      "input": [
+        "audio/webm"
+      ],
+      "expected": "audio/webm"
+    },
+    {
+      "id": "rec-mime-003",
+      "kind": "select",
+      "input": [
+        "audio/ogg;codecs=opus"
+      ],
+      "expected": "audio/ogg;codecs=opus"
+    },
+    {
+      "id": "rec-mime-004",
+      "kind": "select",
+      "input": [
+        "audio/mp4"
+      ],
+      "expected": "audio/mp4"
+    },
+    {
+      "id": "rec-mime-005",
+      "kind": "select",
+      "input": [
+        "audio/mpeg"
+      ],
+      "expected": "audio/mpeg"
+    },
+    {
+      "id": "rec-mime-006",
+      "kind": "select",
+      "input": [],
+      "expected": null
+    },
+    {
+      "id": "rec-mime-007",
+      "kind": "select",
+      "input": [
+        "audio/flac"
+      ],
+      "expected": null
+    },
+    {
+      "id": "rec-mime-008",
+      "kind": "base",
+      "input": "audio/webm;codecs=opus",
+      "expected": "audio/webm"
+    },
+    {
+      "id": "rec-mime-009",
+      "kind": "base",
+      "input": "AUDIO/OGG; codecs=opus",
+      "expected": "audio/ogg"
+    },
+    {
+      "id": "rec-mime-010",
+      "kind": "base",
+      "input": null,
+      "expected": "audio/webm"
+    },
+    {
+      "id": "rec-mime-011",
+      "kind": "ext",
+      "input": "audio/webm",
+      "expected": "webm"
+    },
+    {
+      "id": "rec-mime-012",
+      "kind": "ext",
+      "input": "audio/ogg;codecs=opus",
+      "expected": "ogg"
+    },
+    {
+      "id": "rec-mime-013",
+      "kind": "ext",
+      "input": "audio/mp4",
+      "expected": "m4a"
+    },
+    {
+      "id": "rec-mime-014",
+      "kind": "ext",
+      "input": "audio/mpeg",
+      "expected": "mp3"
+    },
+    {
+      "id": "rec-mime-015",
+      "kind": "ext",
+      "input": "audio/wav",
+      "expected": "wav"
+    },
+    {
+      "id": "rec-mime-016",
+      "kind": "ext",
+      "input": null,
+      "expected": "webm"
+    },
+    {
+      "id": "rec-mime-017",
+      "kind": "error",
+      "input": "NotAllowedError",
+      "expected": "permission_denied"
+    },
+    {
+      "id": "rec-mime-018",
+      "kind": "error",
+      "input": "SecurityError",
+      "expected": "permission_denied"
+    },
+    {
+      "id": "rec-mime-019",
+      "kind": "error",
+      "input": "NotFoundError",
+      "expected": "no_device"
+    },
+    {
+      "id": "rec-mime-020",
+      "kind": "error",
+      "input": "OverconstrainedError",
+      "expected": "no_device"
+    },
+    {
+      "id": "rec-mime-021",
+      "kind": "error",
+      "input": "NotReadableError",
+      "expected": "recorder_error"
+    },
+    {
+      "id": "rec-mime-022",
+      "kind": "error",
+      "input": "TypeError",
+      "expected": "unsupported"
+    },
+    {
+      "id": "rec-mime-023",
+      "kind": "validate",
+      "input": {
+        "size": 0,
+        "durationMs": 100
+      },
+      "expected": "empty"
+    },
+    {
+      "id": "rec-mime-024",
+      "kind": "validate",
+      "input": {
+        "size": 1024,
+        "durationMs": 121000
+      },
+      "expected": "too_long"
+    },
+    {
+      "id": "rec-mime-025",
+      "kind": "validate",
+      "input": {
+        "size": 9000000,
+        "durationMs": 5000
+      },
+      "expected": "too_large"
+    },
+    {
+      "id": "rec-mime-026",
+      "kind": "validate",
+      "input": {
+        "size": 1024,
+        "durationMs": 5000
+      },
+      "expected": null
+    },
+    {
+      "id": "rec-mime-027",
+      "kind": "validate",
+      "input": {
+        "size": 8388608,
+        "durationMs": 120000
+      },
+      "expected": null
+    }
+  ]
+}

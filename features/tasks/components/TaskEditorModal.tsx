@@ -12,6 +12,14 @@ import { useData } from '../../../contexts/DataContext';
 import { getLinkedNotes, unlinkTaskNote, linkTaskNote } from '../../../services/linkService';
 import { LinkNotePicker } from './LinkNotePicker';
 import { RecurrencePickerModal } from './RecurrencePickerModal';
+import { RecurrenceScopeSheet } from './RecurrenceScopeSheet';
+import {
+  countFutureOpenOccurrences,
+  needsScopeChoice,
+  resolveKeepCurrent,
+  sendsRecurrenceRule,
+  type RecurrenceScopeChoice,
+} from '../recurrenceScopeDecisions';
 import {
   buildNextRecurrence,
   computeNextDueDate,
@@ -72,9 +80,19 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
   const [linkedNotes, setLinkedNotes] = useState<Note[]>([]);
   const [pendingLinkIds, setPendingLinkIds] = useState<string[]>([]);
   const [recurrenceOpen, setRecurrenceOpen] = useState(false);
+  const [scopeSheetOpen, setScopeSheetOpen] = useState(false);
+  const [busyScope, setBusyScope] = useState<RecurrenceScopeChoice | null>(null);
 
   const isNew = !('id' in task);
-  const { skipRecurrenceOccurrence } = useData();
+  const { skipRecurrenceOccurrence, runRecurrenceScope, tasks: allTasks } = useData();
+
+  /** Open occurrences after this one, so a destructive choice can state its blast radius. */
+  const futureOpenCount = React.useMemo(() => countFutureOpenOccurrences({
+    tasks: allTasks,
+    seriesId: formState.recurrence_series_id,
+    currentId: formState.id,
+    dueDate: formState.due_date,
+  }), [allTasks, formState.recurrence_series_id, formState.due_date, formState.id]);
 
   // Load linked notes
   const loadLinks = async () => {
@@ -246,6 +264,20 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
   const handleSave = async () => {
     if (!formState.title?.trim()) return;
 
+    // Editing a task that repeats is ambiguous: this occurrence, or the series? Ask
+    // instead of guessing. New tasks and non-repeating tasks save directly.
+    if (needsScopeChoice({
+      isNew,
+      recurrence: formState.recurrence,
+      seriesId: formState.recurrence_series_id,
+    })) {
+      setScopeSheetOpen(true);
+      return;
+    }
+    await commitSave();
+  };
+
+  const commitSave = async () => {
     let finalDueDate: string | null = null;
 
     // B4: never browser-local setHours — compose ISO in Asia/Tehran wall-clock
@@ -274,6 +306,87 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
       console.error('Error saving task and committing links:', err);
       // Keep modal open on failure so the user does not lose in-progress edits.
     }
+  };
+
+  /**
+   * Applies the user's scope choice. Each branch goes to the server RPC, which owns the
+   * transaction; a refusal falls through to the legacy single-row save so the edit is
+   * never silently lost.
+   */
+  const handleScopeChoice = async (
+    choice: RecurrenceScopeChoice,
+    options?: { keepCurrent?: boolean }
+  ) => {
+    if (!formState.id) return;
+    const current = allTasks.find(t => t.id === formState.id);
+    if (!current) return;
+
+    setBusyScope(choice);
+    try {
+      if (choice === 'skip') {
+        await skipRecurrenceOccurrence(formState.id);
+        setScopeSheetOpen(false);
+        onClose();
+        return;
+      }
+
+      if (choice === 'stop') {
+        const outcome = await runRecurrenceScope({
+          task: current,
+          operation: 'stop',
+          keepCurrent: resolveKeepCurrent(options?.keepCurrent),
+        });
+        if (outcome === 'fallback') {
+          // Without the server path, clearing the rule locally is the honest equivalent.
+          await onSave({ id: formState.id, recurrence: null, recurrence_series_id: null });
+        }
+        setScopeSheetOpen(false);
+        onClose();
+        return;
+      }
+
+      const updates = buildScopeUpdates();
+      const outcome = await runRecurrenceScope({
+        task: current,
+        operation: choice,
+        updates,
+        ...(sendsRecurrenceRule(choice)
+          ? { recurrence: (normalizeRecurrence(formState.recurrence) ?? null) as Record<string, unknown> | null }
+          : {}),
+      });
+      if (outcome === 'fallback') {
+        await commitSave();
+        return;
+      }
+      setScopeSheetOpen(false);
+      onClose();
+    } catch (err) {
+      console.error('Recurrence scope operation failed:', err);
+    } finally {
+      setBusyScope(null);
+    }
+  };
+
+  /** Only the fields the recurrence RPC accepts, resolved to Tehran wall-clock. */
+  const buildScopeUpdates = (): Record<string, unknown> => {
+    let finalDueDate: string | null = null;
+    if (hasDate && formState.due_date) {
+      const ymd = getTehranDateString(new Date(formState.due_date));
+      const [h, m] = hasTime ? selectedTime.split(':').map(Number) : [12, 0];
+      finalDueDate = tehranDayAtWallClock(ymd, h || 0, m || 0, 0);
+    }
+    return {
+      title: formState.title,
+      description: formState.description ?? null,
+      priority: formState.priority,
+      project_id: formState.project_id ?? null,
+      tags: formState.tags ?? [],
+      checklist: formState.checklist ?? [],
+      // Always send the resolved value — including an explicit null — so "user cleared
+      // the date" actually clears it on the server instead of keeping the old SQL
+      // default (QA ISSUE_04-E: UI showed removed, DB kept the old date).
+      due_date: finalDueDate,
+    };
   };
 
   const handleDelete = () => {
@@ -812,6 +925,17 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
         onClose={() => setRecurrenceOpen(false)}
         anchorDueDate={formState.due_date}
       />
+
+      {scopeSheetOpen && 'id' in formState && (
+        <RecurrenceScopeSheet
+          isOpen={scopeSheetOpen}
+          task={formState as Task}
+          futureOpenCount={futureOpenCount}
+          busyChoice={busyScope}
+          onChoose={handleScopeChoice}
+          onClose={() => setScopeSheetOpen(false)}
+        />
+      )}
     </div>
   );
 };

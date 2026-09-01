@@ -1,0 +1,26 @@
+{
+  "behavior": "openrouter-audio-input-format",
+  "minimumScenarios": 20,
+  "scenarios": [
+    { "id": "audio-001", "path": "u/a.webm", "mime": "audio/webm", "expected": "webm" },
+    { "id": "audio-002", "path": "u/a.WEBM", "expected": "webm" },
+    { "id": "audio-003", "path": "u/a.mp3", "mime": "audio/mpeg", "expected": "mp3" },
+    { "id": "audio-004", "path": "u/a.bin", "mime": "audio/mp3", "expected": "mp3" },
+    { "id": "audio-005", "path": "u/a.wav", "mime": "audio/wav", "expected": "wav" },
+    { "id": "audio-006", "path": "u/a.bin", "mime": "audio/x-wav", "expected": "wav" },
+    { "id": "audio-007", "path": "u/a.bin", "mime": "audio/wave", "expected": "wav" },
+    { "id": "audio-008", "path": "u/a.ogg", "mime": "audio/ogg", "expected": "ogg" },
+    { "id": "audio-009", "path": "u/a.oga", "expected": "ogg" },
+    { "id": "audio-010", "path": "u/a.m4a", "mime": "audio/mp4", "expected": "m4a" },
+    { "id": "audio-011", "path": "u/a.bin", "mime": "audio/m4a", "expected": "m4a" },
+    { "id": "audio-012", "path": "u/a.bin", "mime": "audio/x-m4a", "expected": "m4a" },
+    { "id": "audio-013", "path": "u/a.mp4", "expected": "m4a" },
+    { "id": "audio-014", "path": "u/a.mp3?download=1", "expected": "mp3" },
+    { "id": "audio-015", "path": "u/a.ogg#voice", "expected": "ogg" },
+    { "id": "audio-016", "path": "u/a.webm", "mime": "audio/webm; codecs=opus", "expected": "webm" },
+    { "id": "audio-017", "path": "u/a.txt", "mime": "application/octet-stream", "error": "Unsupported audio format" },
+    { "id": "audio-018", "path": "u/a.aac", "mime": "audio/aac", "error": "Unsupported audio format" },
+    { "id": "audio-019", "path": "u/no-extension", "error": "Unsupported audio format" },
+    { "id": "audio-020", "path": "", "mime": "application/octet-stream", "error": "Unsupported audio format" }
+  ]
+}

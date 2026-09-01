@@ -7,7 +7,7 @@ type TaskInsert = Omit<Task, 'id' | 'user_id' | 'created_at' | 'updated_at' | 's
 type TaskUpdate = Partial<Omit<Task, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
 
 const TASK_SELECT =
-  'id, user_id, project_id, title, description, status, priority, due_date, completed_at, tags, checklist, recurrence, recurrence_series_id, created_at, updated_at';
+  'id, user_id, project_id, title, description, status, priority, due_date, completed_at, tags, checklist, recurrence, recurrence_series_id, recurrence_occurrence_key, recurrence_sequence, recurrence_status, recurrence_rule_version, recurrence_calculator_version, version, created_at, updated_at';
 
 export const getTasks = async (limit: number = 20): Promise<Task[]> => {
   const { data, error } = await supabase

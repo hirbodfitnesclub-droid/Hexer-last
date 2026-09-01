@@ -1,0 +1,207 @@
+{
+  "behavior": "recurrence-completion-cutover",
+  "minimumScenarios": 20,
+  "scenarios": [
+    {
+      "id": "cutover-001",
+      "kind": "edit",
+      "input": {
+        "id": "t",
+        "status": "done"
+      },
+      "expected": false
+    },
+    {
+      "id": "cutover-002",
+      "kind": "edit",
+      "input": {
+        "id": "t",
+        "status": "done",
+        "completed_at": "2026-08-20T00:00:00Z"
+      },
+      "expected": false
+    },
+    {
+      "id": "cutover-003",
+      "kind": "edit",
+      "input": {
+        "id": "t",
+        "status": "done",
+        "completed_at": null,
+        "version": 3
+      },
+      "expected": false
+    },
+    {
+      "id": "cutover-004",
+      "kind": "edit",
+      "input": {
+        "status": "done"
+      },
+      "expected": false
+    },
+    {
+      "id": "cutover-005",
+      "kind": "edit",
+      "input": {
+        "id": "t",
+        "status": "done",
+        "title": "x"
+      },
+      "expected": true
+    },
+    {
+      "id": "cutover-006",
+      "kind": "edit",
+      "input": {
+        "id": "t",
+        "status": "done",
+        "recurrence": null
+      },
+      "expected": true
+    },
+    {
+      "id": "cutover-007",
+      "kind": "edit",
+      "input": {
+        "id": "t",
+        "status": "done",
+        "due_date": "2026-08-21T00:00:00Z"
+      },
+      "expected": true
+    },
+    {
+      "id": "cutover-008",
+      "kind": "edit",
+      "input": {
+        "id": "t",
+        "status": "done",
+        "checklist": []
+      },
+      "expected": true
+    },
+    {
+      "id": "cutover-009",
+      "kind": "edit",
+      "input": {
+        "id": "t",
+        "status": "done",
+        "priority": "high"
+      },
+      "expected": true
+    },
+    {
+      "id": "cutover-010",
+      "kind": "edit",
+      "input": {
+        "id": "t",
+        "status": "done",
+        "tags": [
+          "a"
+        ]
+      },
+      "expected": true
+    },
+    {
+      "id": "cutover-011",
+      "kind": "outcome",
+      "input": {
+        "reason": "feature_disabled"
+      },
+      "expected": "not_enabled"
+    },
+    {
+      "id": "cutover-012",
+      "kind": "outcome",
+      "input": {
+        "reason": "version_conflict",
+        "server": {
+          "id": "t"
+        }
+      },
+      "expected": "conflict"
+    },
+    {
+      "id": "cutover-013",
+      "kind": "outcome",
+      "input": {
+        "errorCode": "version_conflict"
+      },
+      "expected": "conflict"
+    },
+    {
+      "id": "cutover-014",
+      "kind": "outcome",
+      "input": {
+        "status": "succeeded",
+        "current": {
+          "id": "t"
+        },
+        "next": {
+          "id": "n"
+        }
+      },
+      "expected": "handled"
+    },
+    {
+      "id": "cutover-015",
+      "kind": "outcome",
+      "input": {
+        "status": "succeeded",
+        "current": {
+          "id": "t"
+        }
+      },
+      "expected": "handled"
+    },
+    {
+      "id": "cutover-016",
+      "kind": "outcome",
+      "input": {
+        "status": "failed",
+        "errorCode": "not_found"
+      },
+      "expected": "unavailable"
+    },
+    {
+      "id": "cutover-017",
+      "kind": "outcome",
+      "input": {
+        "status": "failed",
+        "errorCode": "already_applied"
+      },
+      "expected": "unavailable"
+    },
+    {
+      "id": "cutover-018",
+      "kind": "outcome",
+      "input": {
+        "status": "failed",
+        "errorCode": "series_stopped"
+      },
+      "expected": "unavailable"
+    },
+    {
+      "id": "cutover-019",
+      "kind": "outcome",
+      "input": {
+        "error": "boom"
+      },
+      "expected": "unavailable"
+    },
+    {
+      "id": "cutover-020",
+      "kind": "outcome",
+      "input": {
+        "status": "succeeded"
+      },
+      "expected": "unavailable"
+    },
+    {
+      "id": "cutover-021",
+      "kind": "outcome",
+      "input": {},
+      "expected": "unavailable"
+    }
+  ]
+}

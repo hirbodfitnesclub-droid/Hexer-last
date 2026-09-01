@@ -1,0 +1,335 @@
+{
+  "behavior": "persian-intent-classification",
+  "minimumScenarios": 20,
+  "scenarios": [
+    {
+      "id": "intent-001",
+      "input": {
+        "message": "سلام، خوبی؟",
+        "mode": "auto"
+      },
+      "expected": "chat"
+    },
+    {
+      "id": "intent-002",
+      "input": {
+        "message": "یه تسک برای فردا بساز",
+        "mode": "auto"
+      },
+      "expected": "create"
+    },
+    {
+      "id": "intent-003",
+      "input": {
+        "message": "یک یادداشت ایجاد کن",
+        "mode": "auto"
+      },
+      "expected": "create"
+    },
+    {
+      "id": "intent-004",
+      "input": {
+        "message": "ایده‌هام رو یادداشت کن",
+        "mode": "auto"
+      },
+      "expected": "create"
+    },
+    {
+      "id": "intent-005",
+      "input": {
+        "message": "یه لیست از ایده‌هام بنویس",
+        "mode": "auto"
+      },
+      "expected": "create"
+    },
+    {
+      "id": "intent-006",
+      "input": {
+        "message": "یادداشت بودجه را پیدا کن",
+        "mode": "auto"
+      },
+      "expected": "search"
+    },
+    {
+      "id": "intent-007",
+      "input": {
+        "message": "بین کارهام بگرد",
+        "mode": "auto"
+      },
+      "expected": "search"
+    },
+    {
+      "id": "intent-008",
+      "input": {
+        "message": "تسک‌های امروز را لیست کن",
+        "mode": "auto"
+      },
+      "expected": "search"
+    },
+    {
+      "id": "intent-009",
+      "input": {
+        "message": "یادم بیار درباره سفر چی نوشتم",
+        "mode": "auto"
+      },
+      "expected": "search"
+    },
+    {
+      "id": "intent-010",
+      "input": {
+        "message": "تسک ورزش را به نوت سلامتی وصل کن",
+        "mode": "auto"
+      },
+      "expected": "link"
+    },
+    {
+      "id": "intent-011",
+      "input": {
+        "message": "این دو مورد را لینک کن",
+        "mode": "auto"
+      },
+      "expected": "link"
+    },
+    {
+      "id": "intent-012",
+      "input": {
+        "message": "تسک خرید را انجام‌شده بزن",
+        "mode": "auto"
+      },
+      "expected": "mutate"
+    },
+    {
+      "id": "intent-013",
+      "input": {
+        "message": "عنوان این تسک را عوض کن",
+        "mode": "auto"
+      },
+      "expected": "mutate"
+    },
+    {
+      "id": "intent-014",
+      "input": {
+        "message": "کار ورزش را تکمیل کن",
+        "mode": "auto"
+      },
+      "expected": "mutate"
+    },
+    {
+      "id": "intent-015",
+      "input": {
+        "message": "rename this task",
+        "mode": "auto"
+      },
+      "expected": "mutate"
+    },
+    {
+      "id": "intent-016",
+      "input": {
+        "message": "create a new note",
+        "mode": "auto"
+      },
+      "expected": "create"
+    },
+    {
+      "id": "intent-017",
+      "input": {
+        "message": "هرچی درباره کتاب دارم",
+        "mode": "memory"
+      },
+      "expected": "search"
+    },
+    {
+      "id": "intent-018",
+      "input": {
+        "message": "",
+        "mode": "action"
+      },
+      "expected": "create"
+    },
+    {
+      "id": "intent-019",
+      "input": {
+        "message": "یادداشت را پیدا کن",
+        "mode": "action"
+      },
+      "expected": "search"
+    },
+    {
+      "id": "intent-020",
+      "input": {
+        "message": "این را بساز و بعد پیدا کن",
+        "mode": "auto"
+      },
+      "expected": "create"
+    },
+    {
+      "id": "intent-021",
+      "input": {
+        "message": "وصلش کن و تکمیلش کن",
+        "mode": "auto"
+      },
+      "expected": "mutate"
+    },
+    {
+      "id": "intent-022",
+      "input": {
+        "message": "سلام",
+        "mode": "memory"
+      },
+      "expected": "search"
+    },
+    {
+      "id": "intent-023",
+      "input": {
+        "message": "متن عکس",
+        "mode": "memory",
+        "hasMedia": true
+      },
+      "expected": "extract"
+    },
+    {
+      "id": "intent-024",
+      "input": {
+        "message": "آپديت كن",
+        "mode": "auto"
+      },
+      "expected": "mutate"
+    },
+    {
+      "id": "intent-025",
+      "input": {
+        "message": null,
+        "mode": "auto"
+      },
+      "expected": "chat"
+    },
+    {
+      "id": "intent-026",
+      "input": {
+        "message": "راستی خرید هفتگی را انجام دادم",
+        "mode": "auto"
+      },
+      "expected": "mutate"
+    },
+    {
+      "id": "intent-027",
+      "input": {
+        "message": "امروز ورزش کردم و کار بیمه را هم انجامش دادم",
+        "mode": "auto"
+      },
+      "expected": "mutate"
+    },
+    {
+      "id": "intent-028",
+      "input": {
+        "message": "گزارش را تمومش کردم",
+        "mode": "auto"
+      },
+      "expected": "mutate"
+    },
+    {
+      "id": "intent-029",
+      "input": {
+        "message": "کار ثبت‌نام را تمامش کردم",
+        "mode": "auto"
+      },
+      "expected": "mutate"
+    },
+    {
+      "id": "intent-030",
+      "input": {
+        "message": "یک یادآور برای جلسه فردا ساعت ۱۰ بساز",
+        "mode": "auto"
+      },
+      "expected": "create"
+    },
+    {
+      "id": "intent-031",
+      "input": {
+        "message": "برای فردا ساعت ۸ یادآوری تنظیم کن",
+        "mode": "auto"
+      },
+      "expected": "create"
+    },
+    {
+      "id": "intent-032",
+      "input": {
+        "message": "یادآور پرداخت قبض رو بذار برای شنبه",
+        "mode": "auto"
+      },
+      "expected": "create"
+    },
+    {
+      "id": "intent-033",
+      "input": {
+        "message": "بگذار فردا ساعت ۹ یادم بیاد دارو بخورم",
+        "mode": "auto"
+      },
+      "expected": "create"
+    },
+    {
+      "id": "intent-034",
+      "input": {
+        "message": "remind me to call Sara tomorrow",
+        "mode": "auto"
+      },
+      "expected": "create"
+    },
+    {
+      "id": "intent-035",
+      "input": {
+        "message": "set a reminder for Friday",
+        "mode": "auto"
+      },
+      "expected": "create"
+    },
+    {
+      "id": "intent-036",
+      "input": {
+        "message": "یه تسک بزن برای فردا، واریز پول مکمل",
+        "mode": "auto"
+      },
+      "expected": "create"
+    },
+    {
+      "id": "intent-037",
+      "input": {
+        "message": "یه تسک دارم؛ گرفتن کاوه نگار برای پاناچت",
+        "mode": "auto"
+      },
+      "expected": "create"
+    },
+    {
+      "id": "intent-038",
+      "input": {
+        "message": "یه یادداشت بزن که فردا زنگ بزنم به علی",
+        "mode": "auto"
+      },
+      "expected": "create"
+    },
+    {
+      "id": "intent-039",
+      "input": {
+        "message": "یه عادت دارم که هر روز آب بخورم",
+        "mode": "auto"
+      },
+      "expected": "create"
+    },
+    {
+      "id": "intent-040",
+      "input": {
+        "message": "اون تسکی که دیروز گفتم کجاست؟",
+        "mode": "auto"
+      },
+      "expected": "search"
+    },
+    {
+      "id": "intent-041",
+      "input": {
+        "message": "یه تسک درباره پروژه پانافر پیدا کن",
+        "mode": "auto"
+      },
+      "expected": "search"
+    }
+  ]
+}

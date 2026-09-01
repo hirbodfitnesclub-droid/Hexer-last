@@ -1,0 +1,498 @@
+{
+  "behavior": "automation-policy-evaluation",
+  "minimumScenarios": 20,
+  "scenarios": [
+    {
+      "id": "auto-001",
+      "kind": "evaluate",
+      "input": {
+        "rule": {
+          "id": "r1",
+          "userId": "u1",
+          "triggerType": "task_overdue",
+          "actionType": "notify",
+          "mode": "suggest",
+          "enabled": false,
+          "version": 1
+        },
+        "event": {
+          "type": "task_overdue",
+          "userId": "u1",
+          "occurrenceKey": "occ1",
+          "tehranHour": 10,
+          "payload": {}
+        }
+      },
+      "expected": "skip:disabled"
+    },
+    {
+      "id": "auto-002",
+      "kind": "evaluate",
+      "input": {
+        "rule": {
+          "id": "r1",
+          "userId": "u1",
+          "triggerType": "task_overdue",
+          "actionType": "notify",
+          "mode": "suggest",
+          "enabled": true,
+          "version": 1
+        },
+        "event": {
+          "type": "task_overdue",
+          "userId": "u2",
+          "occurrenceKey": "occ1",
+          "tehranHour": 10,
+          "payload": {}
+        }
+      },
+      "expected": "skip:wrong_user"
+    },
+    {
+      "id": "auto-003",
+      "kind": "evaluate",
+      "input": {
+        "rule": {
+          "id": "r1",
+          "userId": "u1",
+          "triggerType": "task_overdue",
+          "actionType": "notify",
+          "mode": "suggest",
+          "enabled": true,
+          "version": 1
+        },
+        "event": {
+          "type": "task_completed",
+          "userId": "u1",
+          "occurrenceKey": "occ1",
+          "tehranHour": 10,
+          "payload": {}
+        }
+      },
+      "expected": "skip:trigger_mismatch"
+    },
+    {
+      "id": "auto-004",
+      "kind": "evaluate",
+      "input": {
+        "rule": {
+          "id": "r1",
+          "userId": "u1",
+          "triggerType": "task_overdue",
+          "actionType": "notify",
+          "mode": "suggest",
+          "enabled": true,
+          "version": 1
+        },
+        "event": {
+          "type": "task_overdue",
+          "userId": "u1",
+          "occurrenceKey": "occ1",
+          "tehranHour": 10,
+          "payload": {
+            "origin": "automation"
+          }
+        }
+      },
+      "expected": "skip:loop_guard"
+    },
+    {
+      "id": "auto-005",
+      "kind": "evaluate",
+      "input": {
+        "rule": {
+          "id": "r1",
+          "userId": "u1",
+          "triggerType": "task_overdue",
+          "actionType": "notify",
+          "mode": "suggest",
+          "enabled": true,
+          "version": 1,
+          "quietHours": {
+            "startHour": 22,
+            "endHour": 7
+          }
+        },
+        "event": {
+          "type": "task_overdue",
+          "userId": "u1",
+          "occurrenceKey": "occ1",
+          "tehranHour": 23,
+          "payload": {}
+        }
+      },
+      "expected": "skip:quiet_hours"
+    },
+    {
+      "id": "auto-006",
+      "kind": "evaluate",
+      "input": {
+        "rule": {
+          "id": "r1",
+          "userId": "u1",
+          "triggerType": "task_overdue",
+          "actionType": "notify",
+          "mode": "suggest",
+          "enabled": true,
+          "version": 1,
+          "quietHours": {
+            "startHour": 22,
+            "endHour": 7
+          }
+        },
+        "event": {
+          "type": "task_overdue",
+          "userId": "u1",
+          "occurrenceKey": "occ1",
+          "tehranHour": 3,
+          "payload": {}
+        }
+      },
+      "expected": "skip:quiet_hours"
+    },
+    {
+      "id": "auto-007",
+      "kind": "evaluate",
+      "input": {
+        "rule": {
+          "id": "r1",
+          "userId": "u1",
+          "triggerType": "task_overdue",
+          "actionType": "notify",
+          "mode": "suggest",
+          "enabled": true,
+          "version": 1,
+          "quietHours": {
+            "startHour": 22,
+            "endHour": 7
+          }
+        },
+        "event": {
+          "type": "task_overdue",
+          "userId": "u1",
+          "occurrenceKey": "occ1",
+          "tehranHour": 10,
+          "payload": {}
+        }
+      },
+      "expected": "suggest"
+    },
+    {
+      "id": "auto-008",
+      "kind": "evaluate",
+      "input": {
+        "rule": {
+          "id": "r1",
+          "userId": "u1",
+          "triggerType": "task_overdue",
+          "actionType": "notify",
+          "mode": "suggest",
+          "enabled": true,
+          "version": 1,
+          "conditions": [
+            {
+              "field": "priority",
+              "operator": "equals",
+              "value": "high"
+            }
+          ]
+        },
+        "event": {
+          "type": "task_overdue",
+          "userId": "u1",
+          "occurrenceKey": "occ1",
+          "tehranHour": 10,
+          "payload": {
+            "priority": "low"
+          }
+        }
+      },
+      "expected": "skip:condition_unmet"
+    },
+    {
+      "id": "auto-009",
+      "kind": "evaluate",
+      "input": {
+        "rule": {
+          "id": "r1",
+          "userId": "u1",
+          "triggerType": "task_overdue",
+          "actionType": "notify",
+          "mode": "suggest",
+          "enabled": true,
+          "version": 1,
+          "conditions": [
+            {
+              "field": "priority",
+              "operator": "equals",
+              "value": "high"
+            }
+          ]
+        },
+        "event": {
+          "type": "task_overdue",
+          "userId": "u1",
+          "occurrenceKey": "occ1",
+          "tehranHour": 10,
+          "payload": {
+            "priority": "high"
+          }
+        }
+      },
+      "expected": "suggest"
+    },
+    {
+      "id": "auto-010",
+      "kind": "evaluate",
+      "input": {
+        "rule": {
+          "id": "r1",
+          "userId": "u1",
+          "triggerType": "task_overdue",
+          "actionType": "notify",
+          "mode": "suggest",
+          "enabled": true,
+          "version": 1
+        },
+        "event": {
+          "type": "task_overdue",
+          "userId": "u1",
+          "occurrenceKey": "occ1",
+          "tehranHour": 10,
+          "payload": {}
+        }
+      },
+      "expected": "suggest"
+    },
+    {
+      "id": "auto-011",
+      "kind": "evaluate",
+      "input": {
+        "rule": {
+          "id": "r1",
+          "userId": "u1",
+          "triggerType": "task_overdue",
+          "actionType": "notify",
+          "mode": "confirm",
+          "enabled": true,
+          "version": 1
+        },
+        "event": {
+          "type": "task_overdue",
+          "userId": "u1",
+          "occurrenceKey": "occ1",
+          "tehranHour": 10,
+          "payload": {}
+        }
+      },
+      "expected": "confirm"
+    },
+    {
+      "id": "auto-012",
+      "kind": "evaluate",
+      "input": {
+        "rule": {
+          "id": "r1",
+          "userId": "u1",
+          "triggerType": "task_overdue",
+          "actionType": "notify",
+          "mode": "automatic",
+          "enabled": true,
+          "version": 1
+        },
+        "event": {
+          "type": "task_overdue",
+          "userId": "u1",
+          "occurrenceKey": "occ1",
+          "tehranHour": 10,
+          "payload": {}
+        }
+      },
+      "expected": "execute"
+    },
+    {
+      "id": "auto-013",
+      "kind": "evaluate",
+      "input": {
+        "rule": {
+          "id": "r1",
+          "userId": "u1",
+          "triggerType": "task_overdue",
+          "actionType": "create_reminder",
+          "mode": "automatic",
+          "enabled": true,
+          "version": 1
+        },
+        "event": {
+          "type": "task_overdue",
+          "userId": "u1",
+          "occurrenceKey": "occ1",
+          "tehranHour": 10,
+          "payload": {}
+        }
+      },
+      "expected": "execute"
+    },
+    {
+      "id": "auto-014",
+      "kind": "evaluate",
+      "input": {
+        "rule": {
+          "id": "r1",
+          "userId": "u1",
+          "triggerType": "task_overdue",
+          "actionType": "suggest_task",
+          "mode": "automatic",
+          "enabled": true,
+          "version": 1
+        },
+        "event": {
+          "type": "task_overdue",
+          "userId": "u1",
+          "occurrenceKey": "occ1",
+          "tehranHour": 10,
+          "payload": {}
+        }
+      },
+      "expected": "confirm"
+    },
+    {
+      "id": "auto-015",
+      "kind": "evaluate",
+      "input": {
+        "rule": {
+          "id": "r1",
+          "userId": "u1",
+          "triggerType": "task_overdue",
+          "actionType": "suggest_reschedule",
+          "mode": "automatic",
+          "enabled": true,
+          "version": 1
+        },
+        "event": {
+          "type": "task_overdue",
+          "userId": "u1",
+          "occurrenceKey": "occ1",
+          "tehranHour": 10,
+          "payload": {}
+        }
+      },
+      "expected": "confirm"
+    },
+    {
+      "id": "auto-016",
+      "kind": "quiet",
+      "input": {
+        "quietHours": null,
+        "hour": 3
+      },
+      "expected": false
+    },
+    {
+      "id": "auto-017",
+      "kind": "quiet",
+      "input": {
+        "quietHours": {
+          "startHour": 9,
+          "endHour": 17
+        },
+        "hour": 9
+      },
+      "expected": true
+    },
+    {
+      "id": "auto-018",
+      "kind": "quiet",
+      "input": {
+        "quietHours": {
+          "startHour": 9,
+          "endHour": 17
+        },
+        "hour": 17
+      },
+      "expected": false
+    },
+    {
+      "id": "auto-019",
+      "kind": "quiet",
+      "input": {
+        "quietHours": {
+          "startHour": 5,
+          "endHour": 5
+        },
+        "hour": 5
+      },
+      "expected": false
+    },
+    {
+      "id": "auto-020",
+      "kind": "quiet",
+      "input": {
+        "quietHours": {
+          "startHour": 22,
+          "endHour": 7
+        },
+        "hour": 22
+      },
+      "expected": true
+    },
+    {
+      "id": "auto-021",
+      "kind": "fact",
+      "input": {
+        "status": "shadow",
+        "userConfirmed": true
+      },
+      "expected": false
+    },
+    {
+      "id": "auto-022",
+      "kind": "fact",
+      "input": {
+        "status": "active",
+        "userConfirmed": false
+      },
+      "expected": false
+    },
+    {
+      "id": "auto-023",
+      "kind": "fact",
+      "input": {
+        "status": "active",
+        "userConfirmed": true
+      },
+      "expected": true
+    },
+    {
+      "id": "auto-024",
+      "kind": "fact",
+      "input": {
+        "status": "forgotten",
+        "userConfirmed": true
+      },
+      "expected": false
+    },
+    {
+      "id": "auto-025",
+      "kind": "fact",
+      "input": {
+        "status": "active",
+        "userConfirmed": true,
+        "expiresAt": "2026-08-19T00:00:00Z",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": false
+    },
+    {
+      "id": "auto-026",
+      "kind": "fact",
+      "input": {
+        "status": "active",
+        "userConfirmed": true,
+        "expiresAt": "2026-08-21T00:00:00Z",
+        "now": "2026-08-20T00:00:00Z"
+      },
+      "expected": true
+    }
+  ]
+}

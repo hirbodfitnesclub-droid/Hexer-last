@@ -1,0 +1,26 @@
+{
+  "behavior": "recurrence-api-request-validation",
+  "minimumScenarios": 20,
+  "scenarios": [
+    { "id": "rec-request-001", "input": { "operation": "complete", "taskId": "11111111-1111-4111-8111-111111111111", "expectedVersion": 1, "opId": "22222222-2222-4222-8222-222222222222", "requestId": "33333333-3333-4333-8333-333333333333", "idempotencyKey": "recurrence:complete:1" }, "expected": true },
+    { "id": "rec-request-002", "input": { "operation": "complete", "taskId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "expectedVersion": 99, "opId": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "requestId": "cccccccc-cccc-4ccc-8ccc-cccccccccccc", "idempotencyKey": "recurrence.complete.99" }, "expected": true },
+    { "id": "rec-request-003", "input": null, "expected": false },
+    { "id": "rec-request-004", "input": [], "expected": false },
+    { "id": "rec-request-005", "input": {}, "expected": false },
+    { "id": "rec-request-006", "input": { "operation": "skip" }, "expected": false },
+    { "id": "rec-request-007", "input": { "operation": "complete", "taskId": "bad", "expectedVersion": 1, "opId": "22222222-2222-4222-8222-222222222222", "requestId": "33333333-3333-4333-8333-333333333333", "idempotencyKey": "recurrence:complete:1" }, "expected": false },
+    { "id": "rec-request-008", "input": { "operation": "complete", "taskId": "11111111-1111-4111-8111-111111111111", "expectedVersion": 0, "opId": "22222222-2222-4222-8222-222222222222", "requestId": "33333333-3333-4333-8333-333333333333", "idempotencyKey": "recurrence:complete:1" }, "expected": false },
+    { "id": "rec-request-009", "input": { "operation": "complete", "taskId": "11111111-1111-4111-8111-111111111111", "expectedVersion": 1.5, "opId": "22222222-2222-4222-8222-222222222222", "requestId": "33333333-3333-4333-8333-333333333333", "idempotencyKey": "recurrence:complete:1" }, "expected": false },
+    { "id": "rec-request-010", "input": { "operation": "complete", "taskId": "11111111-1111-4111-8111-111111111111", "expectedVersion": "2", "opId": "22222222-2222-4222-8222-222222222222", "requestId": "33333333-3333-4333-8333-333333333333", "idempotencyKey": "recurrence:complete:2" }, "expected": true },
+    { "id": "rec-request-011", "input": { "operation": "complete", "taskId": "11111111-1111-4111-8111-111111111111", "expectedVersion": 1, "opId": "bad", "requestId": "33333333-3333-4333-8333-333333333333", "idempotencyKey": "recurrence:complete:1" }, "expected": false },
+    { "id": "rec-request-012", "input": { "operation": "complete", "taskId": "11111111-1111-4111-8111-111111111111", "expectedVersion": 1, "opId": "22222222-2222-4222-8222-222222222222", "requestId": "bad", "idempotencyKey": "recurrence:complete:1" }, "expected": false },
+    { "id": "rec-request-013", "input": { "operation": "complete", "taskId": "11111111-1111-4111-8111-111111111111", "expectedVersion": 1, "opId": "22222222-2222-4222-8222-222222222222", "requestId": "33333333-3333-4333-8333-333333333333", "idempotencyKey": "short" }, "expected": false },
+    { "id": "rec-request-014", "input": { "operation": "complete", "taskId": "11111111-1111-4111-8111-111111111111", "expectedVersion": 1, "opId": "22222222-2222-4222-8222-222222222222", "requestId": "33333333-3333-4333-8333-333333333333", "idempotencyKey": "contains space" }, "expected": false },
+    { "id": "rec-request-015", "input": { "operation": "complete", "taskId": "11111111-1111-4111-8111-111111111111", "expectedVersion": 1, "opId": "22222222-2222-4222-8222-222222222222", "requestId": "33333333-3333-4333-8333-333333333333", "idempotencyKey": 12345678 }, "expected": false },
+    { "id": "rec-request-016", "input": { "operation": "complete", "taskId": 1, "expectedVersion": 1, "opId": "22222222-2222-4222-8222-222222222222", "requestId": "33333333-3333-4333-8333-333333333333", "idempotencyKey": "recurrence:complete:1" }, "expected": false },
+    { "id": "rec-request-017", "input": { "operation": "complete", "taskId": "11111111-1111-4111-8111-111111111111", "expectedVersion": null, "opId": "22222222-2222-4222-8222-222222222222", "requestId": "33333333-3333-4333-8333-333333333333", "idempotencyKey": "recurrence:complete:1" }, "expected": false },
+    { "id": "rec-request-018", "input": { "operation": "complete", "taskId": "11111111-1111-4111-8111-111111111111", "expectedVersion": 1, "opId": null, "requestId": "33333333-3333-4333-8333-333333333333", "idempotencyKey": "recurrence:complete:1" }, "expected": false },
+    { "id": "rec-request-019", "input": { "operation": "complete", "taskId": "11111111-1111-4111-8111-111111111111", "expectedVersion": 1, "opId": "22222222-2222-4222-8222-222222222222", "requestId": null, "idempotencyKey": "recurrence:complete:1" }, "expected": false },
+    { "id": "rec-request-020", "input": { "operation": "complete", "taskId": "11111111-1111-4111-8111-111111111111", "expectedVersion": 1, "opId": "22222222-2222-4222-8222-222222222222", "requestId": "33333333-3333-4333-8333-333333333333", "idempotencyKey": "contains/slash" }, "expected": false }
+  ]
+}

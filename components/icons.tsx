@@ -4,6 +4,7 @@ import React from 'react';
 
 interface IconProps {
   className?: string;
+  strokeWidth?: number;
 }
 
 export const HomeIcon: React.FC<IconProps> = ({ className }) => (

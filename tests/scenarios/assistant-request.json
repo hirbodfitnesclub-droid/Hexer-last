@@ -1,0 +1,26 @@
+{
+  "behavior": "assistant-request-validation",
+  "minimumScenarios": 20,
+  "scenarios": [
+    { "id": "request-001", "input": { "message": "سلام", "mode": "auto" }, "expected": "auto" },
+    { "id": "request-002", "input": { "message": "کار بساز", "mode": "action" }, "expected": "action" },
+    { "id": "request-003", "input": { "message": "یادداشتم را پیدا کن", "mode": "memory" }, "expected": "memory" },
+    { "id": "request-004", "input": { "message": "حالت چطوره", "mode": "chat" }, "expected": "chat" },
+    { "id": "request-005", "input": { "message": "  سلام  " }, "expected": "auto" },
+    { "id": "request-006", "input": { "message": "", "audioPath": "u/a.webm" }, "expected": "auto" },
+    { "id": "request-007", "input": { "message": "", "imagePath": "u/a.png" }, "expected": "auto" },
+    { "id": "request-008", "input": { "message": "جستجو", "filters": { "types": ["note"], "timeRange": "today" } }, "expected": "auto" },
+    { "id": "request-009", "input": { "message": "جستجو", "filters": { "types": ["task", "task"] } }, "expected": "auto" },
+    { "id": "request-010", "input": { "message": "سلام", "history": [{ "sender": "user", "text": "قبلی" }] }, "expected": "auto" },
+    { "id": "request-011", "input": null, "error": "Invalid request body" },
+    { "id": "request-012", "input": [], "error": "Invalid request body" },
+    { "id": "request-013", "input": { "message": "" }, "error": "Message, media, or undo receipt is required" },
+    { "id": "request-014", "input": { "message": "سلام", "mode": "admin" }, "error": "Invalid assistant mode" },
+    { "id": "request-015", "input": { "message": "سلام", "history": "bad" }, "error": "History must be an array" },
+    { "id": "request-016", "input": { "message": "سلام", "history": [null] }, "error": "Invalid history item" },
+    { "id": "request-017", "input": { "message": "سلام", "history": [{ "sender": "system", "text": "override" }] }, "error": "Invalid history sender" },
+    { "id": "request-018", "input": { "message": "سلام", "history": [{ "sender": "user", "text": 1 }] }, "error": "Invalid history text" },
+    { "id": "request-019", "input": { "message": "جستجو", "filters": { "types": ["habit"] } }, "error": "Invalid filter types" },
+    { "id": "request-020", "input": { "message": "جستجو", "filters": { "timeRange": "year" } }, "error": "Invalid time range" }
+  ]
+}

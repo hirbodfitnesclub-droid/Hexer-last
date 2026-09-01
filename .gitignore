@@ -1,0 +1,18 @@
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+.tmp/
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+
+# Session logs contain PII (full phone numbers) — never merge (Arash, 2026-08-24)
+docs/cursor-session-log.md
+.claude/
+.codex/
+.cursor/
+.mcp.json

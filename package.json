@@ -7,20 +7,38 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test:ai": "npx --yes tsx scripts/ai-assistant-regression.mjs"
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:scenarios": "node scripts/validate-scenarios.mjs",
+    "test:e2e": "playwright test",
+    "test:ai": "npm run test:scenarios && vitest run tests/unit/model-registry.test.ts",
+    "bundle:ai-assistant": "node scripts/bundle-ai-assistant.mjs",
+    "supabase:prepare-local": "node scripts/prepare-local-supabase.mjs",
+    "quality": "npm run typecheck && npm run test:scenarios && npm run test:coverage && npm run bundle:ai-assistant && npm run build"
   },
   "dependencies": {
     "@supabase/supabase-js": "latest",
     "idb": "^8.0.3",
+    "jalaali-js": "^2.0.1",
     "lucide-react": "^1.18.0",
     "motion": "^12.40.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/jalaali-js": "^1.2.0",
     "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.0.5",
+    "@vitest/coverage-v8": "^4.1.11",
+    "jsdom": "^30.0.1",
     "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "vite": "^8.2.1",
+    "vitest": "^4.1.11"
   }
 }

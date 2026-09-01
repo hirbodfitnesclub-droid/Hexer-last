@@ -1,0 +1,28 @@
+{
+  "behavior": "action-policy-allowlist",
+  "minimumScenarios": 20,
+  "scenarios": [
+    { "id": "policy-001", "input": { "intent": "create", "actions": [{ "action": "CREATE_TASK", "params": {} }] }, "expected": { "accepted": ["CREATE_TASK"], "rejected": [] } },
+    { "id": "policy-002", "input": { "intent": "create", "actions": [{ "action": "CREATE_NOTE", "params": {} }] }, "expected": { "accepted": ["CREATE_NOTE"], "rejected": [] } },
+    { "id": "policy-003", "input": { "intent": "create", "actions": [{ "action": "CREATE_PROJECT", "params": {} }] }, "expected": { "accepted": ["CREATE_PROJECT"], "rejected": [] } },
+    { "id": "policy-004", "input": { "intent": "create", "actions": [{ "action": "CREATE_HABIT", "params": {} }] }, "expected": { "accepted": ["CREATE_HABIT"], "rejected": [] } },
+    { "id": "policy-005", "input": { "intent": "create", "actions": [{ "action": "UPDATE_TASK", "params": {} }] }, "expected": { "accepted": [], "rejected": ["intent_create_disallows"] } },
+    { "id": "policy-006", "input": { "intent": "link", "actions": [{ "action": "SUGGEST_LINK", "params": {} }] }, "expected": { "accepted": ["SUGGEST_LINK"], "rejected": [] } },
+    { "id": "policy-007", "input": { "intent": "link", "actions": [{ "action": "CREATE_TASK", "params": {} }] }, "expected": { "accepted": [], "rejected": ["intent_link_disallows"] } },
+    { "id": "policy-008", "input": { "intent": "mutate", "actions": [{ "action": "UPDATE_TASK", "params": {} }] }, "expected": { "accepted": ["UPDATE_TASK"], "rejected": [] } },
+    { "id": "policy-009", "input": { "intent": "mutate", "actions": [{ "action": "COMPLETE_TASK", "params": {} }] }, "expected": { "accepted": ["COMPLETE_TASK"], "rejected": [] } },
+    { "id": "policy-010", "input": { "intent": "mutate", "actions": [{ "action": "SUGGEST_LINK", "params": {} }] }, "expected": { "accepted": [], "rejected": ["intent_mutate_disallows"] } },
+    { "id": "policy-011", "input": { "intent": "chat", "actions": [{ "action": "CREATE_TASK", "params": {} }] }, "expected": { "accepted": [], "rejected": ["intent_chat_disallows"] } },
+    { "id": "policy-012", "input": { "intent": "search", "actions": [{ "action": "SUGGEST_LINK", "params": {} }] }, "expected": { "accepted": [], "rejected": ["intent_search_disallows"] } },
+    { "id": "policy-013", "input": { "intent": "extract", "actions": [{ "action": "CREATE_NOTE", "params": {} }] }, "expected": { "accepted": [], "rejected": ["intent_extract_disallows"] } },
+    { "id": "policy-014", "input": { "intent": "create", "actions": [{ "action": "CHAT", "params": {} }] }, "expected": { "accepted": [], "rejected": ["non_executable"] } },
+    { "id": "policy-015", "input": { "intent": "create", "actions": [{ "action": "DELETE_TASK", "params": {} }] }, "expected": { "accepted": [], "rejected": ["unknown_action"] } },
+    { "id": "policy-016", "input": { "intent": "create", "actions": [null] }, "expected": { "accepted": [], "rejected": ["invalid_shape"] } },
+    { "id": "policy-017", "input": { "intent": "create", "actions": [{ "action": "CREATE_TASK" }] }, "expected": { "accepted": [], "rejected": ["invalid_shape"] } },
+    { "id": "policy-018", "input": { "intent": "create", "actions": "CREATE_TASK" }, "expected": { "accepted": [], "rejected": ["invalid_shape"] } },
+    { "id": "policy-019", "input": { "intent": "create", "actions": [] }, "expected": { "accepted": [], "rejected": [] } },
+    { "id": "policy-020", "input": { "intent": "create", "actions": [{ "action": "CREATE_TASK", "params": {} }, { "action": "UPDATE_TASK", "params": {} }] }, "expected": { "accepted": ["CREATE_TASK"], "rejected": ["intent_create_disallows"] } },
+    { "id": "policy-021", "input": { "intent": "mutate", "actions": [{ "action": "UPDATE_TASK", "params": {} }, { "action": "COMPLETE_TASK", "params": {} }] }, "expected": { "accepted": ["UPDATE_TASK", "COMPLETE_TASK"], "rejected": [] } },
+    { "id": "policy-022", "input": { "intent": "chat", "actions": [{ "action": "CHAT", "params": {} }, { "action": "NOPE", "params": {} }] }, "expected": { "accepted": [], "rejected": ["non_executable", "unknown_action"] } }
+  ]
+}
