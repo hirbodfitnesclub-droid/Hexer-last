@@ -7,6 +7,7 @@ import {
 } from '../../components/icons';
 import { TaskCard } from './components/TaskCard';
 import { TaskEditorModal } from './components/TaskEditorModal';
+import { ExpandableSearch } from './components/ExpandableSearch';
 import { groupTasks } from '../../utils/taskGrouping';
 import { getTehranDateString } from '../../utils/dateUtils';
 import {
@@ -214,9 +215,12 @@ export const TasksView: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <h1 className="text-2xl font-black text-[var(--text-main)] pr-1">کارها</h1>
           <div className="flex items-center gap-3 w-full md:w-auto">
-            <div className="relative w-full md:w-56 group">
-              <input 
+            {/* موبایل/تبلت: جستجوی همیشه‌باز (بدون تغییر رفتار) */}
+            <div className="relative w-full md:w-56 group lg:hidden">
+              <input
                 type="text"
+                role="searchbox"
+                aria-label="جستجو در کارها"
                 placeholder="جستجو در کارها..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
@@ -226,14 +230,17 @@ export const TasksView: React.FC = () => {
                 <SearchIcon className="w-4 h-4" />
               </div>
               {searchQuery && (
-                <button 
+                <button
                   onClick={() => setSearchQuery('')}
+                  aria-label="پاک کردن جستجو"
                   className="absolute inset-y-0 left-3 flex items-center text-[var(--text-muted)] hover:text-[var(--text-main)]"
                 >
                   <XIcon className="w-4 h-4" />
                 </button>
               )}
             </div>
+            {/* دسکتاپ: جستجوی جمع‌شونده — دکمه افزودن ثابت می‌ماند و باکس به سمت مرکز باز می‌شود */}
+            <ExpandableSearch value={searchQuery} onChange={setSearchQuery} />
             <button
               onClick={handleAddNewTask}
               className="hidden lg:flex items-center gap-2 px-4 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] rounded-xl text-[var(--text-on-primary)] font-bold text-xs transition-all shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)] shrink-0"
@@ -249,6 +256,23 @@ export const TasksView: React.FC = () => {
           <ViewModeButton mode="project" label="پروژه" icon={<BriefcaseIcon className="w-4 h-4"/>} />
           <ViewModeButton mode="priority" label="اولویت" icon={<FlagIcon className="w-4 h-4"/>} />
         </div>
+        {searchQuery.trim() && (
+          <div
+            className="flex items-center justify-between gap-3 px-1"
+            role="status"
+            aria-live="polite"
+          >
+            <p className="text-[11px] font-bold text-[var(--text-muted)] truncate">
+              {filteredTasks.length} نتیجه برای «{searchQuery.trim()}»
+            </p>
+            <button
+              onClick={() => setSearchQuery('')}
+              className="text-[11px] font-bold text-[var(--color-primary-text)] hover:opacity-80 shrink-0"
+            >
+              پاک کردن جستجو
+            </button>
+          </div>
+        )}
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 space-y-4 pb-4 pt-4 scroll-fade-edge">
@@ -434,8 +458,8 @@ export const TasksView: React.FC = () => {
       {/* Floating Add Button */}
       <button 
         onClick={handleAddNewTask} 
-        className="lg:hidden fixed bottom-[calc(var(--bottom-nav-space)+var(--safe-area-inset-bottom)+1rem)] right-5 w-14 h-14 bg-[var(--color-primary)] rounded-full flex items-center justify-center text-[var(--text-on-primary)] shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)] hover:scale-105 transition-all duration-300 z-30" 
-        aria-label="Add new task"
+        className="lg:hidden fixed bottom-[calc(var(--bottom-nav-space)+var(--safe-area-inset-bottom)+1rem)] right-5 w-14 h-14 bg-[var(--color-primary)] rounded-full flex items-center justify-center text-[var(--text-on-primary)] shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)] hover:scale-105 transition-all duration-300 z-30"
+        aria-label="افزودن کار جدید"
       >
         <PlusIcon className="w-7 h-7"/>
       </button>
