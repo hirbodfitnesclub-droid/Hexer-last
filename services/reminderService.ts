@@ -60,14 +60,44 @@ export async function requestNotificationPermission(): Promise<boolean> {
 const VAPID_ENV_KEY = 'VITE_VAPID_PUBLIC_KEY';
 
 /**
- * Reads the VAPID public key through a computed property. A direct
+ * Reads the build-time VAPID public key through a computed property. A direct
  * `import.meta.env.VITE_VAPID_PUBLIC_KEY` access lets bundlers constant-fold a
  * missing env var into `undefined`, which lets dead-code elimination silently
  * remove the entire push-subscription flow from production builds.
  */
-export function getVapidPublicKey(): string | undefined {
+function getVapidPublicKeyFromEnv(): string | undefined {
   const env = import.meta.env as unknown as Record<string, string | undefined>;
   return env?.[VAPID_ENV_KEY] || undefined;
+}
+
+let cachedVapidKey: string | null | undefined;
+
+/**
+ * Resolves the VAPID public key at runtime. Primary source is the push-config
+ * Edge Function, which serves the exact key the dispatcher signs with, so the
+ * client/server pair can never drift. The build-time env var is a fallback for
+ * resilience if the endpoint is unreachable.
+ */
+export async function resolveVapidPublicKey(): Promise<string | undefined> {
+  if (cachedVapidKey !== undefined) {
+    return cachedVapidKey || undefined;
+  }
+
+  try {
+    const { data, error } = await supabase.functions.invoke('push-config');
+    const key = (data as { publicKey?: unknown } | null)?.publicKey;
+    if (!error && typeof key === 'string' && key.length > 0) {
+      cachedVapidKey = key;
+      return key;
+    }
+    console.warn('[Push] push-config returned no key:', error?.message);
+  } catch (err) {
+    console.warn('[Push] push-config fetch failed:', err);
+  }
+
+  const envKey = getVapidPublicKeyFromEnv();
+  cachedVapidKey = envKey ?? null;
+  return envKey;
 }
 
 export function sendBrowserNotification(title: string, body: string) {
@@ -177,7 +207,7 @@ export async function ensurePushSubscription(): Promise<PushSubscription> {
     throw new Error('مرورگر شما از نوتیفیکیشن پس‌زمینه (Push) پشتیبانی نمی‌کند.');
   }
 
-  const vapidKey = getVapidPublicKey();
+  const vapidKey = await resolveVapidPublicKey();
   if (!vapidKey) {
     throw new Error('کلید عمومی Push روی بیلد سایت پیکربندی نشده است (VITE_VAPID_PUBLIC_KEY).');
   }
