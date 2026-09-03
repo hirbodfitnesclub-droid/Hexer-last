@@ -212,7 +212,17 @@ export const TasksView: React.FC = () => {
         className="p-4 pt-8 lg:pt-0 sticky top-0 pt-safe bg-[var(--bg-app-glass)] lg:bg-transparent backdrop-blur-md lg:backdrop-blur-none z-10 border-b border-[var(--border-subtle)] lg:border-b-0 space-y-4 shrink-0"
       >
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <h1 className="text-2xl font-black text-[var(--text-main)] pr-1">کارها</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-black text-[var(--text-main)] pr-1">کارها</h1>
+            <button
+              onClick={handleAddNewTask}
+              className="hidden lg:flex items-center gap-2 px-4 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] rounded-xl text-[var(--text-on-primary)] font-bold text-xs transition-all shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)]"
+              aria-label="افزودن کار جدید"
+            >
+              <PlusIcon className="w-4 h-4" />
+              <span>افزودن کار</span>
+            </button>
+          </div>
           <div className="relative w-full md:max-w-xs group">
             <input 
               type="text"
@@ -407,7 +417,7 @@ export const TasksView: React.FC = () => {
               {searchQuery ? 'نتیجه‌ای یافت نشد' : '🎉 عالیه! همه کارها انجام شده.'}
             </h3>
             <p className="text-xs text-[var(--text-muted)] opacity-60 mt-1 pb-4 leading-relaxed">
-              {searchQuery ? 'عبارت دیگری را امتحان کنید.' : 'برای افزودن کار جدید، دکمه + پایین صفحه را بزنید.'}
+              {searchQuery ? 'عبارت دیگری را امتحان کنید.' : 'برای افزودن کار جدید، از دکمه «افزودن کار» استفاده کنید.'}
             </p>
             {searchQuery && (
               <button 
@@ -424,7 +434,7 @@ export const TasksView: React.FC = () => {
       {/* Floating Add Button */}
       <button 
         onClick={handleAddNewTask} 
-        className="fixed bottom-[calc(var(--bottom-nav-space)+var(--safe-area-inset-bottom)+1rem)] right-5 w-14 h-14 bg-[var(--color-primary)] rounded-full flex items-center justify-center text-[var(--text-on-primary)] shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)] hover:scale-105 transition-all duration-300 z-30" 
+        className="lg:hidden fixed bottom-[calc(var(--bottom-nav-space)+var(--safe-area-inset-bottom)+1rem)] right-5 w-14 h-14 bg-[var(--color-primary)] rounded-full flex items-center justify-center text-[var(--text-on-primary)] shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)] hover:scale-105 transition-all duration-300 z-30" 
         aria-label="Add new task"
       >
         <PlusIcon className="w-7 h-7"/>
