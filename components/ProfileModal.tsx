@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { User } from '@supabase/supabase-js';
 import { UserIcon, XIcon, ShieldIcon, BellIcon, MoonIcon, SunIcon, LogOutIcon, DownloadIcon, UploadIcon, CheckIcon, BotIcon, SparklesIcon } from './icons';
 import { exportUserData, importUserData } from '../services/backupService';
-import { requestNotificationPermission, subscribeToPush, saveSubscription } from '../services/reminderService';
+import { requestNotificationPermission, ensurePushSubscription } from '../services/reminderService';
 import { motion, AnimatePresence } from 'motion/react';
 import SubscriptionModal from '../features/billing/components/SubscriptionModal';
 import SupportTicketModal from './SupportTicketModal';
@@ -59,7 +59,17 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
         }
 
         if (Notification.permission === 'granted') {
-            setStatus({ type: 'success', message: 'یادآورهای هوشمند هم‌اکنون برای شما فعال هستند.' });
+            // Permission alone is not enough; make sure a live push subscription
+            // exists in this browser and on the server (self-healing toggle).
+            setStatus({ type: 'loading', message: 'در حال بررسی و ثبت اشتراک نوتیفیکیشن...' });
+            try {
+                await ensurePushSubscription();
+                setStatus({ type: 'success', message: 'یادآورهای هوشمند هم‌اکنون برای شما فعال هستند.' });
+                localStorage.setItem('hexer-notification-prompt-dismissed', 'true');
+            } catch (error: any) {
+                console.error('[Notification Setup Error]', error);
+                setStatus({ type: 'error', message: error.message || 'خطا در ثبت اشتراک نوتیفیکیشن' });
+            }
             return;
         }
 
@@ -78,22 +88,10 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                 return;
             }
 
-            const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-            if (!vapidKey) {
-                console.warn('[Push] VITE_VAPID_PUBLIC_KEY is not defined.');
-                setStatus({ type: 'success', message: 'مجوز صادر شد. (کلید عمومی پیکربندی نشده است)' });
-                return;
-            }
-
             setStatus({ type: 'loading', message: 'در حال ثبت اشتراک در سرور... ⏳' });
-            const sub = await subscribeToPush(vapidKey);
-            if (sub) {
-                await saveSubscription(sub);
-                setStatus({ type: 'success', message: 'فعال‌سازی با موفقیت انجام شد!' });
-                localStorage.setItem('hexer-notification-prompt-dismissed', 'true');
-            } else {
-                setStatus({ type: 'success', message: 'مجوز صادر شد اما ثبت اشتراک در این مرورگر مقدور نیست.' });
-            }
+            await ensurePushSubscription();
+            setStatus({ type: 'success', message: 'فعال‌سازی با موفقیت انجام شد!' });
+            localStorage.setItem('hexer-notification-prompt-dismissed', 'true');
         } catch (error: any) {
             console.error('[Notification Setup Error]', error);
             setStatus({ type: 'error', message: error.message || 'خطا در فعال‌سازی نوتیفیکیشن' });

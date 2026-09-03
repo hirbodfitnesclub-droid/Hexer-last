@@ -57,6 +57,19 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return false;
 }
 
+const VAPID_ENV_KEY = 'VITE_VAPID_PUBLIC_KEY';
+
+/**
+ * Reads the VAPID public key through a computed property. A direct
+ * `import.meta.env.VITE_VAPID_PUBLIC_KEY` access lets bundlers constant-fold a
+ * missing env var into `undefined`, which lets dead-code elimination silently
+ * remove the entire push-subscription flow from production builds.
+ */
+export function getVapidPublicKey(): string | undefined {
+  const env = import.meta.env as unknown as Record<string, string | undefined>;
+  return env?.[VAPID_ENV_KEY] || undefined;
+}
+
 export function sendBrowserNotification(title: string, body: string) {
   if (typeof window === 'undefined' || !('Notification' in window)) {
     return;
@@ -147,6 +160,35 @@ export async function saveSubscription(
     console.error('Failed to save push subscription in database:', error);
     throw new Error('خطا در ذخیره‌سازی اشتراک نوتیفیکیشن: ' + error.message);
   }
+}
+
+/**
+ * Makes sure a valid push subscription exists in this browser AND is persisted
+ * server-side. Safe to call repeatedly (idempotent upsert) and on every app
+ * load, so subscriptions heal themselves after browser resets or past builds
+ * that shipped without push code.
+ */
+export async function ensurePushSubscription(): Promise<PushSubscription> {
+  if (
+    typeof window === 'undefined' ||
+    !('serviceWorker' in navigator) ||
+    !('PushManager' in window)
+  ) {
+    throw new Error('مرورگر شما از نوتیفیکیشن پس‌زمینه (Push) پشتیبانی نمی‌کند.');
+  }
+
+  const vapidKey = getVapidPublicKey();
+  if (!vapidKey) {
+    throw new Error('کلید عمومی Push روی بیلد سایت پیکربندی نشده است (VITE_VAPID_PUBLIC_KEY).');
+  }
+
+  const subscription = await subscribeToPush(vapidKey);
+  if (!subscription) {
+    throw new Error('ثبت اشتراک نوتیفیکیشن در این مرورگر مقدور نیست.');
+  }
+
+  await saveSubscription(subscription);
+  return subscription;
 }
 
 /**

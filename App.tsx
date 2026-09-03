@@ -26,7 +26,6 @@ import { DataProvider, useData } from './contexts/DataContext';
 import { useRealtimeSync } from './hooks/useRealtimeSync';
 import { supabase } from './services/supabaseClient';
 import { useReminderScheduler } from './hooks/useReminderScheduler';
-import { requestNotificationPermission, subscribeToPush, saveSubscription } from './services/reminderService';
 
 // Import components
 import Sidebar from './components/Sidebar';
@@ -152,13 +151,19 @@ const MainApp: React.FC = () => {
         // Clean cached notification IDs older than 48 hours is done in background
         pruneShown().catch(err => console.warn('[DB] Failed to prune shown alerts:', err));
 
-        const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-        if (!vapidKey) {
-          console.warn('[Push] VITE_VAPID_PUBLIC_KEY is not defined. Bypassing background push setup.');
-          return;
+        // Self-heal: users who already granted permission must keep a valid push
+        // subscription even if an older build shipped without push code. No
+        // permission prompt happens here; requestPermission is only ever invoked
+        // from the explicit Profile toggle (H11).
+        if (
+          typeof Notification !== 'undefined' &&
+          Notification.permission === 'granted' &&
+          'serviceWorker' in navigator &&
+          'PushManager' in window
+        ) {
+          const { ensurePushSubscription } = await import('./services/reminderService');
+          await ensurePushSubscription();
         }
-        // به هیچ وجه در اینجا requestNotificationPermission یا subscribeToPush را صدا نزن.
-        // این کار بعداً با کلیک صریح کاربر (در تسک H11) انجام خواهد شد.
       } catch (err) {
         console.warn('[Push] Setup degraded gracefully:', err);
       }
