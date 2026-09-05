@@ -49,7 +49,7 @@ export const RenewReminderModal: React.FC = () => {
 
   return (
     <div 
-      className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex justify-center items-center p-4 font-sans animate-fade-in"
+      className="fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-md z-[100] flex justify-center items-center p-4 font-sans animate-fade-in"
       role="alertdialog"
       aria-modal="true"
     >
@@ -81,7 +81,7 @@ export const RenewReminderModal: React.FC = () => {
         </div>
 
         {/* Message body */}
-        <p className="text-xs text-[var(--text-muted)] leading-relaxed font-semibold">
+        <p className="text-xs text-[var(--text-main)] leading-relaxed font-semibold">
           {isExpired ? (
             'اعتبار اشتراک هکسر شما تموم شده و دسترسی شما به پروژه‌ها، برنامه‌ریزی و بخش‌های مختلف محدود شده؛ لطفاً نسبت به تمدیدش اقدام کنی.'
           ) : (
@@ -106,7 +106,7 @@ export const RenewReminderModal: React.FC = () => {
           
           <button 
             onClick={handleDismiss}
-            className="px-4 py-2.5 bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:bg-[var(--nav-hover-bg)] text-[var(--text-muted)] rounded-xl font-bold text-xs transition-colors"
+            className="px-4 py-2.5 bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:bg-[var(--nav-hover-bg)] text-[var(--text-main)] rounded-xl font-bold text-xs transition-colors"
           >
             بعداً یادآوری کن
           </button>

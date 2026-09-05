@@ -156,7 +156,7 @@ export const SubscriptionPage: React.FC = () => {
                     </div>
                     <p className="text-[10px] text-[var(--text-muted)] font-bold">برای دوره زمان کاربری {plan.durationLabel}</p>
                     {plan.priceRials > 0 && (
-                      <p className="text-[9px] text-[var(--text-muted)] opacity-85 font-bold font-mono">برابر با {plan.priceRials.toLocaleString('fa-IR')} ریال</p>
+                      <p className="text-[9px] text-[var(--text-muted)] font-bold font-mono">برابر با {plan.priceRials.toLocaleString('fa-IR')} ریال</p>
                     )}
                   </div>
 
@@ -165,7 +165,7 @@ export const SubscriptionPage: React.FC = () => {
                     {plan.features.map((feat, idx) => (
                       <div key={idx} className="flex items-start gap-2.5">
                         <CheckIcon className="w-3.5 h-3.5 text-primary-text shrink-0 mt-0.5" />
-                        <span className="text-[11px] font-medium leading-relaxed text-[var(--text-main)] opacity-90">{feat}</span>
+                        <span className="text-[11px] font-medium leading-relaxed text-[var(--text-main)]">{feat}</span>
                       </div>
                     ))}
                   </div>
@@ -173,7 +173,7 @@ export const SubscriptionPage: React.FC = () => {
 
                 <div className="pt-8">
                   {plan.code === 'free' ? (
-                    <div className="w-full text-center border border-[var(--border-subtle)] p-2.5 rounded-xl text-[var(--text-muted)] text-xs font-bold leading-relaxed bg-black/5 dark:bg-white/5">
+                    <div className="w-full text-center border border-[var(--border-subtle)] p-2.5 rounded-xl text-[var(--text-main)] text-xs font-bold leading-relaxed bg-black/5 dark:bg-white/5">
                       کاربری عادی فعال است
                     </div>
                   ) : (
@@ -184,7 +184,7 @@ export const SubscriptionPage: React.FC = () => {
                         plan.isPopular 
                           ? 'bg-primary hover:bg-[var(--color-primary-hover)] text-[var(--text-on-primary)] shadow-md shadow-primary/15' 
                           : 'bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] hover:bg-[var(--nav-hover-bg)] text-[var(--text-main)]'
-                      } disabled:opacity-50`}
+                      } disabled:bg-[var(--border-subtle)] disabled:text-[var(--text-muted)] disabled:border-transparent disabled:cursor-not-allowed`}
                     >
                       {loadingPlan === plan.code ? 'کمی صبر کنید...' : 'فعال‌سازی و تمدید طرح'}
                     </button>

@@ -93,11 +93,11 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userId, onComplete }) =>
               <WarningIcon className="w-5 h-5 text-[var(--semantic-error)] shrink-0 mt-0.5" />
               <div className="space-y-1">
                 <p className="text-sm font-bold text-[var(--semantic-error)]">یه مشکلی پیش اومده!</p>
-                <p className="text-xs text-[var(--text-muted)] leading-relaxed font-semibold">{errorMsg}</p>
+                <p className="text-xs text-[var(--text-main)] leading-relaxed font-semibold">{errorMsg}</p>
                 <button
                   type="button"
                   onClick={() => handleFinishOnboarding(fullName)}
-                  className="text-xs font-black text-[var(--semantic-error)] opacity-90 hover:opacity-100 underline pt-1"
+                  className="text-xs font-black text-[var(--semantic-error)] underline pt-1"
                 >
                   دوباره تلاش کن
                 </button>

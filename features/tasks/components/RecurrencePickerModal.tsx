@@ -47,7 +47,7 @@ const TypeRow: React.FC<{
     onClick={onSelect}
     className={`w-full min-h-[44px] flex items-center justify-between px-3 py-2.5 rounded-xl border text-sm font-semibold transition-colors text-right ${
       selected
-        ? 'bg-primary/10 border-[var(--border-neon)] text-[var(--color-primary-text)]'
+        ? 'bg-primary/10 border-primary/30 text-[var(--color-primary-text)]'
         : 'bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--text-main)] hover:bg-[var(--nav-hover-bg)]'
     }`}
   >
@@ -375,7 +375,7 @@ export const RecurrencePickerModal: React.FC<RecurrencePickerModalProps> = ({
                     onClick={() => setEndMode(k)}
                     className={`min-h-[44px] px-3 rounded-xl border text-xs font-bold transition-colors ${
                       endMode === k
-                        ? 'bg-primary/10 border-[var(--border-neon)] text-[var(--color-primary-text)]'
+                        ? 'bg-primary/10 border-primary/30 text-[var(--color-primary-text)]'
                         : 'bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--text-muted)]'
                     }`}
                   >
@@ -409,7 +409,7 @@ export const RecurrencePickerModal: React.FC<RecurrencePickerModalProps> = ({
             <div
               className={`rounded-xl px-3 py-2.5 text-xs font-semibold border ${
                 preview.ok
-                  ? 'bg-primary/10 border-[var(--border-neon)] text-[var(--color-primary-text)]'
+                  ? 'bg-primary/10 border-primary/30 text-[var(--color-primary-text)]'
                   : 'bg-[var(--semantic-error-soft)] border-[var(--semantic-error)]/20 text-[var(--semantic-error)]'
               }`}
             >
@@ -423,7 +423,7 @@ export const RecurrencePickerModal: React.FC<RecurrencePickerModalProps> = ({
             type="button"
             onClick={handleConfirm}
             disabled={selectionInvalid}
-            className="flex-1 min-h-[44px] bg-[var(--color-primary)] text-[var(--text-on-primary)] rounded-xl font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-1 min-h-[44px] bg-[var(--color-primary)] text-[var(--text-on-primary)] rounded-xl font-bold text-sm disabled:bg-[var(--border-subtle)] disabled:text-[var(--text-muted)] disabled:cursor-not-allowed"
           >
             تأیید
           </button>

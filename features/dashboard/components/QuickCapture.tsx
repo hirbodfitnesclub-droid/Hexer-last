@@ -42,7 +42,7 @@ export const QuickCapture: React.FC = () => {
         <button 
           onClick={() => handleAction('task')} 
           disabled={!input.trim()} 
-          className="flex items-center justify-center gap-2 w-full p-2.5 bg-primary rounded-lg text-[var(--text-on-primary)] font-semibold hover:bg-[var(--color-primary-hover)] transition-colors disabled:opacity-40 cursor-pointer"
+          className="flex items-center justify-center gap-2 w-full p-2.5 bg-primary rounded-lg text-[var(--text-on-primary)] font-semibold hover:bg-[var(--color-primary-hover)] transition-colors disabled:bg-[var(--border-subtle)] disabled:text-[var(--text-muted)] disabled:cursor-not-allowed cursor-pointer"
         >
           <ListChecksIcon className="w-5 h-5"/> 
           <span>ثبت کار</span>
@@ -50,7 +50,7 @@ export const QuickCapture: React.FC = () => {
         <button 
           onClick={() => handleAction('note')} 
           disabled={!input.trim()} 
-          className="flex items-center justify-center gap-2 w-full p-2.5 bg-[var(--bg-card)] backdrop-blur-xl text-[var(--text-main)] border border-[var(--border-subtle)] rounded-lg font-semibold hover:bg-[var(--nav-hover-bg)] transition-colors disabled:opacity-40 cursor-pointer"
+          className="flex items-center justify-center gap-2 w-full p-2.5 bg-[var(--bg-card)] backdrop-blur-xl text-[var(--text-main)] border border-[var(--border-subtle)] rounded-lg font-semibold hover:bg-[var(--nav-hover-bg)] transition-colors disabled:text-[var(--text-muted)] disabled:cursor-not-allowed cursor-pointer"
         >
           <NotebookIcon className="w-5 h-5"/> 
           <span>ثبت یادداشت</span>

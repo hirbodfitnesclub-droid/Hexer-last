@@ -105,13 +105,13 @@ export const WeekCalendar: React.FC<WeekCalendarProps> = ({ selectedDate, onDate
               w-full flex-1 flex flex-col items-center justify-center rounded-xl mt-1 py-0.5 xs:py-1
               ${isSelected ? 'bg-black/10' : 'bg-transparent'}
             `}>
-              <span className={`text-xs sm:text-sm md:text-base font-bold leading-none ${isSelected ? 'text-black' : 'text-main opacity-70 group-hover:opacity-100'}`}>
+              <span className={`text-xs sm:text-sm md:text-base font-bold leading-none ${isSelected ? 'text-black' : 'text-main'}`}>
                               {dayNumber}
                             </span>
               
               {/* Dot for today - positioned inside the inner container */}
               {isToday && (
-                <div className={`w-1 h-1 rounded-full mt-1 ${isSelected ? 'bg-black' : 'bg-primary'}`}></div>
+                <div className={`w-1 h-1 rounded-full mt-1 ${isSelected ? 'bg-black' : 'bg-[var(--color-primary-text)]'}`}></div>
               )}
             </div>
           </button>
@@ -123,7 +123,7 @@ export const WeekCalendar: React.FC<WeekCalendarProps> = ({ selectedDate, onDate
         <div className="grid grid-cols-7 gap-1 items-center">
           {/* 7 کپسول کوچک برای روزهای هفته بعد */}
           {nextWeekDays.map((day, idx) => (
-            <div key={idx} className="flex flex-col items-center justify-between p-0.5 rounded-[8px] h-[42px] bg-[var(--bg-card)]/40 border border-subtle/30 opacity-40">
+            <div key={idx} className="flex flex-col items-center justify-between p-0.5 rounded-[8px] h-[42px] bg-[var(--bg-card)]/40 border border-subtle/30 saturate-50">
               <span className="text-[7px] font-bold text-muted truncate w-full text-center leading-none mt-0.5">
                 {SHORT_DAY_NAMES[getCustomDayName(day)] || getCustomDayName(day)}
               </span>

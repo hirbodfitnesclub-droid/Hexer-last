@@ -42,7 +42,7 @@ export const CitationCard: React.FC<CitationCardProps> = ({ citation, onClick })
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-xs text-main truncate max-w-[150px]">{citation.title}</p>
-        <p className="text-[10px] text-muted">{sourceTypeLabel}</p>
+        <p className="text-[10px] text-main font-semibold">{sourceTypeLabel}</p>
       </div>
       <LinkIcon className="w-3 h-3 text-muted group-hover:text-primary-text transition-colors" />
     </button>

@@ -100,7 +100,7 @@ export const NotesView: React.FC = () => {
               <HashIcon className="relative w-14 h-14 text-[var(--text-muted)] opacity-35" />
             </div>
             <h3 className="text-sm font-bold text-[var(--text-muted)] mb-1">هنوز خالیست</h3>
-            <p className="text-xs text-[var(--text-muted)] opacity-60 max-w-xs leading-relaxed font-semibold">
+            <p className="text-xs text-[var(--text-muted)] max-w-xs leading-relaxed font-semibold">
               ذهن شما پر از ایده‌های درخشان است. اولین یادداشت خود را ثبت کنید.
             </p>
           </div>

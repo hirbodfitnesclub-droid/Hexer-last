@@ -82,9 +82,9 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
               key={prop.id} 
               className={`p-3.5 rounded-xl border transition-all ${
                 isApproved 
-                  ? 'bg-primary/5 border-[var(--border-neon)]' 
+                  ? 'bg-primary/5 border-[var(--border-subtle)]' 
                   : isRejected 
-                    ? 'bg-[var(--semantic-error-soft)] border-error/20 opacity-50' 
+                    ? 'bg-[var(--semantic-error-soft)] border-error/20 saturate-50' 
                     : 'glass-card border-subtle hover:border-primary/30'
               }`}
             >
@@ -96,7 +96,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                   <span className="text-xs font-bold text-muted">
                     {prop.kind === 'task' ? 'تسک پیشنهادی' : 'یادداشت پیشنهادی'}
                   </span>
-                  <span className="text-[10px] text-muted bg-white/5 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] text-main font-semibold bg-black/5 dark:bg-white/5 px-1.5 py-0.5 rounded">
                     اطمینان: {Math.round(prop.confidence * 100)}٪
                   </span>
                 </div>
@@ -105,7 +105,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => handleStartEdit(prop)}
-                      className="p-1 text-muted hover:text-main hover:bg-white/5 rounded-md transition-colors"
+                      className="p-1 text-muted hover:text-main hover:bg-black/5 dark:hover:bg-white/5 rounded-md transition-colors"
                       title="ویرایش پیش‌نویس"
                     >
                       <PencilIcon className="w-4 h-4" />
@@ -234,13 +234,13 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                   {prop.kind === 'task' ? (
                     <>
                       {prop.draft.description && (
-                        <p className="text-xs text-muted mb-2 line-clamp-2">
+                        <p className="text-xs text-main mb-2 line-clamp-2">
                           {prop.draft.description}
                         </p>
                       )}
-                      <div className="flex flex-wrap gap-2 text-[10px] text-muted">
+                      <div className="flex flex-wrap gap-2 text-[10px] text-main">
                         {prop.draft.dueDate && (
-                          <span className="flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded">
+                          <span className="flex items-center gap-1 bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded">
                             <CalendarIcon className="w-3 h-3 text-primary-text" />
                             سررسید: {prop.draft.dueDate}
                           </span>
@@ -251,13 +251,13 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                               ? 'bg-error/10 text-error' 
                               : prop.draft.priority === 'medium' 
                                 ? 'bg-primary/10 text-primary-text' 
-                                : 'bg-primary/5 text-muted'
+                                : 'bg-primary/5 text-[var(--text-main)]'
                           }`}>
                             اولویت: {prop.draft.priority === 'high' ? 'زیاد' : prop.draft.priority === 'medium' ? 'متوسط' : 'کم'}
                           </span>
                         )}
                         {prop.draft.project_id && (
-                          <span className="flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded">
+                          <span className="flex items-center gap-1 bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded">
                             <BriefcaseIcon className="w-3 h-3 text-primary-text" />
                             پروژه: {projects.find(p => p.id === prop.draft.project_id)?.title || 'مرتبط'}
                           </span>
@@ -267,13 +267,13 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                   ) : (
                     <>
                       {prop.draft.content && (
-                        <p className="text-xs text-muted mb-2 whitespace-pre-wrap line-clamp-3">
+                        <p className="text-xs text-main mb-2 whitespace-pre-wrap line-clamp-3">
                           {prop.draft.content}
                         </p>
                       )}
                       {prop.draft.project_id && (
-                        <div className="flex text-[10px] text-muted">
-                          <span className="flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded">
+                        <div className="flex text-[10px] text-main font-semibold">
+                          <span className="flex items-center gap-1 bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded">
                             <BriefcaseIcon className="w-3 h-3 text-primary-text" />
                             پروژه: {projects.find(p => p.id === prop.draft.project_id)?.title || 'مرتبط'}
                           </span>

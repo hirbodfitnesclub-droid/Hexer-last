@@ -202,7 +202,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                                 disabled 
                                 type="text" 
                                 value={profile?.full_name || "کاربر عزیز هکسر ✌️"} 
-                                className="w-full bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text-muted)] cursor-not-allowed font-medium" 
+                                className="w-full bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text-main)] cursor-not-allowed font-medium" 
                             />
                         </div>
                     </div>
@@ -231,7 +231,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                                 disabled={permissionState === 'denied'}
                                 className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all group active:scale-[0.98] ${
                                     permissionState === 'denied' 
-                                        ? 'bg-black/5 dark:bg-white/5 opacity-50 cursor-not-allowed' 
+                                        ? 'bg-black/5 dark:bg-white/5 saturate-50 cursor-not-allowed' 
                                         : 'hover:bg-[var(--nav-hover-bg)] cursor-pointer'
                                 }`}
                             >
@@ -373,7 +373,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                         <button 
                             onClick={handleExport}
                             disabled={status.type === 'loading'}
-                            className="flex items-center justify-center gap-2 p-3 bg-black/5 dark:bg-white/5 hover:bg-[var(--nav-hover-bg)] rounded-xl transition-all border border-[var(--border-subtle)] group disabled:opacity-50 active:scale-95"
+                            className="flex items-center justify-center gap-2 p-3 bg-black/5 dark:bg-white/5 hover:bg-[var(--nav-hover-bg)] rounded-xl transition-all border border-[var(--border-subtle)] group disabled:cursor-not-allowed active:scale-95"
                         >
                             <DownloadIcon className="w-4 h-4 text-primary-text group-hover:translate-y-[1px] transition-transform" />
                             <span className="text-[11px] font-bold text-[var(--text-main)]">پشتیبان</span>
@@ -381,7 +381,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                         <button 
                             onClick={handleImportClick}
                             disabled={status.type === 'loading'}
-                            className="flex items-center justify-center gap-2 p-3 bg-black/5 dark:bg-white/5 hover:bg-[var(--nav-hover-bg)] rounded-xl transition-all border border-[var(--border-subtle)] group disabled:opacity-50 active:scale-95"
+                            className="flex items-center justify-center gap-2 p-3 bg-black/5 dark:bg-white/5 hover:bg-[var(--nav-hover-bg)] rounded-xl transition-all border border-[var(--border-subtle)] group disabled:cursor-not-allowed active:scale-95"
                         >
                             <UploadIcon className="w-4 h-4 text-success group-hover:-translate-y-[1px] transition-transform" />
                             <span className="text-[11px] font-bold text-[var(--text-main)]">بازگردانی</span>

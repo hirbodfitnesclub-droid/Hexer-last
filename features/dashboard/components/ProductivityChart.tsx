@@ -136,7 +136,7 @@ export const ProductivityChart: React.FC = () => {
             </div>
             <div className="flex flex-col text-right leading-tight">
               <span className="text-[11px] text-white/90 font-black">بهره‌وری</span>
-              <span className="text-[9px] text-white/50 font-bold mt-0.5">هفته جاری</span>
+              <span className="text-[9px] text-white/80 font-bold mt-0.5">هفته جاری</span>
             </div>
           </div>
           <span className="text-[10px] font-black bg-brand px-2.5 py-0.5 rounded-full text-black">
@@ -155,7 +155,7 @@ export const ProductivityChart: React.FC = () => {
             </div>
             <div className="flex flex-col text-right leading-tight">
               <span className="text-[11px] text-white/90 font-black">بهره‌وری</span>
-              <span className="text-[9px] text-white/50 font-bold mt-0.5">ماه جاری</span>
+              <span className="text-[9px] text-white/80 font-bold mt-0.5">ماه جاری</span>
             </div>
           </div>
           <span className="text-[10px] font-black bg-brand px-2.5 py-0.5 rounded-full text-black shadow-[0_2px_8px_rgb(var(--color-primary-rgb)/0.3)]">
@@ -243,7 +243,7 @@ export const ProductivityChart: React.FC = () => {
           )}
 
           {/* Day Labels - Dynamically mapped from weekData to preserve order */}
-          <g fill="rgba(255,255,255,0.4)" fontSize="7" fontWeight="bold" textAnchor="middle">
+          <g fill="rgba(255,255,255,0.75)" fontSize="7" fontWeight="bold" textAnchor="middle">
             {weekData.map((d, index) => {
               const x = colXStart + index * (colWidth + colGap) + colWidth / 2;
               const daysOfWeek = ['یکشنبه', 'دوشنبه', 'سهشنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه'];

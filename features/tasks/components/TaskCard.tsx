@@ -8,8 +8,8 @@ import { describeRecurrenceFa, normalizeRecurrence } from '../../../utils/recurr
 
 const priorityConfig = {
   [Priority.High]: { color: 'red', label: 'زیاد', bg: 'bg-[var(--semantic-error-soft)]', text: 'text-[var(--semantic-error)]', border: 'border-[var(--semantic-error)]/30' },
-  [Priority.Medium]: { color: 'yellow', label: 'متوسط', bg: 'bg-primary/10', text: 'text-[var(--color-primary-text)]', border: 'border-[var(--border-neon)]' },
-  [Priority.Low]: { color: 'sky', label: 'کم', bg: 'bg-primary/10', text: 'text-[var(--color-primary-text)]', border: 'border-[var(--border-neon)]' },
+  [Priority.Medium]: { color: 'yellow', label: 'متوسط', bg: 'bg-primary/10', text: 'text-[var(--color-primary-text)]', border: 'border-primary/30' },
+  [Priority.Low]: { color: 'sky', label: 'کم', bg: 'bg-primary/10', text: 'text-[var(--color-primary-text)]', border: 'border-primary/30' },
 };
 
 interface TaskCardProps {
@@ -44,7 +44,7 @@ export const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, onToggle, o
       animate={isAnimatingOut ? { opacity: 0, scale: 0.95 } : { opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className={`flex items-start gap-3 w-full ${task.status === 'done' ? 'opacity-55' : ''}`}
+      className="flex items-start gap-3 w-full"
       dir="rtl"
     >
       <div className="pt-1.5 flex-shrink-0">
@@ -92,7 +92,7 @@ export const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, onToggle, o
 
           {task.status !== 'done' && normalizeRecurrence(task.recurrence) && (
             <div
-              className="flex items-center gap-1 bg-primary/10 text-[var(--color-primary-text)] border border-[var(--border-neon)] px-2 py-0.5 rounded-md font-semibold max-w-[9rem]"
+              className="flex items-center gap-1 bg-primary/10 text-[var(--color-primary-text)] border border-primary/30 px-2 py-0.5 rounded-md font-semibold max-w-[9rem]"
               title={describeRecurrenceFa(task.recurrence, { dueDate: task.due_date })}
             >
               <RepeatIcon className="w-3 h-3 shrink-0" />
@@ -110,7 +110,7 @@ export const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, onToggle, o
           )}
 
           {isLinkedToNote && (
-            <div className="flex items-center gap-1 bg-primary/10 text-[var(--color-primary-text)] border border-[var(--border-neon)] px-2 py-0.5 rounded-md font-semibold" title="دارای یادداشت متصل">
+            <div className="flex items-center gap-1 bg-primary/10 text-[var(--color-primary-text)] border border-primary/30 px-2 py-0.5 rounded-md font-semibold" title="دارای یادداشت متصل">
               <NotebookIcon className="w-3 h-3 text-[var(--color-primary-text)]" />
               <span>یادداشت متصل</span>
             </div>

@@ -41,25 +41,25 @@ export const NoteCard: React.FC<NoteCardProps> = ({ note, project, onEdit }) => 
               {note.title || "بدون عنوان"}
             </h3>
             {project && (
-              <span className="flex-shrink-0 text-[10px] font-bold tracking-wider uppercase text-[var(--text-muted)] bg-[var(--bg-card)] px-2 py-1 rounded-md border border-[var(--border-subtle)] font-sans">
+              <span className="flex-shrink-0 text-[10px] font-bold tracking-wider uppercase text-[var(--text-main)] bg-[var(--bg-card)] px-2 py-1 rounded-md border border-[var(--border-subtle)] font-sans">
                 {project.title}
               </span>
             )}
           </div>
 
           {/* Content Preview */}
-          <p className="text-[var(--text-muted)] text-xs font-light leading-relaxed line-clamp-6 text-right whitespace-pre-wrap">
+          <p className="text-[var(--text-muted)] text-xs font-normal leading-relaxed line-clamp-6 text-right whitespace-pre-wrap">
             {note.content}
           </p>
 
           {/* Footer: Meta & Tags */}
           <div className="pt-4 mt-2 border-t border-[var(--border-subtle)] flex flex-wrap items-center justify-between gap-3 font-semibold">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] text-[var(--text-muted)] opacity-60 font-mono">
+              <span className="text-[10px] text-[var(--text-muted)] font-mono">
                 {formatPersianDate(note.created_at)}
               </span>
               {isLinkedToTask && (
-                <div className="flex items-center gap-1 bg-primary/10 text-[var(--color-primary-text)] border border-[var(--border-neon)] px-1.5 py-0.5 rounded-md text-[9px] font-extrabold" title="دارای کار متصل">
+                <div className="flex items-center gap-1 bg-primary/10 text-[var(--color-primary-text)] border border-primary/30 px-1.5 py-0.5 rounded-md text-[9px] font-extrabold" title="دارای کار متصل">
                   <ListChecksIcon className="w-3 h-3 text-[var(--color-primary-text)]" />
                   <span>کار متصل</span>
                 </div>
@@ -70,12 +70,12 @@ export const NoteCard: React.FC<NoteCardProps> = ({ note, project, onEdit }) => 
               <div className="flex flex-wrap gap-1.5 justify-end">
                 {note.tags.slice(0, 3).map(tag => (
                   <div key={tag} className="flex items-center gap-0.5 px-2 py-0.5 rounded-md bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[9px] text-[var(--text-muted)] group-hover:bg-primary/10 group-hover:text-[var(--color-primary-text)] transition-colors">
-                    <span className="opacity-50">#</span>
+                    <span>#</span>
                     {tag}
                   </div>
                 ))}
                 {note.tags.length > 3 && (
-                  <span className="text-[9px] text-[var(--text-muted)] opacity-65 font-bold">+{note.tags.length - 3}</span>
+                  <span className="text-[9px] text-[var(--text-muted)] font-bold">+{note.tags.length - 3}</span>
                 )}
               </div>
             )}

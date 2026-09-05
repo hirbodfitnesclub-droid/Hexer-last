@@ -54,7 +54,7 @@ export const KeyProjects: React.FC = () => {
         <h3 className="font-semibold text-sm text-[var(--text-on-primary)] truncate max-w-[90%]">
           {project.title}
         </h3>
-        <p className="text-[10px] text-[var(--text-on-primary)] opacity-80 mt-1">
+        <p className="text-[10px] text-[var(--text-on-primary)] mt-1">
           کارهای باقی‌مانده: {project.remaining}
         </p>
       </div>

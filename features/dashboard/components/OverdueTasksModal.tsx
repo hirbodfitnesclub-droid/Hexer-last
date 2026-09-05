@@ -194,7 +194,7 @@ export const OverdueTasksModal: React.FC<OverdueTasksModalProps> = ({ isOpen, on
                               {task.title}
                             </h4>
                             {task.priority && (
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${priorityConfig[task.priority]?.badge || 'bg-subtle/10 text-subtle'}`}>
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${priorityConfig[task.priority]?.badge || 'bg-primary/10 text-primary-text border-primary/30 dark:border-primary/20'}`}>
                                 {priorityConfig[task.priority]?.label || 'متوسط'}
                               </span>
                             )}

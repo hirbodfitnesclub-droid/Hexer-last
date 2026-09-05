@@ -62,7 +62,7 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
         <div className="p-4 overflow-y-auto space-y-2 flex-1">
           {loading ? (
             <div className="flex justify-center items-center py-10">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--color-primary-text)]"></div>
             </div>
           ) : sessions.length === 0 ? (
             <div className="text-center text-[var(--text-muted)] py-10 text-xs">
@@ -93,7 +93,7 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
                         <p className="text-xs font-semibold">
                           گفتگوی {formatPersianDate(session.session_date)}
                         </p>
-                        <p className="text-[10px] text-[var(--text-muted)] opacity-75 mt-0.5">
+                        <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
                           تاریخ میلادی: {session.session_date}
                         </p>
                       </div>

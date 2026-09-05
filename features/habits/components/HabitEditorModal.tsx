@@ -78,7 +78,7 @@ export const HabitEditorModal: React.FC<HabitEditorModalProps> = ({ habit, isOpe
           </div>
           <button 
             onClick={handleClose} 
-            className="p-2 text-zinc-500 hover:text-white hover:bg-white/5 rounded-xl transition-colors shrink-0"
+            className="p-2 text-zinc-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors shrink-0"
           >
             <XIcon className="w-5 h-5"/>
           </button>
@@ -134,7 +134,7 @@ export const HabitEditorModal: React.FC<HabitEditorModalProps> = ({ habit, isOpe
                   value={formState.name || ''}
                   onChange={e => setFormState(s => ({ ...s, name: e.target.value }))}
                   placeholder="مثلاً: ورزش صبحگاهی یا نوشتن روزانه..."
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-orange-500 font-semibold transition-all text-right"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-orange-500 font-semibold transition-all text-right"
                   autoFocus
                 />
               </div>
@@ -172,7 +172,7 @@ export const HabitEditorModal: React.FC<HabitEditorModalProps> = ({ habit, isOpe
                   onChange={e => setFormState(s => ({ ...s, description: e.target.value }))}
                   placeholder="انگیزه یا هدف خود از انجام مرتب این کار را بنویسید..."
                   rows={4}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-orange-500 transition-all resize-none min-h-[100px] leading-relaxed"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-white placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-orange-500 transition-all resize-none min-h-[100px] leading-relaxed"
                 />
               </div>
 
@@ -186,7 +186,7 @@ export const HabitEditorModal: React.FC<HabitEditorModalProps> = ({ habit, isOpe
                 {!isNew && (
                   <button 
                     onClick={() => setMode('view')} 
-                    className="px-5 py-3 bg-zinc-850 hover:bg-zinc-800 text-zinc-300 rounded-xl font-bold transition-colors text-sm border border-zinc-800"
+                    className="px-5 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl font-bold transition-colors text-sm border border-zinc-800"
                   >
                     انصراف
                   </button>

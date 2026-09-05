@@ -68,7 +68,7 @@ export const ActionResultCard: React.FC<ActionResultCardProps> = ({ result, onCl
           <p className="text-xs text-muted font-medium mb-0.5">{label}</p>
           <p className="text-sm text-main font-bold group-hover:text-primary-text transition-colors">{title}</p>
         </div>
-        <div className="p-1.5 bg-white/5 rounded-full group-hover:bg-white/10 transition-colors">
+        <div className="p-1.5 bg-black/5 dark:bg-white/5 rounded-full group-hover:bg-black/10 dark:group-hover:bg-white/10 transition-colors">
           <LinkIcon className="w-4 h-4 text-muted group-hover:text-main" />
         </div>
       </button>
@@ -77,7 +77,7 @@ export const ActionResultCard: React.FC<ActionResultCardProps> = ({ result, onCl
           type="button"
           disabled={undoing}
           onClick={() => onUndo(result)}
-          className="self-start rounded-lg border border-[var(--border-subtle)] px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:text-main disabled:cursor-not-allowed disabled:opacity-50"
+          className="self-start rounded-lg border border-[var(--border-subtle)] px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:text-main disabled:cursor-not-allowed"
         >
           {undoing ? 'در حال بازگردانی…' : 'بازگردانی تغییر'}
         </button>

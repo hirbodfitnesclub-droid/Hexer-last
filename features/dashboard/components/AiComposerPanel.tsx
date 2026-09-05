@@ -202,7 +202,7 @@ export const AiComposerPanel: React.FC = () => {
               type="button"
               onClick={handleAttachmentClick}
               disabled={isSubmitting}
-              className="text-muted hover:text-main cursor-pointer transition p-1.5 rounded-full hover:bg-subtle active:scale-90 disabled:opacity-50"
+              className="text-muted hover:text-main cursor-pointer transition p-1.5 rounded-full hover:bg-subtle active:scale-90 disabled:cursor-not-allowed"
               title="ضمیمه کردن تصویر"
             >
               <PaperclipIcon className="w-4 h-4" />
@@ -229,7 +229,7 @@ export const AiComposerPanel: React.FC = () => {
             <button 
               type="submit" 
               disabled={isSubmitting || (!input.trim() && !selectedImageFile && !recordedAudio && !isRecording)}
-              className="px-3 sm:px-4 py-2 bg-brand rounded-full text-xs font-bold text-on-primary transition hover:scale-105 active:scale-95 shrink-0 shadow-[var(--shadow-btn)] flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none min-w-0"
+              className="px-3 sm:px-4 py-2 bg-brand rounded-full text-xs font-bold text-on-primary transition hover:scale-105 active:scale-95 shrink-0 shadow-[var(--shadow-btn)] flex items-center justify-center gap-1.5 disabled:bg-[var(--border-subtle)] disabled:text-[var(--text-muted)] disabled:pointer-events-none min-w-0"
             >
               {isSubmitting ? (
                 <span className="w-4 h-4 border-2 border-on-primary border-t-transparent rounded-full animate-spin"></span>
