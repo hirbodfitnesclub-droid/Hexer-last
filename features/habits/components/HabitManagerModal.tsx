@@ -79,7 +79,7 @@ export const HabitManagerModal: React.FC<HabitManagerModalProps> = ({
             <div className="flex gap-3 mt-6 w-full max-w-[280px]">
               <button
                 onClick={handleDeleteConfirm}
-                className="flex-1 bg-error hover:opacity-90 text-white py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                className="flex-1 bg-error hover:opacity-90 text-[var(--text-on-primary)] py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
               >
                 بله، حذف شود
               </button>

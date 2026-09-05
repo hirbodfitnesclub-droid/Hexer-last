@@ -358,7 +358,7 @@ const AuthComponent: React.FC = () => {
                 onChange={(e) => setPhone(e.target.value)}
                 required
                 disabled={loading}
-                className="w-full bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] rounded-xl px-4 py-2.5 text-center text-[var(--text-main)] text-sm font-mono placeholder-[var(--text-muted)]/50 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                className="w-full bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] rounded-xl px-4 py-2.5 text-center text-[var(--text-main)] text-sm font-mono placeholder-[var(--text-muted)] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                 placeholder="09123456789"
               />
             </div>
@@ -375,7 +375,7 @@ const AuthComponent: React.FC = () => {
                   required
                   disabled={loading}
                   minLength={8}
-                  className="w-full bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] rounded-xl px-4 py-2.5 text-center text-[var(--text-main)] text-sm font-mono placeholder-[var(--text-muted)]/50 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                  className="w-full bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] rounded-xl px-4 py-2.5 text-center text-[var(--text-main)] text-sm font-mono placeholder-[var(--text-muted)] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                   placeholder="رمز عبور (حداقل ۸ کاراکتر)"
                 />
               </div>
@@ -385,7 +385,7 @@ const AuthComponent: React.FC = () => {
               id="auth-submit-btn"
               type="submit"
               disabled={loading}
-              className="w-full bg-primary text-[var(--text-on-primary)] hover:opacity-90 font-semibold text-sm py-2.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4 shadow-md"
+              className="w-full bg-primary text-[var(--text-on-primary)] hover:opacity-90 font-semibold text-sm py-2.5 rounded-xl transition-all disabled:bg-[var(--border-subtle)] disabled:text-[var(--text-muted)] disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4 shadow-md"
             >
               {loading ? (
                 <div className="animate-spin rounded-full h-4.5 w-4.5 border-t-2 border-b-2 border-[var(--text-on-primary)]"></div>
@@ -420,7 +420,7 @@ const AuthComponent: React.FC = () => {
                 onChange={(e) => setVerificationCode(e.target.value)}
                 required
                 disabled={loading}
-                className="w-full bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-center text-[var(--text-main)] text-lg font-mono tracking-widest focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:[var(--text-muted)]/30"
+                className="w-full bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-center text-[var(--text-main)] text-lg font-mono tracking-widest focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder-[var(--text-muted)]"
                 placeholder="──────"
                 autoFocus
               />
@@ -438,7 +438,7 @@ const AuthComponent: React.FC = () => {
               </button>
 
               {timer > 0 ? (
-                <div className="flex items-center gap-1 opacity-85">
+                <div className="flex items-center gap-1">
                   <ClockIcon className="w-3.5 h-3.5 text-primary-text animate-pulse" />
                   <span>ارسال مجدد ({timer} ثانیه)</span>
                 </div>
@@ -458,7 +458,7 @@ const AuthComponent: React.FC = () => {
               id="verify-submit-btn"
               type="submit"
               disabled={loading}
-              className="w-full bg-primary text-[var(--text-on-primary)] hover:opacity-90 font-semibold text-sm py-2.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md"
+              className="w-full bg-primary text-[var(--text-on-primary)] hover:opacity-90 font-semibold text-sm py-2.5 rounded-xl transition-all disabled:bg-[var(--border-subtle)] disabled:text-[var(--text-muted)] disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md"
             >
               {loading ? (
                 <div className="animate-spin rounded-full h-4.5 w-4.5 border-t-2 border-b-2 border-[var(--text-on-primary)]"></div>
@@ -482,7 +482,7 @@ const AuthComponent: React.FC = () => {
                 required
                 disabled={loading}
                 minLength={8}
-                className="w-full bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] rounded-xl px-4 py-2.5 text-center text-[var(--text-main)] text-sm font-mono placeholder-[var(--text-muted)]/50 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                className="w-full bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] rounded-xl px-4 py-2.5 text-center text-[var(--text-main)] text-sm font-mono placeholder-[var(--text-muted)] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                 placeholder="رمز عبور (حداقل ۸ کاراکتر)"
               />
             </div>
@@ -497,7 +497,7 @@ const AuthComponent: React.FC = () => {
                 required
                 disabled={loading}
                 minLength={8}
-                className="w-full bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] rounded-xl px-4 py-2.5 text-center text-[var(--text-main)] text-sm font-mono placeholder-[var(--text-muted)]/50 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                className="w-full bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] rounded-xl px-4 py-2.5 text-center text-[var(--text-main)] text-sm font-mono placeholder-[var(--text-muted)] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                 placeholder="رمز عبور (حداقل ۸ کاراکتر)"
               />
             </div>
@@ -506,7 +506,7 @@ const AuthComponent: React.FC = () => {
               id="new-password-submit-btn"
               type="submit"
               disabled={loading}
-              className="w-full bg-primary text-[var(--text-on-primary)] hover:opacity-90 font-semibold text-sm py-2.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md"
+              className="w-full bg-primary text-[var(--text-on-primary)] hover:opacity-90 font-semibold text-sm py-2.5 rounded-xl transition-all disabled:bg-[var(--border-subtle)] disabled:text-[var(--text-muted)] disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md"
             >
               {loading ? (
                 <div className="animate-spin rounded-full h-4.5 w-4.5 border-t-2 border-b-2 border-[var(--text-on-primary)]"></div>

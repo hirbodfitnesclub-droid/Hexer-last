@@ -35,7 +35,7 @@ export const HabitStatsView: React.FC<HabitStatsViewProps> = ({ completedDates =
       {/* 1. Streaks Dashboard */}
       <div className="grid grid-cols-2 gap-4" id="streaks-dashboard">
         {/* Current Streak */}
-        <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-[var(--border-neon)] rounded-2xl p-4 flex flex-col items-center justify-center text-center">
+        <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-[var(--border-subtle)] rounded-2xl p-4 flex flex-col items-center justify-center text-center">
           <div className="p-3 bg-primary/15 rounded-full text-[var(--color-primary-text)]">
             <FlameIcon className="w-6 h-6 animate-pulse" />
           </div>
@@ -46,7 +46,7 @@ export const HabitStatsView: React.FC<HabitStatsViewProps> = ({ completedDates =
         </div>
 
         {/* Longest Streak */}
-        <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-[var(--border-neon)] rounded-2xl p-4 flex flex-col items-center justify-center text-center">
+        <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-[var(--border-subtle)] rounded-2xl p-4 flex flex-col items-center justify-center text-center">
           <div className="p-3 bg-primary/15 rounded-full text-[var(--color-primary-text)]">
             <SparklesIcon className="w-6 h-6" />
           </div>

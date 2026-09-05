@@ -623,7 +623,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-semibold text-[var(--text-main)]">{formatPersianDate(formState.due_date)}</span>
                         {hasTime && (
-                          <span className="text-[10px] font-mono bg-[var(--color-primary)]/10 text-[var(--color-primary-text)] px-1.5 py-0.5 rounded border border-[var(--border-neon)]">
+                          <span className="text-[10px] font-mono bg-[var(--color-primary)]/10 text-[var(--color-primary-text)] px-1.5 py-0.5 rounded border border-primary/30">
                             {selectedTime}
                           </span>
                         )}

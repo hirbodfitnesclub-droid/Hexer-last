@@ -169,7 +169,7 @@ export const MoreCitationsModal: React.FC<MoreCitationsModalProps> = ({
                     {item.title}
                   </h3>
                   {item.similarity !== undefined && (
-                    <span className="text-[10px] px-2 py-0.5 bg-primary/10 text-primary-text font-mono rounded">
+                    <span className="text-[10px] px-2 py-0.5 bg-primary/10 text-primary-text font-mono font-bold rounded">
                       شباهت: {formatSimilarity(item.similarity)}
                     </span>
                   )}
@@ -179,7 +179,7 @@ export const MoreCitationsModal: React.FC<MoreCitationsModalProps> = ({
                     {item.snippet}
                   </p>
                 )}
-                <div className="flex justify-end text-[10px] text-[var(--text-muted)] items-center gap-1">
+                <div className="flex justify-end text-[10px] text-[var(--text-main)] font-semibold items-center gap-1">
                   <span>مشاهده جزئیات</span>
                   <LinkIcon className="w-3 h-3 group-hover:translate-x-[-2px] transition-transform text-primary-text" />
                 </div>
@@ -194,7 +194,7 @@ export const MoreCitationsModal: React.FC<MoreCitationsModalProps> = ({
             <button
               onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
               disabled={currentPage === totalPages}
-              className="flex items-center gap-1 bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-primary/20 text-[var(--text-muted)] px-3 py-1.5 rounded-lg disabled:opacity-30 disabled:pointer-events-none transition-all"
+              className="flex items-center gap-1 bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-primary/20 text-[var(--text-muted)] px-3 py-1.5 rounded-lg disabled:cursor-not-allowed disabled:pointer-events-none transition-all"
               id="pg-prev-btn"
             >
               <ChevronLeftIcon className="w-4 h-4" />
@@ -208,7 +208,7 @@ export const MoreCitationsModal: React.FC<MoreCitationsModalProps> = ({
             <button
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
-              className="flex items-center gap-1 bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-primary/20 text-[var(--text-muted)] px-3 py-1.5 rounded-lg disabled:opacity-30 disabled:pointer-events-none transition-all"
+              className="flex items-center gap-1 bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-primary/20 text-[var(--text-muted)] px-3 py-1.5 rounded-lg disabled:cursor-not-allowed disabled:pointer-events-none transition-all"
               id="pg-next-btn"
             >
               <span>صفحه قبلی</span>

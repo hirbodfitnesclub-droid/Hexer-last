@@ -137,7 +137,7 @@ export const TodaysPlan: React.FC<TodaysPlanProps> = ({ onOpenOverdueModal }) =>
             return (
               <div 
                 key={task.id} 
-                className={`relative flex gap-3 items-stretch pb-3 ${task.status === 'done' ? 'opacity-60' : ''}`}
+                className="relative flex gap-3 items-stretch pb-3"
               >
                 {/* Time Column (Right) */}
                 <div className="w-12 flex items-start justify-end pt-3 shrink-0">

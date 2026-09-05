@@ -40,7 +40,7 @@ export const ToastNotifications: React.FC<ToastNotificationsProps> = ({ notifica
             {n.action && (
               <button
                 onClick={n.action.onClick}
-                className="mt-1 text-xs font-bold underline text-[var(--color-primary-text)] opacity-90 hover:opacity-100 transition-opacity"
+                className="mt-1 text-xs font-bold underline text-[var(--color-primary-text)] transition-opacity"
               >
                 {n.action.label}
               </button>
@@ -48,7 +48,7 @@ export const ToastNotifications: React.FC<ToastNotificationsProps> = ({ notifica
           </div>
           <button
             onClick={() => onRemove(n.id)}
-            className="p-1 opacity-60 hover:opacity-100 font-mono text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all"
+            className="p-1 font-mono text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all"
             aria-label="بستن"
           >
             <XIcon className="w-5 h-5" />

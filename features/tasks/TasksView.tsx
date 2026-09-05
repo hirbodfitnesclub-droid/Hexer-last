@@ -198,7 +198,7 @@ export const TasksView: React.FC = () => {
       onClick={() => setViewMode(mode)} 
       className={`flex items-center justify-center gap-2 p-2.5 rounded-lg transition-all w-full ${
         viewMode === mode 
-          ? 'bg-primary/10 border border-[var(--border-neon)] text-[var(--color-primary-text)] shadow-sm' 
+          ? 'bg-primary/10 border border-primary/30 text-[var(--color-primary-text)] shadow-sm' 
           : 'text-[var(--text-muted)] border border-transparent hover:bg-[var(--nav-hover-bg)] hover:text-[var(--text-main)]'
       }`}
     >
@@ -440,7 +440,7 @@ export const TasksView: React.FC = () => {
             <h3 className="text-sm font-bold text-[var(--text-muted)]">
               {searchQuery ? 'نتیجه‌ای یافت نشد' : '🎉 عالیه! همه کارها انجام شده.'}
             </h3>
-            <p className="text-xs text-[var(--text-muted)] opacity-60 mt-1 pb-4 leading-relaxed">
+            <p className="text-xs text-[var(--text-muted)] mt-1 pb-4 leading-relaxed">
               {searchQuery ? 'عبارت دیگری را امتحان کنید.' : 'برای افزودن کار جدید، از دکمه «افزودن کار» استفاده کنید.'}
             </p>
             {searchQuery && (

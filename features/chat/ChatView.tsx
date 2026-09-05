@@ -733,7 +733,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-medium transition-all shrink-0 cursor-pointer ${
                   filterTime === 'today'
                     ? 'bg-primary/10 text-primary-text border border-primary/30 font-semibold'
-                    : 'bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--border-subtle)] text-[var(--text-muted)] hover:bg-[var(--nav-hover-bg)] hover:text(--text-main)]'
+                    : 'bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--border-subtle)] text-[var(--text-muted)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--text-main)]'
                 }`}
               >
                 <CalendarIcon className="w-2.5 h-2.5" />
@@ -772,7 +772,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
                   key={i}
                   disabled={isReadOnly}
                   onClick={() => handleSendMessage(s.text)}
-                  className="flex items-center gap-3 p-3 bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-xl hover:bg-[var(--nav-hover-bg)] transition-all text-right group disabled:opacity-50"
+                  className="flex items-center gap-3 p-3 bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-xl hover:bg-[var(--nav-hover-bg)] transition-all text-right group disabled:cursor-not-allowed"
                 >
                   <div className="p-2 bg-black/5 dark:bg-white/5 rounded-lg group-hover:bg-[var(--nav-hover-bg)] transition-colors">{s.icon}</div>
                   <span className="text-sm text-[var(--text-muted)] group-hover:text-[var(--text-main)] font-semibold">{s.text}</span>
@@ -812,7 +812,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
                   {msg.citations.length > 5 && (
                     <button
                       onClick={() => handleShowMoreCitations(msg.citations)}
-                      className="text-xs text-primary-text hover:text-primary-hover font-medium flex items-center gap-1.5 mt-1 transition-all bg-primary/5 hover:bg-primary/10 px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] hover:border-primary/30"
+                      className="text-xs text-primary-text font-medium flex items-center gap-1.5 mt-1 transition-all bg-primary/5 hover:bg-primary/10 px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] hover:border-primary/30"
                       id={`view-more-${msg.id}`}
                     >
                       <PlusIcon className="w-3.5 h-3.5 text-primary-text" />
@@ -911,9 +911,9 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
               <BotIcon className="w-5 h-5 text-[var(--text-muted)]" />
             </div>
             <div className="bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--border-subtle)] p-3.5 rounded-2xl rounded-tr-none flex items-center gap-2">
-              <div className="w-2.5 h-2.5 bg-primary/40 rounded-full animate-bounce"></div>
-              <div className="w-2.5 h-2.5 bg-primary/70 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-              <div className="w-2.5 h-2.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+              <div className="w-2.5 h-2.5 bg-[var(--color-primary-text)]/60 rounded-full animate-bounce"></div>
+              <div className="w-2.5 h-2.5 bg-[var(--color-primary-text)]/70 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <div className="w-2.5 h-2.5 bg-[var(--color-primary-text)] rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
             </div>
           </div>
         )}
@@ -936,7 +936,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
             <img src={selectedImagePreview} alt="Selected Preview" className="h-20 w-auto rounded-lg border border-[var(--border-subtle)]" />
             <button 
               onClick={removeImage}
-              className="absolute -top-2 -left-2 bg-error text-white rounded-full p-1 shadow-md hover:bg-error/90 transition-colors"
+              className="absolute -top-2 -left-2 bg-error text-[var(--text-on-primary)] rounded-full p-1 shadow-md hover:bg-error/90 transition-colors"
             >
               <XIcon className="w-3 h-3" />
             </button>
@@ -945,7 +945,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
 
         {/* Read-Only Banner */}
         {isReadOnly && (
-          <div className="mb-3 p-2 bg-[var(--semantic-error-soft)] border border-error/20 text-[var(--semantic-error)] text-xs rounded-xl text-center font-semibold">
+          <div className="mb-3 p-2 bg-[var(--semantic-error-soft)] border border-error/30 text-[var(--semantic-error)] text-xs rounded-xl text-center font-bold">
             این گفتگو به صورت آرشیو و فقط‌خواندنی است. برای چت جدید روی «بازگشت به چت امروز» کلیک کنید.
           </div>
         )}
@@ -990,7 +990,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
             <>
               <button 
                 onClick={() => fileInputRef.current?.click()}
-                className="p-2.5 text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--nav-hover-bg)] rounded-xl transition-colors disabled:opacity-50"
+                className="p-2.5 text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--nav-hover-bg)] rounded-xl transition-colors disabled:cursor-not-allowed"
                 disabled={isLoading || isRecording || isReadOnly}
               >
                 <PaperclipIcon className="w-5 h-5" />
@@ -1002,7 +1002,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                 placeholder={isRecording ? "در حال ضبط صدا..." : isReadOnly ? "برای چت روی بازگشت به امروز کلیک کنید..." : selectedImagePreview ? "توضیحی بنویسید..." : "پیامی به دستیار بفرستید..."}
-                className="flex-1 bg-transparent text-[var(--text-main)] placeholder-[var(--text-muted)] px-3 py-2 focus:outline-none disabled:opacity-50 text-right"
+                className="flex-1 bg-transparent text-[var(--text-main)] placeholder-[var(--text-muted)] px-3 py-2 focus:outline-none disabled:cursor-not-allowed text-right"
                 disabled={isLoading || isRecording || isReadOnly}
                 dir="rtl"
               />
@@ -1011,7 +1011,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
                 <button
                   onClick={() => handleSendMessage()}
                   disabled={isLoading || isReadOnly}
-                  className="p-2.5 bg-brand text-[var(--text-on-primary)] rounded-xl hover:bg-[var(--color-primary-hover)] transition-colors shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)] disabled:opacity-50"
+                  className="p-2.5 bg-brand text-[var(--text-on-primary)] rounded-xl hover:bg-[var(--color-primary-hover)] transition-colors shadow-[0_0_15px_rgb(var(--color-primary-rgb)/0.3)] disabled:bg-[var(--border-subtle)] disabled:text-[var(--text-muted)] disabled:cursor-not-allowed"
                 >
                   <SendIcon className="w-5 h-5 text-[var(--text-on-primary)]" />
                 </button>
@@ -1021,7 +1021,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
                   disabled={isReadOnly}
                   aria-pressed={isRecording}
                   aria-label={isRecording ? 'توقف ضبط صدا' : 'شروع ضبط صدا'}
-                  className={`p-2.5 rounded-xl transition-all duration-300 disabled:opacity-50 ${
+                  className={`p-2.5 rounded-xl transition-all duration-300 disabled:cursor-not-allowed ${
                     isRecording
                       ? 'bg-error text-white shadow-lg shadow-error/30 animate-pulse'
                       : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--nav-hover-bg)]'
@@ -1039,7 +1039,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
             </>
           )}
         </div>
-        <p className="text-center text-[10px] text-[var(--text-muted)] opacity-60 mt-2">
+        <p className="text-center text-[10px] text-[var(--text-muted)] mt-2">
           دستیار هوشمند تمام عیار در هر زمان آماده کمک به کارهای شماست.
         </p>
       </div>

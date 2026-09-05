@@ -95,7 +95,7 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({ isOpen, 
 
   return (
     <div 
-      className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-[110] p-4 transition-opacity duration-300 animate-fade-in"
+      className="fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-md flex items-center justify-center z-[110] p-4 transition-opacity duration-300 animate-fade-in"
       onClick={onClose}
     >
       <div 

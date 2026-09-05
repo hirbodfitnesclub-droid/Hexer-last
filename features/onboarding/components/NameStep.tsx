@@ -74,7 +74,7 @@ export const NameStep: React.FC<NameStepProps> = ({ onSubmit }) => {
               if (error) setError('');
             }}
             placeholder="مثلاً: سینا"
-            className="w-full h-12 px-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] text-[var(--text-main)] placeholder-muted/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-sm transition-all duration-200"
+            className="w-full h-12 px-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] text-[var(--text-main)] placeholder-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-sm transition-all duration-200"
           />
         </div>
 
@@ -84,7 +84,7 @@ export const NameStep: React.FC<NameStepProps> = ({ onSubmit }) => {
             htmlFor="last-name-input"
             className="text-xs font-bold text-[var(--text-muted)] block pr-1"
           >
-            نام خانوادگی <span className="text-[10px] text-[var(--text-muted)] opacity-70 font-normal mr-1">(اختیاری)</span>
+            نام خانوادگی <span className="text-[10px] text-[var(--text-muted)] font-normal mr-1">(اختیاری)</span>
           </label>
           <input
             id="last-name-input"
@@ -95,7 +95,7 @@ export const NameStep: React.FC<NameStepProps> = ({ onSubmit }) => {
               if (error) setError('');
             }}
             placeholder="مثلاً: رادمان"
-            className="w-full h-12 px-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] text-[var(--text-main)] placeholder-muted/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-sm transition-all duration-200"
+            className="w-full h-12 px-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] text-[var(--text-main)] placeholder-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-sm transition-all duration-200"
           />
         </div>
 
@@ -123,7 +123,7 @@ export const NameStep: React.FC<NameStepProps> = ({ onSubmit }) => {
           className={`w-full h-12 rounded-2xl font-black text-sm transition-all duration-300 active:scale-95 flex items-center justify-center ${
             isFormValid
               ? 'bg-primary text-[var(--text-on-primary)] hover:opacity-90 shadow-md'
-              : 'bg-black/5 dark:bg-white/5 text-[var(--text-muted)]/50 border border-[var(--border-subtle)]/50 cursor-not-allowed'
+              : 'bg-black/5 dark:bg-white/5 text-[var(--text-muted)] border border-[var(--border-subtle)] cursor-not-allowed'
           }`}
         >
           بریم مرحله بعد

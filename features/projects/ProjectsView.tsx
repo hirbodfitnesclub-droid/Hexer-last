@@ -101,7 +101,7 @@ export const ProjectsView: React.FC = () => {
           <div className="text-center py-20 flex flex-col items-center">
             <BriefcaseIcon className="w-14 h-14 mx-auto text-[var(--text-muted)] opacity-30 mb-4" />
             <h3 className="text-sm font-bold text-[var(--text-muted)]">پروژه‌ای پیدا نشد</h3>
-            <p className="text-xs text-[var(--text-muted)] opacity-60 mt-2 max-w-sm leading-relaxed font-semibold">
+            <p className="text-xs text-[var(--text-muted)] mt-2 max-w-sm leading-relaxed font-semibold">
               شما می‌توانید اهداف و کارهای بزرگ را تحت قالب پروژه‌ها دسته‌بندی و مدیریت کنید تا ذهن ساختاریافته‌تری داشته باشید.
             </p>
             <button 

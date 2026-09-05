@@ -185,13 +185,13 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
                 <div className="flex justify-between items-baseline mb-4">
                   <div>
                     <h3 className="text-base font-black text-[var(--text-main)]">{p.name}</h3>
-                    <p className="text-[10px] text-[var(--text-muted)] font-mono mt-1">
+                    <p className="text-[10px] text-[var(--text-main)] font-mono mt-1">
                       {p.quota} — {p.model}
                     </p>
                   </div>
                   <div className="text-left">
                     <span className="text-xl font-black text-[var(--text-main)]">{p.price}</span>
-                    {p.code !== 'free' && <span className="text-[9px] text-[var(--text-muted)] mr-0.5">/ {p.period}</span>}
+                    {p.code !== 'free' && <span className="text-[9px] text-[var(--text-main)] mr-0.5">/ {p.period}</span>}
                   </div>
                 </div>
 
@@ -202,7 +202,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
                       <div className="w-4 h-4 rounded-full bg-success/10 flex items-center justify-center">
                         <CheckIcon className="w-2.5 h-2.5 text-success" />
                       </div>
-                      <span className="font-medium opacity-90">{feat}</span>
+                      <span className="font-medium">{feat}</span>
                     </li>
                   ))}
                 </ul>
@@ -217,9 +217,9 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, cur
                       : p.code === 'free'
                       ? 'bg-[var(--bg-card)] text-[var(--text-muted)] border border-[var(--border-subtle)] cursor-not-allowed text-[10px]'
                       : p.popular
-                      ? 'bg-primary hover:bg-[var(--color-primary-hover)] text-[var(--text-on-primary)] shadow-md shadow-primary/15 active:scale-95'
-                      : 'bg-[var(--bg-card)] hover:bg-[var(--nav-hover-bg)] text-[var(--text-main)] active:scale-95 border border-[var(--border-subtle)]'
-                  } disabled:opacity-40 disabled:scale-100`}
+                      ? 'bg-primary hover:bg-[var(--color-primary-hover)] text-[var(--text-on-primary)] shadow-md shadow-primary/15 active:scale-95 disabled:bg-[var(--border-subtle)] disabled:text-[var(--text-muted)] disabled:border-transparent'
+                      : 'bg-[var(--bg-card)] hover:bg-[var(--nav-hover-bg)] text-[var(--text-main)] active:scale-95 border border-[var(--border-subtle)] disabled:text-[var(--text-muted)]'
+                  } disabled:scale-100`}
                 >
                   {isLoading ? (
                     <div className="w-4.5 h-4.5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>

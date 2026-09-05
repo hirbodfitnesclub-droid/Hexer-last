@@ -237,7 +237,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                           plan.isPopular 
                             ? 'bg-[var(--bg-card)] border-primary/40 ring-1 ring-primary/20 shadow-[0_0_20px_rgba(var(--color-primary-rgb),0.15)]' 
                             : 'bg-[var(--bg-card)] border-[var(--border-subtle)] hover:border-primary/30'
-                        } ${isButtonDisabled ? 'opacity-40' : ''}`}
+                        } ${isButtonDisabled ? 'saturate-50' : ''}`}
                       >
                         {plan.isPopular && (
                           <div className="absolute top-0 left-0 right-0 h-1 bg-primary"></div>
@@ -259,7 +259,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                               <span className="text-[9px] text-[var(--text-muted)] font-bold">/ {plan.durationLabel}</span>
                             </div>
                             
-                            <p className="text-[9px] text-[var(--text-muted)] opacity-85 font-bold font-mono mt-0.5">
+                            <p className="text-[9px] text-[var(--text-muted)] font-bold font-mono mt-0.5">
                               برابر با {plan.priceRials.toLocaleString('fa-IR')} ریال
                             </p>
 
@@ -267,7 +267,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                               {plan.features.map((feat, idx) => (
                                 <div key={idx} className="flex items-start gap-2">
                                   <CheckIcon className="w-3.5 h-3.5 text-primary-text shrink-0 mt-0.5" />
-                                  <span className="text-[10px] text-[var(--text-main)] leading-relaxed opacity-90">{feat}</span>
+                                  <span className="text-[10px] text-[var(--text-main)] leading-relaxed">{feat}</span>
                                 </div>
                               ))}
                             </div>
@@ -291,7 +291,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                                   plan.isPopular 
                                     ? 'bg-primary hover:bg-[var(--color-primary-hover)] text-[var(--text-on-primary)] shadow-md shadow-primary/15 active:scale-95' 
                                     : 'bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] hover:bg-[var(--nav-hover-bg)] text-[var(--text-main)] active:scale-95'
-                                } disabled:opacity-40 disabled:pointer-events-none`}
+                                } disabled:bg-[var(--border-subtle)] disabled:text-[var(--text-muted)] disabled:border-transparent disabled:pointer-events-none`}
                               >
                                 خرید و ارتقای آنی
                               </button>

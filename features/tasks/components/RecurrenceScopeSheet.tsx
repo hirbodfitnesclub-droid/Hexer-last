@@ -126,7 +126,7 @@ export const RecurrenceScopeSheet: React.FC<RecurrenceScopeSheetProps> = ({
                   type="button"
                   onClick={() => onChoose('stop', { keepCurrent: true })}
                   disabled={busyChoice === 'stop'}
-                  className="w-full min-h-[44px] rounded-xl bg-[var(--color-primary)] text-[var(--text-on-primary)] font-bold text-sm disabled:opacity-40"
+                  className="w-full min-h-[44px] rounded-xl bg-[var(--color-primary)] text-[var(--text-on-primary)] font-bold text-sm disabled:bg-[var(--border-subtle)] disabled:text-[var(--text-muted)] disabled:cursor-not-allowed"
                 >
                   توقف تکرار و نگه‌داشتن این نوبت
                 </button>
@@ -134,7 +134,7 @@ export const RecurrenceScopeSheet: React.FC<RecurrenceScopeSheetProps> = ({
                   type="button"
                   onClick={() => onChoose('stop', { keepCurrent: false })}
                   disabled={busyChoice === 'stop'}
-                  className="w-full min-h-[44px] rounded-xl border border-[var(--semantic-error)]/30 text-[var(--semantic-error)] font-bold text-sm disabled:opacity-40"
+                  className="w-full min-h-[44px] rounded-xl border border-[var(--semantic-error)]/30 text-[var(--semantic-error)] font-bold text-sm disabled:text-[var(--text-muted)] disabled:border-[var(--border-subtle)] disabled:cursor-not-allowed"
                 >
                   توقف تکرار و بستن این نوبت
                 </button>
@@ -145,7 +145,7 @@ export const RecurrenceScopeSheet: React.FC<RecurrenceScopeSheetProps> = ({
                 type="button"
                 onClick={() => onChoose(active.choice)}
                 disabled={busyChoice === active.choice}
-                className="w-full min-h-[44px] rounded-xl bg-[var(--color-primary)] text-[var(--text-on-primary)] font-bold text-sm disabled:opacity-40"
+                className="w-full min-h-[44px] rounded-xl bg-[var(--color-primary)] text-[var(--text-on-primary)] font-bold text-sm disabled:bg-[var(--border-subtle)] disabled:text-[var(--text-muted)] disabled:cursor-not-allowed"
               >
                 تأیید
               </button>
@@ -166,7 +166,7 @@ export const RecurrenceScopeSheet: React.FC<RecurrenceScopeSheetProps> = ({
                 type="button"
                 onClick={() => setConfirming(item.choice)}
                 disabled={!!busyChoice}
-                className={`w-full text-right p-3 rounded-xl border transition-colors min-h-[44px] disabled:opacity-40 ${
+                className={`w-full text-right p-3 rounded-xl border transition-colors min-h-[44px] disabled:cursor-not-allowed ${
                   item.destructive
                     ? 'border-[var(--semantic-error)]/30 hover:bg-[var(--semantic-error-soft)]'
                     : 'border-[var(--border-subtle)] hover:bg-[var(--nav-hover-bg)]'

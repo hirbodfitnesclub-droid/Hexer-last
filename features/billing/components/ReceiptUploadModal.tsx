@@ -115,7 +115,7 @@ export const ReceiptUploadModal: React.FC<ReceiptUploadModalProps> = ({ isOpen, 
 
   return (
     <div 
-      className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[120] p-4 transition-opacity duration-300 animate-fade-in"
+      className="fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-md flex items-center justify-center z-[120] p-4 transition-opacity duration-300 animate-fade-in"
       onClick={onClose}
     >
       <div 
@@ -132,7 +132,7 @@ export const ReceiptUploadModal: React.FC<ReceiptUploadModalProps> = ({ isOpen, 
           <button 
             onClick={onClose} 
             disabled={submitting}
-            className="w-7 h-7 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] bg-[var(--bg-card)] rounded-full border border-[var(--border-subtle)] transition-all disabled:opacity-40"
+            className="w-7 h-7 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] bg-[var(--bg-card)] rounded-full border border-[var(--border-subtle)] transition-all disabled:cursor-not-allowed"
           >
             <XIcon className="w-3.5 h-3.5" />
           </button>
@@ -217,8 +217,8 @@ export const ReceiptUploadModal: React.FC<ReceiptUploadModalProps> = ({ isOpen, 
                 />
                 
                 <UploadIcon className="w-7 h-7 mx-auto text-[var(--text-muted)] mb-2.5" />
-                <p className="text-xs text-[var(--text-muted)] font-bold">راست‌کلیک، رهاسازی یا کشیدن تصویر رسید</p>
-                <p className="text-[10px] text-[var(--text-muted)] mt-1">حداکثر حجم مجاز: ۲ مگابایت</p>
+                <p className="text-xs text-[var(--text-main)] font-bold">راست‌کلیک، رهاسازی یا کشیدن تصویر رسید</p>
+                <p className="text-[10px] text-[var(--text-main)] mt-1">حداکثر حجم مجاز: ۲ مگابایت</p>
               </div>
             )}
           </div>
@@ -237,7 +237,7 @@ export const ReceiptUploadModal: React.FC<ReceiptUploadModalProps> = ({ isOpen, 
           <button 
             onClick={handleSubmit}
             disabled={submitting || !selectedFile}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-primary hover:bg-primary/90 text-[var(--text-on-primary)] rounded-xl text-xs font-black transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none shadow-md shadow-primary/20"
+            className="w-full flex items-center justify-center gap-2 py-3 bg-primary hover:bg-primary/90 text-[var(--text-on-primary)] rounded-xl text-xs font-black transition-all active:scale-95 disabled:bg-[var(--border-subtle)] disabled:text-[var(--text-muted)] disabled:pointer-events-none shadow-md shadow-primary/20"
           >
             {submitting ? (
               <>

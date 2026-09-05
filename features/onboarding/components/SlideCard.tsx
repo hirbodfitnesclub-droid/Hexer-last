@@ -58,7 +58,7 @@ export const SlideCard: React.FC<SlideCardProps> = ({ slide }) => {
       {/* Slide Body with balanced negative space */}
       <p
         id={`slide-body-${slide.id}`}
-        className="text-sm text-[var(--text-muted)] leading-relaxed font-medium px-2"
+        className="text-sm text-[var(--text-main)] leading-relaxed font-medium px-2"
       >
         {body}
       </p>

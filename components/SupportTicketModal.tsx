@@ -119,7 +119,7 @@ const SupportTicketModal: React.FC<SupportTicketModalProps> = ({ isOpen, onClose
                         <button
                             type="submit"
                             disabled={status.type === 'loading'}
-                            className="w-full h-11 flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-[var(--text-on-primary)] rounded-xl text-xs font-black transition-all shadow-md active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+                            className="w-full h-11 flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-[var(--text-on-primary)] rounded-xl text-xs font-black transition-all shadow-md active:scale-[0.98] disabled:bg-[var(--border-subtle)] disabled:text-[var(--text-muted)] disabled:pointer-events-none"
                         >
                             {status.type === 'loading' ? (
                                 <div className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin"></div>

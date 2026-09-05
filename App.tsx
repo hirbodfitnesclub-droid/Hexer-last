@@ -15,7 +15,7 @@ const SubscriptionPage = lazy(() => import('./features/billing/pages/Subscriptio
 
 const LoadingSpinner: React.FC = () => (
   <div className="flex items-center justify-center h-full min-h-[200px]" id="suspense-loader">
-    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--color-primary-text)]"></div>
   </div>
 );
 
@@ -248,7 +248,7 @@ const MainApp: React.FC = () => {
     if (loadingData) {
       return (
         <div className="flex items-center justify-center h-full" id="inner-loader">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[var(--color-primary-text)]"></div>
         </div>
       );
     }
@@ -381,7 +381,7 @@ const AppContent: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[100dvh]" id="main-loader">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[var(--color-primary-text)]"></div>
       </div>
     );
   }

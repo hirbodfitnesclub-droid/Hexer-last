@@ -133,7 +133,7 @@ const DurationWheel: React.FC<DurationWheelProps> = ({ value, onChange, label, a
     <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
       <span
         className={`text-[11px] font-black tracking-wide ${
-          accent ? 'text-primary-text' : 'text-white/45'
+          accent ? 'text-primary-text' : 'text-white/80'
         }`}
       >
         {label}
@@ -209,7 +209,7 @@ const DurationWheel: React.FC<DurationWheelProps> = ({ value, onChange, label, a
                   className={`flex items-center justify-center font-mono tabular-nums transition-colors duration-150 ${
                     active
                       ? 'text-white text-[28px] font-black'
-                      : 'text-white/30 text-lg font-bold'
+                      : 'text-white/75 text-lg font-bold'
                   }`}
                   style={{
                     height: WHEEL_ITEM_H,
@@ -225,7 +225,7 @@ const DurationWheel: React.FC<DurationWheelProps> = ({ value, onChange, label, a
         )}
       </div>
 
-      <span className="text-[10px] text-white/35 font-bold">دقیقه</span>
+      <span className="text-[10px] text-white/75 font-bold">دقیقه</span>
     </div>
   );
 };
@@ -301,7 +301,7 @@ const DurationPickerModal: React.FC<DurationPickerModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="min-w-[44px] min-h-[44px] -mr-2 rounded-full flex items-center justify-center text-white/50 hover:text-white hover:bg-white/5 transition"
+                className="min-w-[44px] min-h-[44px] -mr-2 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/5 transition"
                 aria-label="بستن"
               >
                 <XIcon className="w-5 h-5" />
@@ -317,7 +317,7 @@ const DurationPickerModal: React.FC<DurationPickerModalProps> = ({
               </button>
             </div>
 
-            <p className="text-center text-[11px] text-white/40 font-bold px-6 mb-1">
+            <p className="text-center text-[11px] text-white/80 font-bold px-6 mb-1">
               بچرخان یا روی عدد بزن و تایپ کن
             </p>
 
@@ -544,7 +544,7 @@ export const FocusTimer: React.FC = () => {
 
       {/* Top row */}
       <div className="flex items-center justify-between z-10 shrink-0">
-        <div className="flex items-center gap-1.5 text-white/50 text-[11px] font-bold min-w-0">
+        <div className="flex items-center gap-1.5 text-white/80 text-[11px] font-bold min-w-0">
           <ClockIcon className="w-3.5 h-3.5 text-primary-text shrink-0" />
           <span className="tracking-wider text-[11px] font-black text-white truncate">
             {isBreak ? 'استراحت کوتاه' : 'تمرکز عمیق'}
@@ -552,7 +552,7 @@ export const FocusTimer: React.FC = () => {
           <button
             type="button"
             onClick={openDurationPicker}
-            className="w-8 h-8 shrink-0 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/45 hover:text-white/80 transition active:scale-95"
+            className="w-8 h-8 shrink-0 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/80 hover:text-white/80 transition active:scale-95"
             title="تنظیم زمان"
             aria-label="تنظیم مدت فوکوس و استراحت"
           >
@@ -617,7 +617,7 @@ export const FocusTimer: React.FC = () => {
           className="w-full min-h-[36px] rounded-full bg-white/5 border border-white/10 hover:bg-white/10 px-3.5 flex items-center justify-between text-[11px] font-bold text-white/90 transition active:scale-[0.99]"
         >
           <span className="truncate max-w-[90%]">{selectedTask?.title ?? 'انتخاب تسک'}</span>
-          <ChevronDownIcon className="w-3.5 h-3.5 text-white/50 shrink-0" />
+          <ChevronDownIcon className="w-3.5 h-3.5 text-white/80 shrink-0" />
         </button>
       </div>
 
@@ -646,7 +646,7 @@ export const FocusTimer: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsTaskPickerOpen(false)}
-                  className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition"
+                  className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/80 hover:text-white transition"
                   aria-label="بستن"
                 >
                   <XIcon className="w-4 h-4" />
@@ -654,7 +654,7 @@ export const FocusTimer: React.FC = () => {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <div className="text-[10px] font-bold text-white/40 mb-1">گزینه‌های سریع</div>
+                <div className="text-[10px] font-bold text-white/80 mb-1">گزینه‌های سریع</div>
                 {(
                   [
                     { id: null, title: 'تمرکز آزاد' },
@@ -680,7 +680,7 @@ export const FocusTimer: React.FC = () => {
               <div className="h-px bg-white/5 my-3" />
 
               <div className="flex-1 overflow-y-auto soft-scroll flex flex-col gap-1.5 min-h-0">
-                <div className="text-[10px] font-bold text-white/40 mb-1">کارهای فعال</div>
+                <div className="text-[10px] font-bold text-white/80 mb-1">کارهای فعال</div>
                 {activeTasks.length > 0 ? (
                   activeTasks.map((t) => (
                     <button
@@ -698,7 +698,7 @@ export const FocusTimer: React.FC = () => {
                     </button>
                   ))
                 ) : (
-                  <div className="text-center py-6 text-xs text-white/30 font-medium">
+                  <div className="text-center py-6 text-xs text-white/75 font-medium">
                     کار فعالی یافت نشد.
                   </div>
                 )}
@@ -775,7 +775,7 @@ export const FocusTimer: React.FC = () => {
                       {selectedTask.title}
                     </span>
                   )}
-                  <span className="text-[9px] text-white/30 font-bold mt-2">
+                  <span className="text-[9px] text-white/75 font-bold mt-2">
                     {isBreak ? `استراحت ${breakMinutes}′` : `فوکوس ${focusMinutes}′`}
                   </span>
                 </button>
@@ -794,7 +794,7 @@ export const FocusTimer: React.FC = () => {
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-black text-primary-text flex items-center gap-1.5">
                     <span>حواس‌پرتی‌ها</span>
-                    <span className="text-[9px] text-white/40 font-normal">
+                    <span className="text-[9px] text-white/80 font-normal">
                       (بعداً ساب‌تسک می‌شوند)
                     </span>
                   </label>
@@ -813,7 +813,7 @@ export const FocusTimer: React.FC = () => {
                         }
                       }}
                       placeholder="چیزی ذهنت رو مشغول کرده؟"
-                      className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-primary transition"
+                      className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/60 focus:outline-none focus:border-primary transition"
                     />
                     <button
                       type="button"
@@ -842,7 +842,7 @@ export const FocusTimer: React.FC = () => {
                             onClick={() =>
                               setDistractions((prev) => prev.filter((_, i) => i !== index))
                             }
-                            className="text-white/40 hover:text-error transition font-black text-[9px]"
+                            className="text-white/80 hover:text-error transition font-black text-[9px]"
                             aria-label="حذف"
                           >
                             ✕
@@ -862,7 +862,7 @@ export const FocusTimer: React.FC = () => {
                     onChange={(e) => setSessionNote(e.target.value)}
                     placeholder="ایده‌ها، نکات یا دستاوردهای این جلسه..."
                     rows={2}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-primary resize-none transition"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/60 focus:outline-none focus:border-primary resize-none transition"
                   />
                 </div>
               </div>

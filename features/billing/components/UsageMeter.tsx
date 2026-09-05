@@ -86,10 +86,10 @@ export const UsageMeter: React.FC<{ compact?: boolean }> = ({ compact = false })
             {remaining} از {limit} باقی‌مانده
           </span>
         </div>
-        <div className="w-full bg-black/10 dark:bg-white/10 h-1.5 rounded-full overflow-hidden">
+        <div className="w-full bg-black/15 dark:bg-white/15 h-1.5 rounded-full overflow-hidden">
           <div 
             className={`h-full rounded-full transition-all duration-500 ${
-              boundedPercent > 85 ? 'bg-[var(--semantic-error)]' : 'bg-primary'
+              boundedPercent > 85 ? 'bg-[var(--semantic-error)]' : 'bg-[var(--color-primary-text)]'
             }`}
             style={{ width: `${boundedPercent}%` }}
           ></div>
@@ -111,7 +111,7 @@ export const UsageMeter: React.FC<{ compact?: boolean }> = ({ compact = false })
             <SparklesIcon className="w-2.5 h-2.5" /> {usage.display_name}
           </span>
         ) : (
-          <span className="px-2 py-0.5 rounded-md bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] text-[9px] font-bold text-[var(--text-muted)]">
+          <span className="px-2 py-0.5 rounded-md bg-black/5 dark:bg-white/5 border border-[var(--border-subtle)] text-[9px] font-bold text-[var(--text-main)]">
             {usage?.display_name || 'رایگان'}
           </span>
         )}
@@ -123,10 +123,10 @@ export const UsageMeter: React.FC<{ compact?: boolean }> = ({ compact = false })
           <span>{count} درخواست مصرف شده</span>
           <span>{remaining} عدد باقی‌مانده از {limit}</span>
         </div>
-        <div className="w-full bg-black/10 dark:bg-white/10 h-2 rounded-full overflow-hidden">
+        <div className="w-full bg-black/15 dark:bg-white/15 h-2 rounded-full overflow-hidden">
           <div 
             className={`h-full rounded-full transition-all duration-500 ${
-              boundedPercent > 85 ? 'bg-[var(--semantic-error)]' : 'bg-primary'
+              boundedPercent > 85 ? 'bg-[var(--semantic-error)]' : 'bg-[var(--color-primary-text)]'
             }`}
             style={{ width: `${boundedPercent}%` }}
           ></div>
@@ -162,7 +162,7 @@ export const UsageMeter: React.FC<{ compact?: boolean }> = ({ compact = false })
                       {day.count} درخواست
                     </div>
                   </div>
-                  <span className="text-[8px] text-[var(--text-muted)] font-mono mt-0.5 group-hover:text-primary-text transition-colors">
+                  <span className="text-[8px] text-[var(--text-main)] font-mono mt-0.5 group-hover:text-primary-text transition-colors">
                     {label}
                   </span>
                 </div>
