@@ -763,8 +763,10 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
               <div className="absolute inset-0 bg-primary/20 rounded-full animate-pulse"></div>
               <BotIcon className="w-10 h-10 text-primary-text" />
             </div>
-            <h3 className="text-xl font-bold text-[var(--text-main)] mb-2">امروز چطور می‌تونم کمکت کنم؟</h3>
-            <p className="text-[var(--text-muted)] text-sm mb-8 text-center max-w-xs">آماده‌ام بهت کمک کنم! متنت رو تایپ کن یا صدات رو بفرست 🎤</p>
+            <div className="bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--border-subtle)] shadow-[var(--shadow-card)] rounded-2xl px-6 py-4 mb-8 text-center max-w-xs">
+              <h3 className="text-xl font-bold text-[var(--text-main)] mb-2">امروز چطور می‌تونم کمکت کنم؟</h3>
+              <p className="text-[var(--text-muted)] text-sm text-center">آماده‌ام بهت کمک کنم! متنت رو تایپ کن یا صدات رو بفرست 🎤</p>
+            </div>
             
             <div className="grid grid-cols-1 gap-3 w-full max-w-sm">
               {suggestions.map((s, i) => (
