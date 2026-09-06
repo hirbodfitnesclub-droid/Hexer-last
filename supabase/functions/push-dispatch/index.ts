@@ -155,98 +155,109 @@ Deno.serve(async (req: Request) => {
     }
 
     // ==========================================
-    // 2. Process daytime Daily Nudges
+    // 2. Noon digest: exactly one summary push per user per day, 12:00+ Tehran.
+    // Date-only tasks never notify individually (the dispatch view excludes
+    // them); this digest is their only server push. It shares its messageId,
+    // tag and ledger row with the foreground mirror, so exactly one layer
+    // ever shows. Users with no open work today are skipped entirely.
     // ==========================================
-    const { data: nudgeUserRows, error: errNudge } = await supabase
-      .rpc('get_daily_nudge_candidates');
+    const tehranHourNow = parseInt(new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Tehran',
+      hour: 'numeric',
+      hour12: false
+    }).format(new Date()), 10) || 0;
 
-    if (errNudge) {
-      throw new Error(`Failed to query daily nudge candidates via RPC: ${errNudge.message}`);
-    }
+    if (tehranHourNow < 12) {
+      logs.push("Before noon digest window; skipping.");
+    } else {
+      const { data: digestRows, error: errDigest } = await supabase
+        .rpc('get_noon_digest_candidates');
 
-    if (nudgeUserRows && nudgeUserRows.length > 0) {
-      const groupedNudges: Record<string, any[]> = {};
-      
-      for (const row of nudgeUserRows) {
-        if (!groupedNudges[row.user_id]) {
-          groupedNudges[row.user_id] = [];
-        }
-        groupedNudges[row.user_id].push({
-          endpoint: row.endpoint,
-          keys: {
-            p256dh: row.p256dh,
-            auth: row.auth
-          }
-        });
+      if (errDigest) {
+        throw new Error(`Failed to query noon digest candidates via RPC: ${errDigest.message}`);
       }
 
-      const dailyNudgeTexts = [
-        "سلااام! رفیق هکسر رو فراموش نکردی که؟ کارهایِ امروزت منتظرتن! 🚀",
-        "هوی رفیق! بدو بیا هکسر رو چک کن، امروز کلی هدف داری که باید تیک بزنی! 😉",
-        "امروز قراره بترکونی یا چی؟ کارهاتو ردیف کردی؟ یه سر به هکسر بزن. 🌟",
-        "برنامه‌هات برای امروز چیه؟ هکسر آماده‌ست تا کمکت کنه تیکِ همه‌شون رو بزنی. ⚡",
-        "سلام رفیق! نذار کارهات کوه بشن. همین الان بیا و یکی‌شون رو تموم کن. ✌️"
-      ];
+      if (digestRows && digestRows.length > 0) {
+        const groupedDigests: Record<string, { subs: any[]; openToday: number; overdue: number }> = {};
 
-      for (const userId of Object.keys(groupedNudges)) {
-        const subs = groupedNudges[userId];
-        const randIndex = Math.floor(Math.random() * dailyNudgeTexts.length);
-        const nudgeBody = dailyNudgeTexts[randIndex];
-        const nudgeTitle = "👋 یادآوری روزانه";
-        const nudgeMessageId = `nudge-${userId}-${tehranDateStr}`;
+        for (const row of digestRows) {
+          if (!groupedDigests[row.user_id]) {
+            groupedDigests[row.user_id] = {
+              subs: [],
+              openToday: row.open_today ?? 0,
+              overdue: row.overdue ?? 0
+            };
+          }
+          groupedDigests[row.user_id].subs.push({
+            endpoint: row.endpoint,
+            keys: {
+              p256dh: row.p256dh,
+              auth: row.auth
+            }
+          });
+        }
 
-        logs.push(`Nudge user ${userId} -> ${subs.length} registrations.`);
+        for (const userId of Object.keys(groupedDigests)) {
+          const item = groupedDigests[userId];
+          const digestTitle = "🕛 یادآوری نیم‌روز";
+          const overduePart = item.overdue > 0 ? ` (${item.overdue}‌تاش عقب‌افتاده‌ست)` : '';
+          const digestBody = `نیم‌روز شد! ${item.openToday} کار امروزت مونده${overduePart}؛ یه سر به لیستت بزن و انجام‌شده‌ها رو تیک بزن! ✅`;
+          // Shared identity with the foreground mirror (same id/tag/ledger).
+          const digestMessageId = `noon-digest-${userId}-${tehranDateStr}`;
 
-        let nudgeSentCount = 0;
-        for (const sub of subs) {
-          try {
-            await webpush.sendNotification(sub, JSON.stringify({
-              title: nudgeTitle,
-              body: nudgeBody,
-              tag: `daily-nudge-${userId}`,
-              messageId: nudgeMessageId,
-              data: { type: 'daily_nudge' }
-            }));
-            nudgeSentCount++;
-            sentCountTotal++;
-          } catch (pushErr: any) {
-            console.error(`Daily Nudge push failed for sub: ${sub.endpoint}`, pushErr);
-            if (pushErr.statusCode === 410 || pushErr.statusCode === 404) {
-              await supabase
-                .from('push_subscriptions')
-                .delete()
-                .eq('endpoint', sub.endpoint);
-              logs.push(`Removed expired daily nudge subscription: ${sub.endpoint}`);
-              cleanedCountTotal++;
-            } else {
-              failedCountTotal++;
+          logs.push(`Noon digest user ${userId} (${item.openToday} today, ${item.overdue} overdue) -> ${item.subs.length} registrations.`);
+
+          let digestSentCount = 0;
+          for (const sub of item.subs) {
+            try {
+              await webpush.sendNotification(sub, JSON.stringify({
+                title: digestTitle,
+                body: digestBody,
+                tag: `noon-digest-${userId}`,
+                messageId: digestMessageId,
+                data: { type: 'noon_digest' }
+              }));
+              digestSentCount++;
+              sentCountTotal++;
+            } catch (pushErr: any) {
+              console.error(`Noon digest push failed for sub: ${sub.endpoint}`, pushErr);
+              if (pushErr.statusCode === 410 || pushErr.statusCode === 404) {
+                await supabase
+                  .from('push_subscriptions')
+                  .delete()
+                  .eq('endpoint', sub.endpoint);
+                logs.push(`Removed expired noon digest subscription: ${sub.endpoint}`);
+                cleanedCountTotal++;
+              } else {
+                failedCountTotal++;
+              }
             }
           }
-        }
 
-        if (nudgeSentCount > 0) {
-          const { error: insErr } = await supabase
-            .from('reminders')
-            .insert({
-              user_id: userId,
-              title: nudgeTitle,
-              body: nudgeBody,
-              remind_at: new Date().toISOString(),
-              type: 'custom',
-              related_entity_type: 'daily_nudge',
-              related_entity_id: null,
-              is_sent: true,
-              is_read: false
-            });
+          if (digestSentCount > 0) {
+            const { error: insErr } = await supabase
+              .from('reminders')
+              .insert({
+                user_id: userId,
+                title: digestTitle,
+                body: digestBody,
+                remind_at: new Date().toISOString(),
+                type: 'custom',
+                related_entity_type: 'noon_digest',
+                related_entity_id: null,
+                is_sent: true,
+                is_read: false
+              });
 
-          if (insErr) console.error(`Failed to record delivered daily nudge ${userId}:`, insErr);
-          else logs.push(`Triggered ${nudgeSentCount} daily nudge(s) for user ${userId}.`);
-        } else {
-          logs.push(`Daily nudge for user ${userId} was not marked sent because every endpoint failed.`);
+            if (insErr) console.error(`Failed to record noon digest ${userId}:`, insErr);
+            else logs.push(`Triggered ${digestSentCount} noon digest(s) for user ${userId}.`);
+          } else {
+            logs.push(`Noon digest for user ${userId} was not marked sent because every endpoint failed.`);
+          }
         }
+      } else {
+        logs.push("No noon digest candidates found.");
       }
-    } else {
-      logs.push("No daily nudge candidates found.");
     }
 
     // Write execution log to push_dispatch_log table

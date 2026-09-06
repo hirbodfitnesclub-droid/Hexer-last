@@ -151,6 +151,10 @@ export const useRealtimeSync = ({
         if (newReminder.related_entity_type === 'task' && newReminder.related_entity_id) {
           const dueEpoch = newReminder.remind_at ? new Date(newReminder.remind_at).getTime() : Date.now();
           messageId = `task-${newReminder.related_entity_id}-${dueEpoch}`;
+        } else if (newReminder.related_entity_type === 'noon_digest') {
+          const { noonDigestId } = await import('../utils/notificationPolicy');
+          const tehranDate = newReminder.remind_at ? getTehranDateString(new Date(newReminder.remind_at)) : getTehranDateString();
+          messageId = noonDigestId(newReminder.user_id, tehranDate);
         } else if (newReminder.related_entity_type === 'daily_nudge' || newReminder.type === 'custom') {
           const tehranDate = newReminder.remind_at ? getTehranDateString(new Date(newReminder.remind_at)) : getTehranDateString();
           messageId = `nudge-${newReminder.user_id}-${tehranDate}`;

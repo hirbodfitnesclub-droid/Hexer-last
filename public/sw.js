@@ -173,6 +173,9 @@ self.addEventListener('push', (event) => {
     badge: '/icon-192.png',
     dir: 'rtl',
     tag: tag,
+    // Re-alert when a same-tag notification (e.g. today's digest) replaces
+    // yesterday's, so replacement never happens silently.
+    renotify: true,
     data: data.data || {}
   };
 
