@@ -1,28 +1,35 @@
 import React, { useMemo } from 'react';
 import { useData } from '../../../contexts/DataContext';
-import { toJalaali, isSameTehranDay } from '../../../utils/dateUtils';
+import {
+  getTehranDateString,
+  getTehranWeekday,
+  isSameTehranDay,
+  shiftTehranYmd,
+  tehranYmdToProbeDate,
+  toJalaaliInTehran,
+} from '../../../utils/dateUtils';
+import { useNow } from '../../../hooks/useNow';
 import { TrendingUpIcon, TrendingDownIcon } from '../../../components/icons';
 
 export const ProductivityChart: React.FC = () => {
   const { tasks } = useData();
+  const now = useNow();
+  const todayYmd = getTehranDateString(now);
 
   // 1. Calculate Persian week days (Saturday to Friday) of the current week
+  // in Asia/Tehran — never from the device OS timezone.
   const weekDays = useMemo(() => {
-    const today = new Date();
     // Get offset from Saturday: Sunday = 1, Monday = 2, ..., Friday = 6, Saturday = 0
-    const offsetFromSaturday = (today.getDay() + 1) % 7;
-    
-    const saturday = new Date(today);
-    saturday.setDate(today.getDate() - offsetFromSaturday);
+    const offsetFromSaturday = (getTehranWeekday(now) + 1) % 7;
+
+    const saturdayYmd = shiftTehranYmd(todayYmd, -offsetFromSaturday);
 
     const days = [];
     for (let i = 0; i < 7; i++) {
-      const d = new Date(saturday);
-      d.setDate(saturday.getDate() + i);
-      days.push(d);
+      days.push(tehranYmdToProbeDate(shiftTehranYmd(saturdayYmd, i)));
     }
     return days.reverse();
-  }, []);
+  }, [now, todayYmd]);
 
   // 2. Compute progress percentage for each day of the current week
   // Today: due_date-based ratio. Past days: immutable history from completed_at.
@@ -63,17 +70,17 @@ export const ProductivityChart: React.FC = () => {
 
   // 4. Compute Monthly Productivity Rate
   const monthlyRate = useMemo(() => {
-    const todayJ = toJalaali(new Date());
+    const todayJ = toJalaaliInTehran(now);
     const currentMonthTasks = tasks.filter((t) => {
       if (!t.due_date) return false;
-      const j = toJalaali(new Date(t.due_date));
+      const j = toJalaaliInTehran(new Date(t.due_date));
       return j.jy === todayJ.jy && j.jm === todayJ.jm;
     });
     const currentMonthCompleted = currentMonthTasks.filter((t) => t.status === 'done');
     return currentMonthTasks.length > 0
       ? Math.round((currentMonthCompleted.length / currentMonthTasks.length) * 100)
       : 0;
-  }, [tasks]);
+  }, [tasks, now]);
 
   // Helper for converting numbers to Persian
   const toPersianNum = (num: number) => num.toLocaleString('fa-IR');
@@ -247,7 +254,7 @@ export const ProductivityChart: React.FC = () => {
             {weekData.map((d, index) => {
               const x = colXStart + index * (colWidth + colGap) + colWidth / 2;
               const daysOfWeek = ['یکشنبه', 'دوشنبه', 'سهشنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه'];
-              const dayName = daysOfWeek[d.day.getDay()];
+              const dayName = daysOfWeek[getTehranWeekday(d.day)];
               return (
                 <text key={index} x={x} y="115">
                   {dayName}

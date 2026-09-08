@@ -1,75 +1,83 @@
 import React, { useMemo } from 'react';
-import { toJalaali, persianMonths, isSameTehranDay } from '../../../utils/dateUtils';
+import {
+  getTehranDateString,
+  persianMonths,
+  toJalaaliInTehran,
+  getTehranWeekday,
+  formatTehranDayNumber,
+  shiftTehranYmd,
+  tehranYmdToProbeDate,
+} from '../../../utils/dateUtils';
+import { useNow } from '../../../hooks/useNow';
 
 interface WeekCalendarProps {
   selectedDate: Date;
   onDateChange: (date: Date) => void;
 }
 
-const getCustomDayName = (date: Date) => {
-  const dayIndex = date.getDay(); // 0 = Sunday, 6 = Saturday
-  switch (dayIndex) {
-    case 6: return 'شنبه';
-    case 0: return 'یکشنبه';
-    case 1: return 'دوشنبه';
-    case 2: return 'سهشنبه';
-    case 3: return 'چهارشنبه';
-    case 4: return 'پنجشنبه';
-    case 5: return 'جمعه';
-    default: return '';
-  }
+// JS-weekday (0=Sunday … 6=Saturday, resolved in Asia/Tehran) → labels.
+const FULL_DAY_NAMES: Record<number, string> = {
+  6: 'شنبه',
+  0: 'یکشنبه',
+  1: 'دوشنبه',
+  2: 'سهشنبه',
+  3: 'چهارشنبه',
+  4: 'پنجشنبه',
+  5: 'جمعه',
 };
 
-const isSameDay = (d1: Date, d2: Date) => {
-  return d1.getFullYear() === d2.getFullYear() &&
-         d1.getMonth() === d2.getMonth() &&
-         d1.getDate() === d2.getDate();
-};
-
-const SHORT_DAY_NAMES: Record<string, string> = {
-  'شنبه': 'شنبه',
-  'یکشنبه': 'یک',
-  'دوشنبه': 'دو',
-  'سهشنبه': 'سه',
-  'چهارشنبه': 'چهار',
-  'پنجشنبه': 'پنج',
-  'جمعه': 'جمعه',
+const SHORT_DAY_NAMES: Record<number, string> = {
+  6: 'شنبه',
+  0: 'یک',
+  1: 'دو',
+  2: 'سه',
+  3: 'چهار',
+  4: 'پنج',
+  5: 'جمعه',
 };
 
 export const WeekCalendar: React.FC<WeekCalendarProps> = ({ selectedDate, onDateChange }) => {
-  const weekDays = useMemo(() => {
-    const days = [];
-    const today = new Date();
-    const startOfWeek = new Date(selectedDate);
-    // Center selected date
-    startOfWeek.setDate(startOfWeek.getDate() - 3);
+  // Live clock: the "today" dot rolls over at Tehran midnight even if the tab
+  // stays open for days (previously `today` was frozen inside the memo below
+  // and only recomputed when selectedDate changed).
+  const now = useNow();
+  const todayYmd = getTehranDateString(now);
+  const selectedYmd = getTehranDateString(selectedDate);
 
+  // Strip is built from Tehran civil days (YYYY-MM-DD in Asia/Tehran), so the
+  // rendered numbers/names never depend on the device OS timezone.
+  const weekDays = useMemo(() => {
+    const startYmd = shiftTehranYmd(selectedYmd, -3);
+
+    const days = [];
     for (let i = 0; i < 7; i++) {
-      const date = new Date(startOfWeek);
-      date.setDate(startOfWeek.getDate() + i);
+      const ymd = shiftTehranYmd(startYmd, i);
+      const date = tehranYmdToProbeDate(ymd);
+      const weekday = getTehranWeekday(date);
       days.push({
+        key: ymd,
         date,
-        isToday: isSameTehranDay(date, today),
-        isSelected: isSameTehranDay(date, selectedDate),
-        dayName: SHORT_DAY_NAMES[getCustomDayName(date)] || getCustomDayName(date),
-        dayNumber: date.toLocaleDateString('fa-IR', { day: 'numeric' }),
+        isToday: ymd === todayYmd,
+        isSelected: ymd === selectedYmd,
+        dayName: SHORT_DAY_NAMES[weekday] ?? '',
+        dayNumber: formatTehranDayNumber(date),
       });
     }
     return days;
-  }, [selectedDate]);
+  }, [selectedYmd, todayYmd]);
 
   const headerInfo = useMemo(() => {
-    const j = toJalaali(selectedDate);
+    const j = toJalaaliInTehran(selectedDate);
     return `${persianMonths[j.jm - 1]} ${j.jy}`;
   }, [selectedDate]);
 
   const nextWeekDays = useMemo(() => {
-    const lastDay = weekDays[weekDays.length - 1].date;
+    const lastYmd = weekDays[weekDays.length - 1].key;
     const days = [];
     for (let i = 1; i <= 7; i++) {
-      const d = new Date(lastDay);
-      d.setDate(lastDay.getDate() + i);
-      days.push(d);
+      const ymd = shiftTehranYmd(lastYmd, i);
+      const d = tehranYmdToProbeDate(ymd);
+      days.push({ key: ymd, date: d });
     }
     return days;
   }, [weekDays]);
@@ -84,9 +92,9 @@ export const WeekCalendar: React.FC<WeekCalendarProps> = ({ selectedDate, onDate
       </div>
       
       <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
-        {weekDays.map(({ date, isSelected, dayNumber, dayName, isToday }) => (
+        {weekDays.map(({ key, date, isSelected, dayNumber, dayName, isToday }) => (
           <button
-            key={date.toISOString()}
+            key={key}
             onClick={() => onDateChange(date)}
             className={`
               group relative flex flex-col items-center justify-between p-1 rounded-2xl transition-all duration-300 h-[64px] sm:h-[70px]
@@ -122,13 +130,13 @@ export const WeekCalendar: React.FC<WeekCalendarProps> = ({ selectedDate, onDate
         <div className="text-[9px] text-muted font-black mb-1.5 px-1">روزهای آینده</div>
         <div className="grid grid-cols-7 gap-1 items-center">
           {/* 7 کپسول کوچک برای روزهای هفته بعد */}
-          {nextWeekDays.map((day, idx) => (
-            <div key={idx} className="flex flex-col items-center justify-between p-0.5 rounded-[8px] h-[42px] bg-[var(--bg-card)]/40 border border-subtle/30 saturate-50">
+          {nextWeekDays.map(({ key, date }) => (
+            <div key={key} className="flex flex-col items-center justify-between p-0.5 rounded-[8px] h-[42px] bg-[var(--bg-card)]/40 border border-subtle/30 saturate-50">
               <span className="text-[7px] font-bold text-muted truncate w-full text-center leading-none mt-0.5">
-                {SHORT_DAY_NAMES[getCustomDayName(day)] || getCustomDayName(day)}
+                {SHORT_DAY_NAMES[getTehranWeekday(date)] ?? FULL_DAY_NAMES[getTehranWeekday(date)] ?? ''}
               </span>
               <span className="text-[10px] font-black leading-none mb-0.5 text-main">
-                {day.toLocaleDateString('fa-IR', { day: 'numeric' })}
+                {formatTehranDayNumber(date)}
               </span>
             </div>
           ))}

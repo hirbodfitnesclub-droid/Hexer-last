@@ -6,10 +6,13 @@ import {
   XIcon, CheckIcon, WarningIcon, CalendarIcon, 
   FlameIcon, ClipboardListIcon, NotebookIcon 
 } from '../../../components/icons';
-import { 
-  getTehranDateString, 
-  formatPersianDate, 
-  compareTehranDates 
+import {
+  getTehranDateString,
+  formatPersianDateInTehran,
+  compareTehranDates,
+  getTehranWeekday,
+  shiftTehranYmd,
+  tehranYmdToProbeDate,
 } from '../../../utils/dateUtils';
 
 interface WeeklyReportModalProps {
@@ -21,33 +24,25 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
   const { tasks } = useData();
   const [activeTab, setActiveTab] = useState<'done' | 'todo'>('done');
 
-  // Time boundaries for the current Jalaali week (Saturday - Friday) in Tehran Time
+  // Time boundaries for the current Jalaali week (Saturday - Friday) in Tehran Time.
+  // Built from Tehran civil days so the result never depends on device OS tz
+  // (the previous UTC+3.5 shift trick broke on timezones like America/New_York).
   const weekBoundaries = useMemo(() => {
-    // 1. Get currentTime in Asia/Tehran
     const now = new Date();
-    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const tehranNow = new Date(utc + (3600000 * 3.5));
-    
-    // 2. Day of week (0: Sunday, 1: Monday, ..., 6: Saturday)
-    const dayOfWeek = tehranNow.getDay();
+    const todayYmd = getTehranDateString(now);
+
+    // Day of week in Tehran (0: Sunday, 1: Monday, ..., 6: Saturday)
+    const dayOfWeek = getTehranWeekday(now);
     const daysSinceSat = (dayOfWeek + 1) % 7;
 
-    const satDate = new Date(tehranNow);
-    satDate.setDate(tehranNow.getDate() - daysSinceSat);
-    satDate.setHours(0, 0, 0, 0);
-
-    const friDate = new Date(satDate);
-    friDate.setDate(satDate.getDate() + 6);
-    friDate.setHours(23, 59, 59, 999);
-
-    const satStr = getTehranDateString(satDate);
-    const friStr = getTehranDateString(friDate);
+    const satStr = shiftTehranYmd(todayYmd, -daysSinceSat);
+    const friStr = shiftTehranYmd(satStr, 6);
 
     return {
       satStr,
       friStr,
-      formattedSat: formatPersianDate(satDate),
-      formattedFri: formatPersianDate(friDate)
+      formattedSat: formatPersianDateInTehran(tehranYmdToProbeDate(satStr)),
+      formattedFri: formatPersianDateInTehran(tehranYmdToProbeDate(friStr))
     };
   }, []);
 
@@ -276,11 +271,11 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
                               <div className="flex items-center gap-1.5 mt-1">
                                 {t.due_date && (
                                   <span className="text-[9px] text-[var(--text-muted)] font-semibold">
-                                    موعد: {formatPersianDate(t.due_date)}
+                                    موعد: {formatPersianDateInTehran(t.due_date)}
                                   </span>
                                 )}
                                 <span className="text-[9px] text-[var(--semantic-success)] font-bold">
-                                  انجام: {formatPersianDate(t.completed_at)}
+                                  انجام: {formatPersianDateInTehran(t.completed_at)}
                                 </span>
                               </div>
                             </div>
@@ -328,7 +323,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
                               <div className="flex items-center gap-1.5 mt-1">
                                 <span className="text-[9px] text-[var(--text-muted)] font-semibold gap-1 flex items-center">
                                   <CalendarIcon className="w-2.5 h-2.5 text-[var(--text-muted)]" />
-                                  سررسید: {formatPersianDate(t.due_date)}
+                                  سررسید: {formatPersianDateInTehran(t.due_date)}
                                 </span>
                               </div>
                             </div>

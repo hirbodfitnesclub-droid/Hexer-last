@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { toJalaali, toGregorian, getDaysInPersianMonth, persianMonths } from '../utils/dateUtils';
+import { toJalaaliInTehran, toGregorian, getDaysInPersianMonth, persianMonths } from '../utils/dateUtils';
 import { ChevronDownIcon } from './icons';
 
 interface PersianDatePickerProps {
@@ -26,15 +26,15 @@ const PersianDatePicker: React.FC<PersianDatePickerProps> = ({ value, onChange }
     if (value) {
       const date = new Date(value);
       if (!isNaN(date.getTime())) {
-        const j = toJalaali(date);
+        const j = toJalaaliInTehran(date);
         setSelectedYear(j.jy);
         setSelectedMonth(j.jm);
         setSelectedDay(j.jd);
       }
     } else {
-        // Default to today
+        // Default to today (Tehran)
         const now = new Date();
-        const j = toJalaali(now);
+        const j = toJalaaliInTehran(now);
         setSelectedYear(j.jy);
         setSelectedMonth(j.jm);
         setSelectedDay(j.jd);
@@ -54,7 +54,7 @@ const PersianDatePicker: React.FC<PersianDatePickerProps> = ({ value, onChange }
   };
 
   // Generate range of years (e.g., current year -5 to +5 or fixed range)
-  const currentYear = toJalaali(new Date()).jy;
+  const currentYear = toJalaaliInTehran(new Date()).jy;
   const years = Array.from({ length: 15 }, (_, i) => currentYear - 2 + i); 
   const days = Array.from({ length: getDaysInPersianMonth(selectedYear, selectedMonth) }, (_, i) => i + 1);
 

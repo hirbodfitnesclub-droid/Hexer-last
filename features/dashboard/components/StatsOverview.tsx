@@ -1,6 +1,14 @@
 import React, { useMemo } from 'react';
 import { useData } from '../../../contexts/DataContext';
-import { getTehranDateString, compareTehranDates, isSameTehranDay } from '../../../utils/dateUtils';
+import {
+  getTehranDateString,
+  compareTehranDates,
+  isSameTehranDay,
+  getTehranWeekday,
+  shiftTehranYmd,
+  tehranYmdToProbeDate,
+} from '../../../utils/dateUtils';
+import { useNow } from '../../../hooks/useNow';
 import { Priority } from '../../../types';
 
 interface StatsOverviewProps {
@@ -11,18 +19,15 @@ interface StatsOverviewProps {
 const CIRCUMFERENCE = 219.9;
 const EMPTY_FILL_RATIO = 0.3;
 
-/** Persian week (Sat→Fri) days for "now" — mirrors ProductivityChart. */
-function getCurrentWeekDays(): Date[] {
-  const today = new Date();
-  const offsetFromSaturday = (today.getDay() + 1) % 7;
-  const saturday = new Date(today);
-  saturday.setDate(today.getDate() - offsetFromSaturday);
+/** Persian week (Sat→Fri) days for "now" in Asia/Tehran — mirrors ProductivityChart. */
+function getCurrentWeekDays(now: Date): Date[] {
+  const todayYmd = getTehranDateString(now);
+  const offsetFromSaturday = (getTehranWeekday(now) + 1) % 7;
+  const saturdayYmd = shiftTehranYmd(todayYmd, -offsetFromSaturday);
 
   const days: Date[] = [];
   for (let i = 0; i < 7; i++) {
-    const d = new Date(saturday);
-    d.setDate(saturday.getDate() + i);
-    days.push(d);
+    days.push(tehranYmdToProbeDate(shiftTehranYmd(saturdayYmd, i)));
   }
   return days;
 }
@@ -76,27 +81,28 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
   onOpenOverdueModal,
 }) => {
   const { tasks } = useData();
+  const now = useNow();
+  const todayYmd = getTehranDateString(now);
 
   // O2-3: weekly ring — independent of selectedDate
   const weekProgress = useMemo(() => {
-    const weekDays = getCurrentWeekDays();
+    const weekDays = getCurrentWeekDays(now);
     const weekTasks = tasks.filter(
       (t) => t.due_date && weekDays.some((wd) => isSameTehranDay(t.due_date!, wd))
     );
     const total = weekTasks.length;
     const completed = weekTasks.filter((t) => t.status === 'done').length;
     return total > 0 ? Math.round((completed / total) * 100) : 0;
-  }, [tasks]);
+  }, [tasks, now]);
 
   const strokeDashoffset = CIRCUMFERENCE - (CIRCUMFERENCE * weekProgress) / 100;
 
   // O2-4: today-at-a-glance metrics (Tehran "today" only)
   const glance = useMemo(() => {
-    const today = new Date();
-    const todayStr = getTehranDateString(today);
+    const todayStr = todayYmd;
 
     const todayTasks = tasks.filter(
-      (t) => t.due_date && isSameTehranDay(t.due_date, today)
+      (t) => t.due_date && isSameTehranDay(t.due_date, now)
     );
     const totalToday = todayTasks.length;
     const doneToday = todayTasks.filter((t) => t.status === 'done').length;
@@ -123,7 +129,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
       countRatio: fillRatio(doneToday, totalToday),
       highRatio: fillRatio(highDoneToday, highTotalToday),
     };
-  }, [tasks]);
+  }, [tasks, now, todayYmd]);
 
   return (
     <div className="flex gap-3 shrink-0 min-h-[145px]" id="stats-overview-container">

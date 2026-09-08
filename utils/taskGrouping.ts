@@ -1,5 +1,5 @@
 import { Task, Priority, Project } from '../types';
-import { getTehranDateString } from './dateUtils';
+import { getTehranDateString, shiftTehranYmd } from './dateUtils';
 
 export type EnrichedTask = Task & { project?: Project };
 
@@ -26,9 +26,9 @@ export const groupTasks = (
 
   if (viewMode === 'agenda') {
     const todayStr = getTehranDateString();
-    const tomorrowDate = new Date();
-    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-    const tomorrowStr = getTehranDateString(tomorrowDate);
+    // +1 on the Tehran civil day (NOT local +24h: near Tehran midnight the two
+    // disagree on far-away OS timezones, e.g. America/New_York).
+    const tomorrowStr = shiftTehranYmd(todayStr, 1);
 
     const groups: Record<string, { active: EnrichedTask[], completed: EnrichedTask[] }> = {
       overdue: { active: [], completed: [] },

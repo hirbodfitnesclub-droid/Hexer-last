@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../../contexts/DataContext';
-import { compareTehranDates, getTehranDateString, formatPersianDate } from '../../../utils/dateUtils';
+import { compareTehranDates, getTehranDateString, formatPersianDateInTehran } from '../../../utils/dateUtils';
+import { useNow } from '../../../hooks/useNow';
 import { Task, Priority } from '../../../types';
 import { 
   X, Calendar, ArrowRight, CheckCircle2, 
@@ -22,7 +23,9 @@ const priorityConfig: Record<string, { label: string; badge: string }> = {
 export const OverdueTasksModal: React.FC<OverdueTasksModalProps> = ({ isOpen, onClose }) => {
   const { tasks, projects, updateTask, addNotification } = useData();
 
-  const todayStr = useMemo(() => getTehranDateString(new Date()), []);
+  // Live Tehran "today" (rolls over at Tehran midnight even if the app stays open).
+  const now = useNow();
+  const todayStr = getTehranDateString(now);
 
   // Filter overdue tasks: not done, has due_date, and due_date is before today
   const overdueTasks = useMemo(() => {
@@ -216,7 +219,7 @@ export const OverdueTasksModal: React.FC<OverdueTasksModalProps> = ({ isOpen, on
                             {/* Overdue Date */}
                             <div className="flex items-center gap-1.5 text-error font-semibold">
                               <Calendar className="w-3.5 h-3.5 shrink-0" />
-                              <span className="text-[11px]">عقب‌افتاده از {formatPersianDate(task.due_date)}</span>
+                              <span className="text-[11px]">عقب‌افتاده از {formatPersianDateInTehran(task.due_date)}</span>
                             </div>
                           </div>
                         </div>

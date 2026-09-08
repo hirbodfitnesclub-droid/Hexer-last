@@ -14,7 +14,7 @@ import {
   getDaysInPersianMonth,
   getTehranDateString,
   persianMonths,
-  toJalaali,
+  toJalaaliInTehran,
 } from '../../../utils/dateUtils';
 
 type EndUi = 'never' | 'on_date' | 'after_n';
@@ -125,7 +125,7 @@ export const RecurrencePickerModal: React.FC<RecurrencePickerModalProps> = ({
     else setMonthDays([1]);
     if (n?.type === 'yearly') setYearDates(n.dates.map((d) => ({ ...d })));
     else {
-      const j = toJalaali(new Date());
+      const j = toJalaaliInTehran(new Date());
       setYearDates([{ month: j.jm, day: j.jd }]);
     }
     const e = endOf(n);
@@ -189,7 +189,7 @@ export const RecurrencePickerModal: React.FC<RecurrencePickerModalProps> = ({
     );
   };
 
-  const jy = toJalaali(new Date()).jy;
+  const jy = toJalaaliInTehran(new Date()).jy;
 
   const handleConfirm = () => {
     if (selectionInvalid) return;
@@ -347,7 +347,7 @@ export const RecurrencePickerModal: React.FC<RecurrencePickerModalProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  const j = toJalaali(new Date());
+                  const j = toJalaaliInTehran(new Date());
                   setYearDates((prev) => [...prev, { month: j.jm, day: j.jd }]);
                 }}
                 className="flex items-center gap-1.5 text-xs font-bold text-[var(--color-primary-text)] min-h-[44px]"

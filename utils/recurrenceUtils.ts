@@ -4,7 +4,7 @@ import {
   TaskRecurrenceEnd,
 } from '../types';
 import {
-  formatPersianDate,
+  formatPersianDateInTehran,
   getDaysInPersianMonth,
   getTehranDateString,
   persianMonths,
@@ -287,9 +287,9 @@ export function describeRecurrenceFa(
   }
 
   if (n.end?.kind === 'on_date') {
-    // show as fa jalaali via formatPersianDate on that civil day noon
+    // show as fa jalaali of that Tehran civil day at noon
     const iso = tehranDayAtWallClock(n.end.date, 12, 0, 0);
-    core += ` · تا ${formatPersianDate(iso)}`;
+    core += ` · تا ${formatPersianDateInTehran(iso)}`;
   } else if (n.end?.kind === 'after_n') {
     const label = remainingOccurrencesLabel(n);
     if (label) core += ` · ${label}`;
@@ -433,7 +433,7 @@ export function isRecurringDoneOlderThan(
 
 export function formatNextDuePreview(iso: string | null | undefined): string {
   if (!iso) return '';
-  const datePart = formatPersianDate(iso);
+  const datePart = formatPersianDateInTehran(iso);
   if (!hasExplicitDueTime(iso)) return datePart;
   const { h, m } = tehranWallClock(new Date(iso));
   const hh = String(h).padStart(2, '0');

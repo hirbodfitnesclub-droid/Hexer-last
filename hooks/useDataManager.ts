@@ -12,7 +12,7 @@ import { completeRecurringTask, runRecurrenceScopeOperation, type RecurrenceScop
 import { useOfflineSync } from './useOfflineSync';
 import { newId } from '../utils/uuid';
 import { hasMeaningfulEdit } from '../utils/taskPatch';
-import { formatPersianDate, isSameTehranDay } from '../utils/dateUtils';
+import { formatPersianDate, getTehranDateString, isSameTehranDay } from '../utils/dateUtils';
 import {
   buildNextRecurrence,
   canContinueRecurrence,
@@ -37,6 +37,37 @@ export const useDataManager = (user: any) => {
   const userId = user?.id;
   const [currentPage, setCurrentPage] = useState<Page>(Page.Dashboard);
   const [selectedDate, setSelectedDate] = useState(new Date());
+
+  // Calendar is ALWAYS Asia/Tehran (independent of device OS timezone).
+  // If the tab stays open across Tehran midnight (or wakes from sleep), advance
+  // selectedDate — but only when the user never navigated away from "today".
+  const tehranTodayYmdRef = useRef(getTehranDateString(new Date()));
+  const selectedDateRef = useRef(selectedDate);
+  useEffect(() => {
+    selectedDateRef.current = selectedDate;
+  }, [selectedDate]);
+  useEffect(() => {
+    const checkTehranRollover = () => {
+      const currentYmd = getTehranDateString(new Date());
+      if (currentYmd !== tehranTodayYmdRef.current) {
+        if (getTehranDateString(selectedDateRef.current) === tehranTodayYmdRef.current) {
+          setSelectedDate(new Date());
+        }
+        tehranTodayYmdRef.current = currentYmd;
+      }
+    };
+    const id = window.setInterval(checkTehranRollover, 60_000);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') checkTehranRollover();
+    };
+    window.addEventListener('focus', checkTehranRollover);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener('focus', checkTehranRollover);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, []);
   
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { id: 'initial', sender: 'ai', text: 'سلام! خوش آمدید. چطور می‌توانم در مدیریت کارهایتان به شما کمک کنم؟' }
