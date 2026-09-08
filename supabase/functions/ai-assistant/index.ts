@@ -273,6 +273,11 @@ Deno.serve(async (req) => {
     ];
  
     // ۶. استعلام پاسخ از مدل هوشمند با استاندارد OpenAI / OpenRouter
+    // NOTE (2026-09-08): reasoning is force-disabled ('none') because
+    // Google rejected thinkingLevel calls on gemini-3.x via OpenRouter with
+    // 400 INVALID_ARGUMENT. thinkingEffort is still computed + reported for
+    // telemetry, but no thinking is requested. Revisit if/when the provider
+    // path is proven healthy again (see model-registry.ts).
     const response = await ai.chat.completions.create({
       model: modelName,
       messages,
@@ -286,7 +291,7 @@ Deno.serve(async (req) => {
       },
       provider: { require_parameters: true },
       max_tokens: modelConfig.maxOutputTokens,
-      reasoning: { effort: thinkingEffort },
+      reasoning: { effort: 'none' },
     });
  
     const choice = response.choices?.[0];
