@@ -330,6 +330,38 @@
         "mode": "auto"
       },
       "expected": "search"
+    },
+    {
+      "id": "intent-042",
+      "input": {
+        "message": "برام تسک بساز",
+        "mode": "memory"
+      },
+      "expected": "create"
+    },
+    {
+      "id": "intent-043",
+      "input": {
+        "message": "یه تسک بزن برای فردا",
+        "mode": "memory"
+      },
+      "expected": "create"
+    },
+    {
+      "id": "intent-044",
+      "input": {
+        "message": "تسک خرید را انجام‌شده بزن",
+        "mode": "memory"
+      },
+      "expected": "mutate"
+    },
+    {
+      "id": "intent-045",
+      "input": {
+        "message": "یادداشت را پیدا کن",
+        "mode": "action"
+      },
+      "expected": "search"
     }
   ]
 }

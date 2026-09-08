@@ -144,6 +144,8 @@ Deno.serve(async (req: Request) => {
 
         const hash = await contentHash(combined);
         const chunks = chunkText(combined);
+        // پیشوند INDEX-DOCUMENT یعنی «ایندکس بعد از ذخیره»، نه سرچ سمنتیک (RAG-QUERY).
+        console.log(`[INDEX-DOCUMENT] embedding ${chunks.length} chunk(s) for ${job.source_type} ${job.source_id}`);
         const embedded = [];
         for (const chunk of chunks) {
           const embedding = await generateEmbedding(ai, chunk.content, 'document');

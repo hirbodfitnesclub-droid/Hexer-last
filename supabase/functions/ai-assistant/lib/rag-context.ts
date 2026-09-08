@@ -23,7 +23,7 @@ export async function buildRagContext(
       filters,
       matchCount: 15,
     });
-    console.log(`RAG engine used: ${engine}, hits: ${hits.length}`);
+    console.log(`[RAG-QUERY] engine used: ${engine}, hits: ${hits.length}`);
 
     const requestedTypes = filters?.types?.length ? new Set(filters.types) : null;
     const cutoff = filters?.timeRange === 'today'
@@ -61,7 +61,7 @@ export async function buildRagContext(
 
     return { contextString: '', citations: [] };
   } catch (error) {
-    console.error('Embedding / RAG Error caught gracefully:', error);
+    console.error('[RAG-QUERY] Embedding / RAG Error caught gracefully:', error);
     return { contextString: '', citations: [] };
   }
 }

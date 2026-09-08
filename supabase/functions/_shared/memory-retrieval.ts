@@ -119,11 +119,11 @@ export async function searchUserMemory(input: {
         );
         if (hits.length > 0) return { hits, engine: 'memory_v2' };
       } catch (v2Error: any) {
-        console.error('memory_v2 search failed, falling back to legacy:', v2Error?.message);
+        console.error('[RAG-QUERY] memory_v2 search failed, falling back to legacy:', v2Error?.message);
       }
     }
   } catch (flagError: any) {
-    console.error('memory_v2 flag check failed, using legacy search:', flagError?.message);
+    console.error('[RAG-QUERY] memory_v2 flag check failed, using legacy search:', flagError?.message);
   }
 
   const hits = await runLegacySearch(input.userClient, input.ai, input.message, matchCount);

@@ -66,8 +66,9 @@ Deno.serve(async (req) => {
     }
 
     // اجرای امبدینگ هوشمند با متد مشترک و هماهنگِ کل سیستم
+    // پیشوند INDEX-DOCUMENT یعنی «ایندکس بعد از ذخیره»، نه سرچ سمنتیک (RAG-QUERY).
     const ai = getGoogleGenAI();
-    console.log(`Generating embedding for ${type} ID: ${id} with consistent model...`);
+    console.log(`[INDEX-DOCUMENT] Generating embedding for ${type} ID: ${id} with consistent model...`);
     
     const embeddingValues = await generateEmbedding(ai, combinedText, 'document');
     if (embeddingValues.length !== 768 || embeddingValues.some((value) => !Number.isFinite(value))) {

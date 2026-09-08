@@ -62,8 +62,12 @@ export function classifyIntent(inputOrMessage: IntentInput | string | null = {},
     ? inputOrMessage
     : { message: inputOrMessage, mode, hasMedia };
   if (input.hasMedia) return 'extract';
-  if (input.mode === 'memory') return 'search';
 
+  // ریشه مشکل «تسک بساز ولی سرچ هم می‌زند» همین‌جا بود:
+  // قبلاً `mode === 'memory'` قبل از بررسی فعل‌ها برمی‌گشت و هر جمله‌ای
+  // (حتی با فعل صریح «بساز») را به search تبدیل می‌کرد.
+  // قرارداد جدید: فعل صریح متن بر چیپ مود غلبه دارد؛ مود فقط وقتی
+  // اعمال می‌شود که متن فعل صریحی نداشته باشد (پیش‌فرض برای ابهام).
   const text = normalizeIntentText(input.message as string | null | undefined);
   const create = includesSignal(text, CREATE_SIGNALS);
   const mutate = includesSignal(text, MUTATE_SIGNALS);
@@ -74,6 +78,7 @@ export function classifyIntent(inputOrMessage: IntentInput | string | null = {},
   if (link) return 'link';
   if (create) return 'create';
   if (search) return 'search';
+  if (input.mode === 'memory') return 'search';
   if (input.mode === 'action') return 'create';
   return 'chat';
 }
@@ -87,7 +92,12 @@ export function needsMeta(intent: AiIntent): boolean {
 }
 
 export function shouldReturnCitations(intent: AiIntent, mode?: AssistantMode): boolean {
-  return mode === 'memory' || needsRag(intent);
+  // فقط search/link سایتیشن برمی‌گردانند. مود memory به‌تنهایی دلیل
+  // برگرداندن citation نیست؛ چون بعد از فیکس بالا، «بساز» در مود
+  // memory هم intent=create می‌شود و نباید کارت مرتبط ببیند.
+  // (پارامتر mode برای سازگاری امضا نگه داشته شده.)
+  void mode;
+  return needsRag(intent);
 }
 
 export function permitsMutation(intent: AiIntent): boolean {

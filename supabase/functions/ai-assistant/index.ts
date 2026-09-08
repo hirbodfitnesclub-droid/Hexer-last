@@ -233,6 +233,10 @@ Deno.serve(async (req) => {
         ? buildRagContext(supabaseClient, supabaseService, user.id, ai, message, filters)
         : Promise.resolve({ contextString: '', citations: [] })
     ]);
+    // لاگ ساخت‌یافته برای تفکیک «سرچ» از «ایندکس بعد از ساخت»:
+    // فقط همین مسیر RAG-QUERY امبدینگ query می‌سازد؛ امبدینگ document
+    // مربوط به vectorize/memory-indexer است و ربطی به این درخواست ندارد.
+    console.log(`[AI:${requestId}] intent=${intent} mode=${mode} needsRag=${needsRag(intent)} ragHits=${ragData.citations.length}`);
 
     const context = `${metaContext}${ragData.contextString}`;
     const systemPrompt = buildSystemPrompt({
@@ -390,7 +394,10 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({
       reply: honest.reply,
-      citations: ragData.citations,
+      // دفاع عمقی: حتی اگر ragData به هر دلیلی پر باشد، برای
+      // create/chat/mutate/extract سایتیشن برنگردان تا زیر پیام
+      // ساخت، کارت «مرتبط» دیده نشود. RAG فقط برای search/link است.
+      citations: needsRag(intent) ? ragData.citations : [],
       actionResults,
       proposals: isProposalMode ? aiResult.proposals : [],
       transcription: aiResult.transcription,

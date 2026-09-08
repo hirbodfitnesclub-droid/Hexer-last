@@ -803,8 +803,10 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
                 {msg.text}
               </div>
               
-              {/* Citations references */}
-              {msg.citations && msg.citations.length > 0 && (
+              {/* Citations references — برای جواب‌های ساخت/تغییر نمایش نده:
+                  بک‌اند هم برای غیر search/link خالی می‌فرستد؛ این گیت دوم
+                  جلوی نمایش کارت «مرتبط» زیر پیام «تسک بساز» را می‌گیرد. */}
+              {msg.citations && msg.citations.length > 0 && !msg.actionResults?.some((r) => r.operation !== 'suggest_link') && (
                 <div className="flex flex-col gap-2 mt-1 items-start">
                   <div className="flex flex-wrap gap-2">
                     {msg.citations.slice(0, 5).map((citation, idx) => (
