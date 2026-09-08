@@ -396,6 +396,15 @@ deno_version = 2
 [functions.sms-hook]
 verify_jwt = false
 
+# Internal workers are invoked service-side with x-worker-secret
+# (VECTORIZE_WORKER_SECRET), never with a user JWT. This mirrors the
+# production setting so CLI/API deploys don't flip it back to true.
+[functions.vectorize]
+verify_jwt = false
+
+[functions.memory-indexer]
+verify_jwt = false
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
