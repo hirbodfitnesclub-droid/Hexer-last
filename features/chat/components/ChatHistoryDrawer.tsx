@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../../services/supabaseClient';
 import { formatPersianDate } from '../../../utils/dateUtils';
-import { BotIcon, XIcon, CalendarIcon, CheckIcon } from '../../../components/icons';
+import { SparklesIcon, XIcon, CalendarIcon, CheckIcon } from '../../../components/icons';
 import { ChatSession } from '../../../types';
 
 interface ChatHistoryDrawerProps {
@@ -47,7 +47,7 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
         {/* Header */}
         <div className="p-4 border-b border-[var(--border-subtle)] flex justify-between items-center sticky top-0 bg-[var(--bg-card)] z-20 rounded-t-3xl">
           <h3 className="text-sm font-bold text-[var(--text-main)] flex items-center gap-2">
-            <BotIcon className="w-5 h-5 text-primary-text" />
+            <SparklesIcon className="w-5 h-5 text-primary-text" />
             تاریخچه گفتگوهای این ماه
           </h3>
           <button 

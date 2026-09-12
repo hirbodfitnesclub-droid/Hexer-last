@@ -3,7 +3,7 @@ import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { ChatMessage, ChatMode, Citation, Task, Note, ActionResult, Project, ChatSession, ExtractionProposal, Page, ChatSearchFilters } from '../../types';
-import { BotIcon, UserIcon, SendIcon, SparklesIcon, TargetIcon, LightbulbIcon, PencilIcon, NotebookIcon, ListChecksIcon, LinkIcon, CheckIcon, BriefcaseIcon, FlameIcon, PaperclipIcon, MicrophoneIcon, CalendarIcon, PlusIcon, XIcon, TrashIcon } from '../../components/icons';
+import { UserIcon, SendIcon, SparklesIcon, TargetIcon, LightbulbIcon, PencilIcon, NotebookIcon, ListChecksIcon, LinkIcon, CheckIcon, BriefcaseIcon, FlameIcon, PaperclipIcon, MicrophoneIcon, CalendarIcon, PlusIcon, XIcon, TrashIcon } from '../../components/icons';
 import { uploadChatMedia } from '../../services/mediaService';
 import { sendChatMessage, extractFromMedia, undoAgentAction } from '../../services/geminiService';
 import { compressImage, dataURLtoBlob } from '../../utils/imageUtils';
@@ -632,7 +632,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
       <div className="p-4 lg:pt-0 border-b border-[var(--border-subtle)] lg:border-b-0 flex flex-col gap-3 bg-[var(--bg-app-glass)] lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none sticky top-0 pt-safe z-10 w-full">
         <div className="flex justify-between items-center w-full">
           <h2 className="text-lg font-bold text-[var(--text-main)] flex items-center gap-2">
-            <BotIcon className="w-6 h-6 text-primary-text" />
+            <SparklesIcon className="w-6 h-6 text-primary-text" />
             دستیار هوشمند هکسر
           </h2>
           <div className="flex gap-2">
@@ -761,7 +761,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
           <div className="flex flex-col items-center justify-center py-10 opacity-100 transition-opacity duration-300">
             <div className="w-20 h-20 bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-full flex items-center justify-center mb-6 relative">
               <div className="absolute inset-0 bg-primary/20 rounded-full animate-pulse"></div>
-              <BotIcon className="w-10 h-10 text-primary-text" />
+              <SparklesIcon className="w-10 h-10 text-primary-text" />
             </div>
             <div className="bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--border-subtle)] shadow-[var(--shadow-card)] rounded-2xl px-6 py-4 mb-8 text-center max-w-xs">
               <h3 className="text-xl font-bold text-[var(--text-main)] mb-2">امروز چطور می‌تونم کمکت کنم؟</h3>
@@ -791,7 +791,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
             className={`flex items-start gap-3 ${msg.sender === 'user' ? 'flex-row-reverse' : ''} transition-opacity duration-300`}
           >
             <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${msg.sender === 'user' ? 'bg-primary/20 text-primary-text border border-primary/30' : 'glass-card text-[var(--text-muted)]'}`}>
-              {msg.sender === 'user' ? <UserIcon className="w-5 h-5 text-primary-text" /> : <BotIcon className="w-5 h-5 text-[var(--text-muted)]" />}
+              {msg.sender === 'user' ? <UserIcon className="w-5 h-5 text-primary-text" /> : <SparklesIcon className="w-5 h-5 text-[var(--text-muted)]" />}
             </div>
             
             <div className={`flex flex-col gap-2 max-w-[85%] ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
@@ -912,7 +912,7 @@ const ChatView: React.FC<ChatViewProps> = ({ onEditTask, onEditNote, onEditProje
         {isLoading && (
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--border-subtle)] flex items-center justify-center flex-shrink-0">
-              <BotIcon className="w-5 h-5 text-[var(--text-muted)]" />
+              <SparklesIcon className="w-5 h-5 text-[var(--text-muted)]" />
             </div>
             <div className="bg-[var(--bg-card)] backdrop-blur-xl border border-[var(--border-subtle)] p-3.5 rounded-2xl rounded-tr-none flex items-center gap-2">
               <div className="w-2.5 h-2.5 bg-[var(--color-primary-text)]/60 rounded-full animate-bounce"></div>

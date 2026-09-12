@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage, ChatMode, Citation, Task, Note, ActionResult, Project, Page } from '../types';
-import { BotIcon, UserIcon, SendIcon, SparklesIcon, TargetIcon, LightbulbIcon, PencilIcon, NotebookIcon, ListChecksIcon, LinkIcon, CheckIcon, BriefcaseIcon, FlameIcon, PaperclipIcon, MicrophoneIcon, CalendarIcon, PlusIcon, XIcon, TrashIcon } from './icons';
+import { UserIcon, SendIcon, SparklesIcon, TargetIcon, LightbulbIcon, PencilIcon, NotebookIcon, ListChecksIcon, LinkIcon, CheckIcon, BriefcaseIcon, FlameIcon, PaperclipIcon, MicrophoneIcon, CalendarIcon, PlusIcon, XIcon, TrashIcon } from './icons';
 import { supabase } from '../services/supabaseClient';
 import { uploadChatMedia } from '../services/mediaService';
 
@@ -392,7 +392,7 @@ const ChatView: React.FC<ChatViewProps> = ({ messages, setMessages, tasks, notes
       <div className="p-4 border-b border-white/10 flex flex-col gap-3 bg-gray-950/80 backdrop-blur-md sticky top-0 z-10">
         <div className="flex justify-between items-center">
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <BotIcon className="w-6 h-6 text-sky-400" />
+            <SparklesIcon className="w-6 h-6 text-sky-400" />
             دستیار هوشمند
             </h2>
              <div className="flex gap-2">
@@ -409,7 +409,7 @@ const ChatView: React.FC<ChatViewProps> = ({ messages, setMessages, tasks, notes
             <div className="flex flex-col items-center justify-center py-10 opacity-0 animate-fade-in-up" style={{animationDelay: '0.2s', opacity: 1}}>
                  <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mb-6 relative">
                     <div className="absolute inset-0 bg-sky-500/20 rounded-full animate-pulse"></div>
-                    <BotIcon className="w-10 h-10 text-sky-400" />
+                    <SparklesIcon className="w-10 h-10 text-sky-400" />
                  </div>
                  <h3 className="text-xl font-bold text-white mb-2">چطور می‌تونم کمکت کنم؟</h3>
                  <p className="text-gray-400 text-sm mb-8 text-center max-w-xs">من می‌تونم کارهات رو مدیریت کنم، یادداشت بردارم و از حافظه‌ام برای جواب دادن به سوالاتت استفاده کنم.</p>
@@ -435,7 +435,7 @@ const ChatView: React.FC<ChatViewProps> = ({ messages, setMessages, tasks, notes
             className={`flex items-start gap-3 ${msg.sender === 'user' ? 'flex-row-reverse' : ''} animate-fade-in-up`}
           >
             <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${msg.sender === 'user' ? 'bg-indigo-600' : 'bg-sky-600'}`}>
-              {msg.sender === 'user' ? <UserIcon className="w-5 h-5 text-white" /> : <BotIcon className="w-5 h-5 text-white" />}
+              {msg.sender === 'user' ? <UserIcon className="w-5 h-5 text-white" /> : <SparklesIcon className="w-5 h-5 text-white" />}
             </div>
             
             <div className={`flex flex-col gap-2 max-w-[85%] ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
@@ -471,7 +471,7 @@ const ChatView: React.FC<ChatViewProps> = ({ messages, setMessages, tasks, notes
         {isLoading && (
           <div className="flex items-start gap-3">
              <div className="w-8 h-8 rounded-full bg-sky-600 flex items-center justify-center flex-shrink-0">
-               <BotIcon className="w-5 h-5 text-white" />
+               <SparklesIcon className="w-5 h-5 text-white" />
             </div>
             <div className="bg-gray-800 p-3 rounded-2xl rounded-tr-none border border-white/5 flex items-center gap-2">
                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>

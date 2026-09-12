@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { User } from '@supabase/supabase-js';
-import { UserIcon, XIcon, ShieldIcon, BellIcon, MoonIcon, SunIcon, LogOutIcon, DownloadIcon, UploadIcon, CheckIcon, BotIcon, SparklesIcon } from './icons';
+import { UserIcon, XIcon, ShieldIcon, BellIcon, MoonIcon, SunIcon, LogOutIcon, DownloadIcon, UploadIcon, CheckIcon, HeadsetIcon, SparklesIcon } from './icons';
 import { exportUserData, importUserData } from '../services/backupService';
 import { requestNotificationPermission, ensurePushSubscription } from '../services/reminderService';
 import { motion, AnimatePresence } from 'motion/react';
@@ -218,7 +218,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, sign
                         >
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-primary/10 rounded-lg text-primary-text">
-                                    <BotIcon className="w-4 h-4" />
+                                    <HeadsetIcon className="w-4 h-4" />
                                 </div>
                                 <span className="text-xs text-[var(--text-main)] font-bold">پشتیبانی و ارسال تیکت</span>
                             </div>

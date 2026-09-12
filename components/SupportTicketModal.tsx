@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { XIcon, SendIcon, CheckIcon, BotIcon } from './icons';
+import { XIcon, SendIcon, CheckIcon } from './icons';
 import { submitTicket, getMyTickets, SupportTicket } from '../services/ticketService';
 
 interface SupportTicketModalProps {
@@ -141,7 +141,7 @@ const SupportTicketModal: React.FC<SupportTicketModalProps> = ({ isOpen, onClose
                         rel="noopener noreferrer"
                         className="w-full h-11 flex items-center justify-center gap-2 bg-primary/10 border border-primary/20 text-primary-text hover:bg-primary/15 rounded-xl text-xs font-bold transition-all"
                     >
-                        <BotIcon className="w-4 h-4 text-primary-text" />
+                        <SendIcon className="w-4 h-4 text-primary-text" />
                         <span>گفتگو مستقیم در تلگرام</span>
                     </a>
 

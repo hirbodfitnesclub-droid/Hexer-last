@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useData } from '../../../contexts/DataContext';
 import { Page } from '../../../types';
-import { BotIcon, MicrophoneIcon, PaperclipIcon, XIcon, SendIcon } from '../../../components/icons';
+import { SparklesIcon, MicrophoneIcon, PaperclipIcon, XIcon, SendIcon } from '../../../components/icons';
 import { setPendingDraft } from '../../chat/composerBridge';
 import { useMediaRecorder } from '../../chat/hooks/useMediaRecorder';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
@@ -130,7 +130,7 @@ export const AiComposerPanel: React.FC = () => {
       {/* Header with bot icon and title */}
       <div className="flex justify-between items-center z-10">
         <div className="flex items-center gap-2">
-          <BotIcon className="w-5 h-5 text-main dark:text-primary-text" />
+          <SparklesIcon className="w-5 h-5 text-main dark:text-primary-text" />
           <h2 className="text-[16px] font-black leading-tight text-main">دستیار هوش مصنوعی هکسر</h2>
         </div>
         {/* Status/Badge */}
