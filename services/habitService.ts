@@ -9,11 +9,28 @@ interface HabitCompletion {
     completion_date: string; // YYYY-MM-DD
 }
 
+const HABIT_SELECT =
+  'id, user_id, name, description, frequency, target_count, created_at, updated_at';
+
+const HABIT_UPDATE_ALLOWED = ['name', 'description', 'frequency', 'target_count'] as const;
+
+const sanitizeHabitUpdate = (updates: HabitUpdate | Record<string, unknown>) => {
+    const src = updates as Record<string, unknown>;
+    const cleanUpdates: Record<string, unknown> = {};
+
+    for (const key of HABIT_UPDATE_ALLOWED) {
+        if (!(key in src) || src[key] === undefined) continue;
+        cleanUpdates[key] = src[key];
+    }
+
+    return cleanUpdates;
+};
+
 export const getHabits = async (): Promise<Habit[]> => {
     // Select explicit columns from the habits table
     const { data: habitsData, error: habitsError } = await supabase
         .from('habits')
-        .select('id, user_id, name, description, frequency, target_count, created_at, updated_at');
+        .select(HABIT_SELECT);
 
     if (habitsError) throw habitsError;
 
@@ -65,7 +82,7 @@ export const createHabit = async (habit: HabitInsert & { id?: string }, id?: str
     const { data, error } = await supabase
         .from('habits')
         .upsert([habitForDb], { onConflict: 'id' })
-        .select()
+        .select(HABIT_SELECT)
         .single();
         
     if (error) throw error;
@@ -78,11 +95,15 @@ export const createHabit = async (habit: HabitInsert & { id?: string }, id?: str
 };
 
 export const updateHabit = async (id: string, updates: HabitUpdate) => {
+    // Canonical whitelist: never send id/user_id/timestamps/version or the
+    // UI-joined completedDates field in the PATCH body.
+    const cleanUpdates = sanitizeHabitUpdate(updates);
+
     const { data, error } = await supabase
         .from('habits')
-        .update(updates)
+        .update(cleanUpdates)
         .eq('id', id)
-        .select()
+        .select(HABIT_SELECT)
         .single();
     
     if (error) throw error;

@@ -5,10 +5,13 @@ import { Note } from '../types';
 type NoteInsert = Omit<Note, 'id' | 'user_id' | 'created_at' | 'updated_at'>;
 type NoteUpdate = Partial<Omit<Note, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
 
+const NOTE_SELECT =
+  'id, user_id, project_id, title, content, tags, created_at, updated_at';
+
 export const getNotes = async (limit: number = 20): Promise<Note[]> => {
   const { data, error } = await supabase
     .from('notes')
-    .select('id, user_id, project_id, title, content, tags, created_at, updated_at')
+    .select(NOTE_SELECT)
     .order('created_at', { ascending: false })
     .range(0, limit - 1);
 
@@ -35,14 +38,25 @@ export const createNote = async (note: NoteInsert & { id?: string }, id?: string
 };
 
 export const updateNote = async (id: string, updates: NoteUpdate) => {
-  // SANITIZATION: Remove potential UI-joined fields
-  const { project, ...cleanUpdates } = updates as any;
+  // Canonical whitelist: never send id/user_id/timestamps/embedding/search_vector
+  // (server-managed or generated columns) or UI-joined fields in the PATCH body.
+  const NOTE_UPDATE_ALLOWED = ['title', 'content', 'tags', 'project_id'] as const;
+  const src = updates as Record<string, unknown>;
+  const cleanUpdates: Record<string, unknown> = {};
+
+  for (const key of NOTE_UPDATE_ALLOWED) {
+    if (!(key in src) || src[key] === undefined) continue;
+    cleanUpdates[key] = src[key];
+  }
+  if ('tags' in cleanUpdates && !Array.isArray(cleanUpdates.tags)) {
+    cleanUpdates.tags = [];
+  }
 
   const { data, error } = await supabase
     .from('notes')
     .update(cleanUpdates)
     .eq('id', id)
-    .select()
+    .select(NOTE_SELECT)
     .single();
 
   if (error) throw error;
