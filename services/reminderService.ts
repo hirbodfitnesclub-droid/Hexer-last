@@ -84,7 +84,9 @@ export async function resolveVapidPublicKey(): Promise<string | undefined> {
   }
 
   try {
-    const { data, error } = await supabase.functions.invoke('push-config');
+    const { data, error } = await supabase.functions.invoke('push-config', {
+      method: 'GET',
+    });
     const key = (data as { publicKey?: unknown } | null)?.publicKey;
     if (!error && typeof key === 'string' && key.length > 0) {
       cachedVapidKey = key;
