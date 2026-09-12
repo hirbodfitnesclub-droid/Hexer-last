@@ -23,7 +23,7 @@ interface ChatViewProps {
 const suggestions = [
   { text: "برنامه امروزم چیه؟", icon: <CalendarIcon className="w-4 h-4 text-sky-400" /> },
   { text: "یک تسک جدید بساز برای...", icon: <ListChecksIcon className="w-4 h-4 text-green-400" /> },
-  { text: "ایده‌های قبلیم رو مرور کن", icon: <LightbulbIcon className="w-4 h-4 text-yellow-400" /> },
+  { text: "ایده‌های قبلیم رو مرور کن", icon: <NotebookIcon className="w-4 h-4 text-yellow-400" /> },
 ];
 
 const ChatView: React.FC<ChatViewProps> = ({ messages, setMessages, tasks, notes, projects, onEditTask, onEditNote, onEditProject, setPage, onInjectResult, onTriggerPaywall }) => {
