@@ -45,12 +45,11 @@ export const NotebookIcon: React.FC<IconProps> = ({ className }) => (
 );
 
 export const SparklesIcon: React.FC<IconProps> = ({ className }) => (
-  <img 
-    src="/ai-stars.png" 
-    alt="AI Stars" 
-    className={`${className || ''} object-contain inline-block scale-[1.35] origin-center`} 
-    referrerPolicy="no-referrer" 
-  />
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+    <path d="M10 7.5c.55 3.9 2.6 5.95 6.5 6.5-3.9.55-5.95 2.6-6.5 6.5-.55-3.9-2.6-5.95-6.5-6.5 3.9-.55 5.95-2.6 6.5-6.5Z" />
+    <path d="M18 3.5c.28 2 1.35 3.07 3.35 3.35-2 .28-3.07 1.35-3.35 3.35-.28-2-1.35-3.07-3.35-3.35 2-.28 3.07-1.35 3.35-3.35Z" />
+    <path d="M18.5 12.5c.4 2.8 1.85 4.25 4.65 4.65-2.8.4-4.25 1.85-4.65 4.65-.4-2.8-1.85-4.25-4.65-4.65 2.8-.4 4.25-1.85 4.65-4.65Z" />
+  </svg>
 );
 
 export const SendIcon: React.FC<IconProps> = ({ className }) => (
